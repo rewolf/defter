@@ -20,9 +20,6 @@ in vec3 in_Position;
 in vec2 in_TexCoord;
 
 out vec2 geom_TexCoord;
-out float geom_camera_height;
-
-out int temp_v;
 
 // GLOBALS
 //--------
@@ -36,13 +33,12 @@ const float HEIGHT 		= 20.0;
 void main(){
 	float height, lod, texToMetre, metreToTex;
 	vec2 texCoord, camera_world, shift, camera_tex;
+	float camera_height;
 
 	camera_tex	= cam_and_shift.xy;
 	shift	 	= cam_and_shift.zw;
-	lod 		= in_Position.z; // z coord used to store mipmap lambda value
 	texToMetre	= scales.x;
 	metreToTex	= scales.y;
-
 
 	// convert camera position to world space
 	camera_world = camera_tex * texToMetre;
@@ -52,8 +48,8 @@ void main(){
 
 	// get the height of vertex, and the height at the camera position
 	// vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= textureLod(heightmap, texCoord, lod).r;
-	geom_camera_height = -20.0;//-textureLod(heightmap, 0.5+camera_tex, .0).r * HEIGHT + 1.8;
+	height 	= texture(heightmap, texCoord).r;
+	camera_height = -texture(heightmap, 0.5+camera_tex, .0).r * HEIGHT - 2.5;
 
 	// set vertex position and height from heightmap
 	gl_Position = vec4(in_Position.x, height*HEIGHT, in_Position.y, 1.0);
@@ -64,7 +60,7 @@ void main(){
 
 	// pos contains the transformed coordinate in eye-space.
 	gl_Position = projection * view * 	
-		(const_list.yxyy * geom_camera_height + gl_Position);
+		(const_list.yxyy * camera_height + gl_Position);
 		
 	geom_TexCoord = texCoord;
 }

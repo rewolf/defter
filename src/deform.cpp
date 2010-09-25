@@ -21,8 +21,8 @@ Deform::Deform(texId* pHeightmap, texId* pNormalmap, int width, int height){
 	glGenTextures(1, &m_heightmap.backup);
 	glBindTexture(GL_TEXTURE_2D, m_heightmap.backup);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -71,6 +71,8 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	glBindTexture(GL_TEXTURE_2D, m_heightmap.current);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	// Set the Shader sampler
 	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/m_heightmap_width);
@@ -90,8 +92,10 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	// Reset viewport and framebuffer as it was
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	

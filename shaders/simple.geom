@@ -4,7 +4,7 @@
 layout(triangles) in;
 
 // Declare the 3esulting primitive type
-layout(triangles, max_vertices=170)  out;
+layout(triangle_strip, max_vertices=170)  out;
 
 
 // Incoming from vertex shader

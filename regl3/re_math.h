@@ -129,6 +129,7 @@ namespace reMath{
 	class vector4{
 	public:
 		vector4();
+		vector4(float x, float y, float z, float w);
 		vector4(const vector4& copy);
 		vector4(const float elems[4]);
 

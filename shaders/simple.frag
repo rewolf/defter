@@ -13,7 +13,7 @@ out vec4 frag_Color;
 // GLOBALS
 //--------
 const vec4 const_fog_col= vec4(.3, .3, .3, 1.0);
-const vec3 light		= -normalize(vec3(.86, -1.2, .5));
+const vec3 light		= -normalize(vec3(.86, -1.4, .5));
 
 //------------------------------------------------------------------------------
 void main(){

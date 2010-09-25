@@ -34,9 +34,9 @@ void main(){
 
 	normalmap = (normalize(cross(tangent, binormal).rbg)+1.0) * .5;
 
-	dist = distance(thingy, in_texCoord);
+	dist = distance(fract(thingy), in_texCoord);
 
-	in_height += exp(-dist*dist*10000)*.1 * scale;
+	in_height += exp(-dist*dist*1000)*.3 * scale;
 
 	new_height = in_height;
 }

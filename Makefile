@@ -2,7 +2,7 @@
 # Source files, Headers for distribution, internal headers
 LIB_SRC_files	= regl3.cpp re_timer.cpp re_input.cpp re_math.cpp re_shader.cpp 
 LIB_HDR_files	= regl3.h re_timer.h re_math.h re_input.h re_shader.h
-SRC_files		= main.cpp deform.cpp  util.cpp skybox.cpp
+SRC_files		= main.cpp deform.cpp  util.cpp skybox.cpp clipmap.cpp
 
 # The compiled object filenames
 LIB_OBJ_files	= $(LIB_SRC_files:.cpp=.o)
