@@ -208,7 +208,7 @@ DefTer::Init(){
 
 	// Load heightmap
 	printf("\tloading heightmap...\n");
-	if (!LoadHeightmap("images/hmap01.png"))
+	if (!LoadHeightmap("images/hmap02.png"))
 		return false;
 	if (!LoadTexturePNG(&m_colormap_tex, &w, &h, "images/hmap01_texture.png"))
 		return false;
@@ -226,7 +226,7 @@ DefTer::Init(){
 	}
 
 	// Create the clipmap
-	m_pClipmap	= new Clipmap(255, .1f, 5, w);
+	m_pClipmap	= new Clipmap(255, .1f, 5, m_heightmap_width);
 	m_pClipmap->init();
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
