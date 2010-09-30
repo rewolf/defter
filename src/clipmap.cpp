@@ -457,6 +457,7 @@ Clipmap::init(){
 	printf("\tVertex count:\t\t\t%d\n",(int)vertices.size());
 	printf("\tIndex count:\t\t\t%d\n",(int)indices.size());
 	printf("\tPrimitive count:\t\t%d\n",(int)indices.size()/3);
+	printf("\tClipmap Memory:\t\t\t%.2fMiB\n", (texcoords.size()*2 + vertices.size()*3 + indices.size())*4 /1024.0f/1024.0f);
 
 	// OpenGL STUFF
 	/////////////////////////////////////

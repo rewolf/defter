@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
 	conf.VSync = false;
 	conf.gl_major = 3;
 	conf.gl_minor = 2;
-	conf.fsaa=4;
+	conf.fsaa=0;
 	conf.sleepTime = .0f;
 	conf.winWidth = 1024;
 	conf.winHeight= 768;
