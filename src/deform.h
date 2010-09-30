@@ -12,19 +12,22 @@ typedef struct {
 	texId		current;
 	texId		backup;
 	texId		normalmap;
+	texId		tangentmap;
 } displacer;
 
 
 class Deform{
 public:
-	Deform (texId* pHeightmap, texId* pNormalmap, int width, int height);
+	Deform (texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int width, int height);
 	~Deform();
 
 	void 		displace_heightmap			(float2 tex_coord, float scale);
+	void 		calculate_normals			(void);
 	void 		bind_displacers				(void);
 
 public:
 	ShaderProg*		m_shDeform;
+	ShaderProg*		m_shNormal;
 	texId* 			m_pHeightmap;
 	displacer		m_heightmap;
 

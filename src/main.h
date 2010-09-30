@@ -25,6 +25,7 @@ public:
 
 	GLuint			m_heightmap_tex;
 	GLuint			m_normalmap_tex;
+	GLuint			m_tangentmap_tex;
 	int				m_heightmap_width;
 	int				m_heightmap_height;
 	GLuint			m_colormap_tex;

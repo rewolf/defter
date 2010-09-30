@@ -86,6 +86,7 @@ DefTer::~DefTer(){
 	RE_DELETE(m_pClipmap);
 	glDeleteTextures(1, &m_heightmap_tex);
 	glDeleteTextures(1, &m_normalmap_tex);
+	glDeleteTextures(1, &m_tangentmap_tex);
 	glDeleteTextures(1, &m_colormap_tex);
 }
 
@@ -209,7 +210,7 @@ DefTer::Init(){
 	printf("\tdone\n");
 
 	// Create the deformer object and skybox
-	m_pDeform = new Deform(&m_heightmap_tex, &m_normalmap_tex, m_heightmap_width, m_heightmap_height);
+	m_pDeform = new Deform(&m_heightmap_tex, &m_normalmap_tex, &m_tangentmap_tex, m_heightmap_width, m_heightmap_height);
 	m_pSkybox = new Skybox();
 
 	if (!m_pDeform->m_no_error){
@@ -228,8 +229,7 @@ DefTer::Init(){
 			m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 	
 	// Generate the normal map
-	float2 t = {.0, .0};
-	m_pDeform->displace_heightmap(t, .0f);
+	m_pDeform->calculate_normals();
 
 	return true;
 }
@@ -288,6 +288,12 @@ DefTer::LoadHeightmap(string filename){
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_heightmap_width, m_heightmap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
+	// Allocate GPU Texture space for tangentmap
+	glGenTextures(1, &m_tangentmap_tex);
+	glBindTexture(GL_TEXTURE_2D, m_tangentmap_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_heightmap_width, m_heightmap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 	glActiveTexture(GL_TEXTURE0);
 	return true;
 }
@@ -340,7 +346,12 @@ DefTer::ProcessInput(float dt){
 
 	// Change the selected deformation location
 	if (clicked && wheel_ticks!=0){
+		glFinish();
+		static reTimer timer;
+		timer.start();
 		m_pDeform->displace_heightmap(clickPos, .1f * wheel_ticks);
+		glFinish();
+		printf("deform time: %.3fms\n", 1000 * timer.getElapsed());
 	}	
 	
 
