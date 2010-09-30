@@ -61,10 +61,15 @@ int main(int argc, char* argv[]){
 	conf.winHeight= 768;
 	DefTer test(conf);
 	
+	int sleepTime = 1000;
 	if (!test.Start())
+	{
 		printf("Application failed to start\n");
+		sleepTime *= 10;
+	}
+
 #ifdef _WIN32
-	Sleep(10000);
+	Sleep(sleepTime);
 #endif
 	return 0;
 }
@@ -345,15 +350,8 @@ DefTer::ProcessInput(float dt){
 	}
 
 	// Change the selected deformation location
-	if (clicked && wheel_ticks!=0){
-		glFinish();
-		static reTimer timer;
-		timer.start();
+	if (clicked && wheel_ticks!=0)
 		m_pDeform->displace_heightmap(clickPos, .1f * wheel_ticks);
-		glFinish();
-		printf("deform time: %.3fms\n", 1000 * timer.getElapsed());
-	}	
-	
 
 	static bool wireframe = false;
 	// Toggle wireframe

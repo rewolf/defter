@@ -128,7 +128,6 @@ reGL3App::InitSDL(){
 	if (!val)
 		printf("No hardware support for SDL\n");
 
-
 	// Enable VSync
 	SDL_GL_SetSwapInterval(m_config.VSync);
 	return true;
