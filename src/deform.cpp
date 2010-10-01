@@ -10,6 +10,7 @@ Deform::Deform(texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int wid
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
 		{1.0f, 1.0f}};
 
+
 	m_no_error = true;
 	m_pHeightmap = pHeightmap;
 	m_heightmap.normalmap = *pNormalmap;
@@ -17,6 +18,7 @@ Deform::Deform(texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int wid
 	m_heightmap.current = *pHeightmap;
 	m_heightmap_width = width;
 	m_heightmap_height = height;
+
 
 	// Create the pingpong texture
 	glGenTextures(1, &m_heightmap.backup);
@@ -26,8 +28,7 @@ Deform::Deform(texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int wid
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
+	
 
 	// Setup heightmap framebuffer
 	glGenFramebuffers(1, &m_fbo_heightmap);
@@ -49,6 +50,18 @@ Deform::Deform(texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int wid
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, renderQuad, GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
+	
+	
+	// Copy original map into backup
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			m_heightmap.current, 0);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glBindTexture(GL_TEXTURE_2D, m_heightmap.backup);
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 0, 0, width, height, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 }
 
 //--------------------------------------------------------
@@ -81,9 +94,13 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	// Set the Shader sampler
+	float2 dimScale = {.5f, .5f};
+
 	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/m_heightmap_width);
 	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "thingy"), tex_coord.u, tex_coord.v);
+	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "stamp_size_scale"), dimScale.u,
+			dimScale.v);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "scale"), scale);
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -106,21 +123,25 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 
-	// Ping pong the textures
-	*m_pHeightmap = m_heightmap.backup;
-	m_heightmap.backup = m_heightmap.current;
-	m_heightmap.current = *m_pHeightmap;
-
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			m_heightmap.backup, 0);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBindTexture(GL_TEXTURE_2D, m_heightmap.current);
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 0, 0, m_heightmap_width, m_heightmap_height, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	// Regenerate normals and tangents
-	calculate_normals();
+	// Regenerate normals and tangent
+	calculate_normals(tex_coord, dimScale);
 }
 //--------------------------------------------------------
 
 void
-Deform::calculate_normals(){
+Deform::calculate_normals(float2 tex_coord, float2 dimScale){
 	int viewport[4];
 
 	// Acquire current viewport origin and extent
@@ -140,6 +161,9 @@ Deform::calculate_normals(){
 	// Set the Shader sampler
 	glUniform1i(glGetUniformLocation(m_shNormal->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shNormal->m_programID, "tc_delta"), 1.0f/m_heightmap_width);
+	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "thingy"), tex_coord.u, tex_coord.v);
+	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "stamp_size_scale"), dimScale.u,
+			dimScale.v);
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,

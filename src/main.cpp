@@ -172,7 +172,7 @@ DefTer::InitGL(){
 	glUseProgram(m_shMain->m_programID);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"),0);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"),1);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),2);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap")	,2);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
@@ -234,7 +234,9 @@ DefTer::Init(){
 			m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 	
 	// Generate the normal map
-	m_pDeform->calculate_normals();
+	float2 centre = { .5,  .5};
+	float2 scale  = {1.0, 1.0};
+	m_pDeform->calculate_normals(centre, scale);
 
 	return true;
 }

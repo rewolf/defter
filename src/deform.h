@@ -22,7 +22,7 @@ public:
 	~Deform();
 
 	void 		displace_heightmap			(float2 tex_coord, float scale);
-	void 		calculate_normals			(void);
+	void 		calculate_normals			(float2 tex_coord, float2 scale);
 	void 		bind_displacers				(void);
 
 public:
