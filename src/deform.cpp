@@ -128,11 +128,13 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 			m_heightmap.backup, 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBindTexture(GL_TEXTURE_2D, m_heightmap.current);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 0, 0, m_heightmap_width, m_heightmap_height, 0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
+	int copyW = (int)ceil(dimScale.u * m_heightmap_width) ;
+	int copyH = (int)ceil(dimScale.v * m_heightmap_height);
+	int copyX = (int)(m_heightmap_width * tex_coord.u) - copyW/2;
+	int copyY = (int)(m_heightmap_height * tex_coord.v) - copyH/2;
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Regenerate normals and tangent
