@@ -94,7 +94,7 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	// Set the Shader sampler
-	float2 dimScale = {.5f, .5f};
+	float2 dimScale = {400.0f/m_heightmap_width, 400.0f/m_heightmap_height};
 
 	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/m_heightmap_width);
