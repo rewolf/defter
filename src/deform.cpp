@@ -4,7 +4,6 @@
 #include "re_shader.h"
 #include "deform.h"
 
-
 //--------------------------------------------------------
 Deform::Deform(texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int width, int height){
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
@@ -122,18 +121,33 @@ Deform::displace_heightmap(float2 tex_coord, float scale){
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-
+	// Setup textures to copy heightmap changes to the other map
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
 	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 			m_heightmap.backup, 0);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBindTexture(GL_TEXTURE_2D, m_heightmap.current);
 
+	// Move the clicked texture coordinate back to between [0,1]
+	if (tex_coord.u > 1.0f)
+		tex_coord.u -= int(tex_coord.u);
+	if (tex_coord.v > 1.0f)
+		tex_coord.v -= int(tex_coord.v);
+	if (tex_coord.u < .0f)
+		tex_coord.u -= int(tex_coord.u) - 1;
+	if (tex_coord.v < .0f)
+		tex_coord.v -= int(tex_coord.v) - 1;
+	// Setup the regions for copying
 	int copyW = (int)ceil(dimScale.u * m_heightmap_width) ;
 	int copyH = (int)ceil(dimScale.v * m_heightmap_height);
-	int copyX = (int)(m_heightmap_width * tex_coord.u) - copyW/2;
-	int copyY = (int)(m_heightmap_height * tex_coord.v) - copyH/2;
+	int copyX = max(0, (int)(m_heightmap_width * tex_coord.u) - copyW/2);
+	int copyY = max(0, (int)(m_heightmap_height * tex_coord.v) - copyH/2);
+	// Make sure it's not out of bounds
+	copyW = copyX + copyW > m_heightmap_width-1 ? m_heightmap_width - copyX : copyW;
+	copyH = copyY + copyH > m_heightmap_height-1 ? m_heightmap_height - copyY : copyH;
+	// Copy the changed subimage
 	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	glGenerateMipmap(GL_TEXTURE_2D);
 
