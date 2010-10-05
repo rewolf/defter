@@ -237,6 +237,7 @@ DefTer::Init(){
 	float2 centre = { .5,  .5};
 	float2 scale  = {1.0, 1.0};
 	m_pDeform->calculate_normals(centre, scale);
+	m_pDeform->displace_heightmap(centre, .0f);
 
 	return true;
 }
