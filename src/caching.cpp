@@ -11,4 +11,13 @@ using namespace reMath;
 Caching::Caching(int coarseDim, float clipRes, int highDim, float highRes){
 }
 
+//--------------------------------------------------------
+Caching::~Caching(){
+	delete[] m_Grid;
+}
 
+//--------------------------------------------------------
+void
+Caching::Update (vector2 worldPos){
+	
+}

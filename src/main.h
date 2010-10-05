@@ -22,12 +22,13 @@ public:
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
+	Caching*		m_pCaching;
 
-	GLuint			m_heightmap_tex;
+	GLuint			m_coarsemap_tex;
 	GLuint			m_normalmap_tex;
 	GLuint			m_tangentmap_tex;
-	int				m_heightmap_width;
-	int				m_heightmap_height;
+	int				m_coarsemap_width;
+	int				m_coarsemap_height;
 	GLuint			m_colormap_tex;
 
 	matrix4			m_proj_mat;

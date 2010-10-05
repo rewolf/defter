@@ -36,6 +36,7 @@ using namespace reMath;
 #include "deform.h"
 #include "clipmap.h"
 #include "skybox.h"
+#include "caching.h"
 #include "main.h"
 #include <SDL/SDL_image.h>
 #include <limits.h>
@@ -45,6 +46,8 @@ using namespace reMath;
 #define FAR_PLANE			(1000.0f)
 #define NEAR_PLANE			(.5f)
 
+#define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
+							( p >  b * .5f ? p - b : p))
 
 
 /******************************************************************************
@@ -80,6 +83,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf){
 	m_shMain  = NULL;
 	m_pDeform = NULL;
 	m_pClipmap= NULL;
+	m_pCaching= NULL;
 }
 
 //--------------------------------------------------------
@@ -89,7 +93,8 @@ DefTer::~DefTer(){
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
-	glDeleteTextures(1, &m_heightmap_tex);
+	RE_DELETE(m_pCaching);
+	glDeleteTextures(1, &m_coarsemap_tex);
 	glDeleteTextures(1, &m_normalmap_tex);
 	glDeleteTextures(1, &m_tangentmap_tex);
 	glDeleteTextures(1, &m_colormap_tex);
@@ -215,7 +220,7 @@ DefTer::Init(){
 	printf("\tdone\n");
 
 	// Create the deformer object and skybox
-	m_pDeform = new Deform(&m_heightmap_tex, &m_normalmap_tex, &m_tangentmap_tex, m_heightmap_width, m_heightmap_height);
+	m_pDeform = new Deform(&m_coarsemap_tex, &m_normalmap_tex, &m_tangentmap_tex, m_coarsemap_width, m_coarsemap_height);
 	m_pSkybox = new Skybox();
 
 	if (!m_pDeform->m_no_error){
@@ -226,7 +231,7 @@ DefTer::Init(){
 	}
 
 	// Create the clipmap
-	m_pClipmap	= new Clipmap(255, .1f, 5, m_heightmap_width);
+	m_pClipmap	= new Clipmap(255, .1f, 5, m_coarsemap_width);
 	m_pClipmap->init();
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
@@ -257,8 +262,8 @@ DefTer::LoadHeightmap(string filename){
 	}
 
 	// Get image details
-	m_heightmap_width 	= surface->w;
-	m_heightmap_height	= surface->h;
+	m_coarsemap_width 	= surface->w;
+	m_coarsemap_height	= surface->h;
 	bpp 	= surface->format->BytesPerPixel;
 
 	if (bpp!=1){
@@ -269,8 +274,8 @@ DefTer::LoadHeightmap(string filename){
 
 
 	glActiveTexture(GL_TEXTURE0);
-	glGenTextures(1, &m_heightmap_tex);
-	glBindTexture(GL_TEXTURE_2D, m_heightmap_tex);
+	glGenTextures(1, &m_coarsemap_tex);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap_tex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -281,7 +286,7 @@ DefTer::LoadHeightmap(string filename){
 		return false;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_heightmap_width, m_heightmap_height, 0, GL_RED,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_width, m_coarsemap_height, 0, GL_RED,
 			GL_UNSIGNED_BYTE, surface->pixels);
 
 	// Generate mipmaps
@@ -293,13 +298,13 @@ DefTer::LoadHeightmap(string filename){
 	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &m_normalmap_tex);
 	glBindTexture(GL_TEXTURE_2D, m_normalmap_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_heightmap_width, m_heightmap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_coarsemap_width, m_coarsemap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Allocate GPU Texture space for tangentmap
 	glGenTextures(1, &m_tangentmap_tex);
 	glBindTexture(GL_TEXTURE_2D, m_tangentmap_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_heightmap_width, m_heightmap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_coarsemap_width, m_coarsemap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -388,6 +393,9 @@ DefTer::ProcessInput(float dt){
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 	}
+	static float boundary = m_coarsemap_width * m_pClipmap->m_quad_size;
+	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
+	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 	
 	// Toggle Frustum Culling
 	if (m_input.WasKeyPressed(SDLK_c)){
@@ -427,7 +435,7 @@ DefTer::Render(float dt){
 
 	// Bind coarse heightmap and its corresponding normal and colour maps
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_heightmap_tex);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap_tex);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, m_normalmap_tex);
 	glActiveTexture(GL_TEXTURE2);
