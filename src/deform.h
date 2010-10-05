@@ -6,30 +6,18 @@ typedef struct{
 	float u,v;
 } float2;
 
-typedef GLuint texId;
-
-typedef struct {
-	texId		current;
-	texId		backup;
-	texId		normalmap;
-	texId		tangentmap;
-} displacer;
-
 
 class Deform{
 public:
-	Deform (texId* pHeightmap, texId* pNormalmap, texId* pTangentmap, int width, int height);
+	Deform (int coarseDim, int highDim);
 	~Deform();
 
-	void 		displace_heightmap			(float2 tex_coord, float scale);
-	void 		calculate_normals			(float2 tex_coord, float2 scale);
-	void 		bind_displacers				(void);
+	void		displace_heightmap			(TexData texdata, float2 tex_coord, float scale, bool isCoarse);
+	void 		calculate_normals			(TexData texdata, float2 tex_coord, vector2 scale, bool	isCoarse);
 
 public:
 	ShaderProg*		m_shDeform;
 	ShaderProg*		m_shNormal;
-	texId* 			m_pHeightmap;
-	displacer		m_heightmap;
 
 	// FBOs
 	GLuint			m_fbo_heightmap;
@@ -38,8 +26,8 @@ public:
 	GLuint			m_vao;
 	GLuint			m_vbo;
 
-	int				m_heightmap_width;
-	int				m_heightmap_height;
+	int				m_coarseDim;
+	int				m_highDim;
 
 	bool			m_no_error;
 };

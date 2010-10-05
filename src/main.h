@@ -24,11 +24,8 @@ public:
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
 
-	GLuint			m_coarsemap_tex;
-	GLuint			m_normalmap_tex;
-	GLuint			m_tangentmap_tex;
-	int				m_coarsemap_width;
-	int				m_coarsemap_height;
+	TexData			m_coarsemap;
+	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
 	matrix4			m_proj_mat;

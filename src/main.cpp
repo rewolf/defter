@@ -29,18 +29,18 @@
 class Deform;
 
 #include <vector>
+#include <limits.h>
 #include "regl3.h"
+#include <SDL/SDL_image.h>
 #include "re_math.h"
 using namespace reMath;
 #include "re_shader.h"
+#include "util.h"
 #include "deform.h"
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
 #include "main.h"
-#include <SDL/SDL_image.h>
-#include <limits.h>
-#include "util.h"
 
 #define PI					(3.14159265358f)
 #define FAR_PLANE			(1000.0f)
@@ -48,6 +48,12 @@ using namespace reMath;
 
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
+
+#define HIGH_DIM			(2048)
+#define CLIPMAP_DIM			(255)
+#define CLIPMAP_RES			(.1f)
+#define CLIPMAP_LEVELS		(5)
+#define HIGH_RES			(CLIPMAP_RES/3.0f)
 
 
 /******************************************************************************
@@ -94,9 +100,9 @@ DefTer::~DefTer(){
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
-	glDeleteTextures(1, &m_coarsemap_tex);
-	glDeleteTextures(1, &m_normalmap_tex);
-	glDeleteTextures(1, &m_tangentmap_tex);
+	glDeleteTextures(1, &m_coarsemap.heightmap);
+	glDeleteTextures(1, &m_coarsemap.normalmap);
+	glDeleteTextures(1, &m_coarsemap.tangentmap);
 	glDeleteTextures(1, &m_colormap_tex);
 }
 
@@ -220,7 +226,7 @@ DefTer::Init(){
 	printf("\tdone\n");
 
 	// Create the deformer object and skybox
-	m_pDeform = new Deform(&m_coarsemap_tex, &m_normalmap_tex, &m_tangentmap_tex, m_coarsemap_width, m_coarsemap_height);
+	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM);
 	m_pSkybox = new Skybox();
 
 	if (!m_pDeform->m_no_error){
@@ -231,10 +237,10 @@ DefTer::Init(){
 	}
 
 	// Create Caching System
-	m_pCaching  = new Caching(255, m_coarsemap_width, .1f, 2048, .1f/3);
+	m_pCaching  = new Caching(CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
 
 	// Create the clipmap
-	m_pClipmap	= new Clipmap(255, .1f, 5, m_coarsemap_width);
+	m_pClipmap	= new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
 	m_pClipmap->init();
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
@@ -243,9 +249,10 @@ DefTer::Init(){
 	
 	// Generate the normal map
 	float2 centre = { .5,  .5};
-	float2 scale  = {1.0, 1.0};
-	m_pDeform->calculate_normals(centre, scale);
-	m_pDeform->displace_heightmap(centre, .0f);
+	vector2 scale(1.0);
+
+	m_pDeform->calculate_normals(m_coarsemap, centre, scale, true);
+	m_pDeform->displace_heightmap(m_coarsemap, centre, .0f, true);
 
 	return true;
 }
@@ -265,8 +272,7 @@ DefTer::LoadHeightmap(string filename){
 	}
 
 	// Get image details
-	m_coarsemap_width 	= surface->w;
-	m_coarsemap_height	= surface->h;
+	m_coarsemap_dim 	= surface->w;
 	bpp 	= surface->format->BytesPerPixel;
 
 	if (bpp!=1){
@@ -277,8 +283,8 @@ DefTer::LoadHeightmap(string filename){
 
 
 	glActiveTexture(GL_TEXTURE0);
-	glGenTextures(1, &m_coarsemap_tex);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap_tex);
+	glGenTextures(1, &m_coarsemap.heightmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -289,7 +295,7 @@ DefTer::LoadHeightmap(string filename){
 		return false;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_width, m_coarsemap_height, 0, GL_RED,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,
 			GL_UNSIGNED_BYTE, surface->pixels);
 
 	// Generate mipmaps
@@ -299,15 +305,15 @@ DefTer::LoadHeightmap(string filename){
 
 	// Allocate GPU Texture space for normalmap
 	glActiveTexture(GL_TEXTURE1);
-	glGenTextures(1, &m_normalmap_tex);
-	glBindTexture(GL_TEXTURE_2D, m_normalmap_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_coarsemap_width, m_coarsemap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenTextures(1, &m_coarsemap.normalmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Allocate GPU Texture space for tangentmap
-	glGenTextures(1, &m_tangentmap_tex);
-	glBindTexture(GL_TEXTURE_2D, m_tangentmap_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, m_coarsemap_width, m_coarsemap_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenTextures(1, &m_coarsemap.tangentmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -362,7 +368,7 @@ DefTer::ProcessInput(float dt){
 
 	// Change the selected deformation location
 	if (clicked && wheel_ticks!=0)
-		m_pDeform->displace_heightmap(clickPos, .1f * wheel_ticks);
+		m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
 
 	static bool wireframe = false;
 	// Toggle wireframe
@@ -396,7 +402,7 @@ DefTer::ProcessInput(float dt){
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 	}
-	static float boundary = m_coarsemap_width * m_pClipmap->m_quad_size;
+	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
 	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
 	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 	
@@ -439,9 +445,9 @@ DefTer::Render(float dt){
 
 	// Bind coarse heightmap and its corresponding normal and colour maps
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap_tex);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_normalmap_tex);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
 	
