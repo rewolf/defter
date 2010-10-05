@@ -95,6 +95,24 @@ Caching::Update (vector2 worldPos){
 		UpdateLoadStatus(true,  region,  tileIndex);
 	}
 
+	// Check all tiles for loading/unloading
+	for (int i = 0; i < m_GridSize * m_GridSize; i++){
+		// If it was loaded
+		if (m_Grid[i].m_LoadedPrevious){
+			// But need not be loaded anymore
+			if (!m_Grid[i].m_LoadedCurrent){
+				// UNLOAD
+			}
+		}
+		// If it wasn't loaded
+		else{
+			// But needs to be!!!
+			if (m_Grid[i].m_LoadedCurrent){
+				// LOAD
+			}
+		}
+	}
+
 	// Identify the new tile region
 	m_RegionPrevious 	= region;
 	m_TileIndexPrevious	= tileIndex;
