@@ -38,3 +38,9 @@ void
 Caching::Update (vector2 worldPos){
 	
 }
+
+//--------------------------------------------------------
+void
+UpdateLoadStatus (bool newStatus, int region){
+
+}

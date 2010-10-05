@@ -28,6 +28,12 @@ namespace reMath{
 	}
 
 	//-------------------------------------------------------------------------
+	// Constructs a vector from the given component
+	vector2::vector2(float xy){
+		x=xy; y=xy;
+	}
+
+	//-------------------------------------------------------------------------
 	// Constructs a vector from the given components
 	vector2::vector2(float _x, float _y){
 		x=_x; y=_y;
@@ -285,6 +291,20 @@ namespace reMath{
 		y=abs(y);
 	}
 
+	//-------------------------------------------------------------------------
+	// Returns a floored version of this vector
+	vector2 
+	vector2::Floor()const{
+		return vector2(floorf(x), floorf(y));
+	}
+
+	//-------------------------------------------------------------------------
+	// Returns a abs version of this vector
+	vector2 
+	vector2::Abs()const{
+		return vector2(abs(x), abs(y));
+	}
+
 
 
 	/**************************************************************************
@@ -295,6 +315,12 @@ namespace reMath{
 	// Constructs a zero vector
 	vector3::vector3(){
 		memset((void*)v, 0, 3*sizeof(float));
+	}
+
+	//-------------------------------------------------------------------------
+	// Constructs a vector from the given component
+	vector3::vector3(float xyz){
+		x=xyz; y=xyz; z=xyz;
 	}
 
 	//-------------------------------------------------------------------------
@@ -576,6 +602,20 @@ namespace reMath{
 		z=abs(z);
 	}
 
+	//-------------------------------------------------------------------------
+	// Returns a floored version of this vector
+	vector3 
+	vector3::Floor()const{
+		return vector3(floorf(x), floorf(y), floorf(z));
+	}
+
+	//-------------------------------------------------------------------------
+	// Returns a abs version of this vector
+	vector3 
+	vector3::Abs()const{
+		return vector3(abs(x), abs(y), abs(z));
+	}
+
 
 
 	/**************************************************************************
@@ -587,6 +627,12 @@ namespace reMath{
 	vector4::vector4(){
 		memset((void*)v, 0, 3*sizeof(float));
 		w=1.0f;
+	}
+
+	//-------------------------------------------------------------------------
+	// Constructs a vector from the given component
+	vector4::vector4(float xyzw){
+		x=xyzw; y=xyzw; z=xyzw; w=xyzw;
 	}
 
 	//-------------------------------------------------------------------------

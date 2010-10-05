@@ -30,6 +30,7 @@ namespace reMath{
 	class vector2{
 	public:
 		vector2();
+		vector2(float xy);
 		vector2(float x, float y);
 		vector2(const vector2& copy);
 		vector2(const float elems[2]);
@@ -69,6 +70,8 @@ namespace reMath{
 
 		void		SetFloor		(void);
 		void		SetAbs			(void);
+		vector2		Floor			(void) const;
+		vector2		Abs				(void) const;
 
 
 	public:
@@ -86,6 +89,7 @@ namespace reMath{
 	class vector3{
 	public:
 		vector3();
+		vector3(float xyz);
 		vector3(float x, float y, float z);
 		vector3(const vector3& copy);
 		vector3(const float elems[3]);
@@ -126,6 +130,8 @@ namespace reMath{
 
 		void		SetFloor		(void);
 		void		SetAbs			(void);
+		vector3		Floor			(void) const;
+		vector3		Abs				(void) const;
 
 
 	public:
@@ -143,6 +149,7 @@ namespace reMath{
 	class vector4{
 	public:
 		vector4();
+		vector4(float xyzw);
 		vector4(float x, float y, float z, float w);
 		vector4(const vector4& copy);
 		vector4(const float elems[4]);
