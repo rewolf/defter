@@ -49,6 +49,9 @@ using namespace reMath;
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
 
+#define SCREEN_W			(1024)
+#define SCREEN_H			(768)
+
 #define HIGH_DIM			(2048)
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
@@ -66,8 +69,8 @@ int main(int argc, char* argv[]){
 	conf.gl_minor = 2;
 	conf.fsaa=0;
 	conf.sleepTime = .0f;
-	conf.winWidth = 1024;
-	conf.winHeight= 768;
+	conf.winWidth = SCREEN_W;
+	conf.winHeight= SCREEN_H;
 	DefTer test(conf);
 	
 	int sleepTime = 1000;
@@ -206,6 +209,7 @@ DefTer::InitGL(){
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
+	"F12\t"		"= Screenshot\n"
 	"==================\n"
 	);
 	return true;
@@ -355,8 +359,6 @@ DefTer::ProcessInput(float dt){
 		p += m_cam_translate;
 		p *= m_pClipmap->m_metre_to_tex;
 		float2 tc = {p.x+.5f, p.z+.5f};
-	//	tc.u = tc.u > 1.0f ? tc.u - int(tc.u) : (tc.u < .0f ? tc.u + 1 - int(tc.u) : tc.u);
-	//	tc.v = tc.v > 1.0f ? tc.v - int(tc.v) : (tc.v < .0f ? tc.v + 1 - int(tc.v) : tc.v);
 
 		clicked = true;
 		clickPos = tc;
@@ -380,6 +382,19 @@ DefTer::ProcessInput(float dt){
 		else{
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
+	}
+
+	// Take screenshot
+	static int lastScreenshot = 1;
+	if (m_input.WasKeyPressed(SDLK_F12)){
+		char filename[256];
+		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
+		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
+
+		sprintf(filename, "screenshot%05d.png", lastScreenshot++);
+		SavePNG(filename, framebuffer, 1, 3, SCREEN_W, SCREEN_H, true);
+
+		delete[] framebuffer;		
 	}
 
 

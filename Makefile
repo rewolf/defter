@@ -28,8 +28,8 @@ OUTFILE		= defter
 
 # Compiler, Archiver and flags
 CXX			= g++
-CFLAGS		= -g -I$(LIB_SRCDIR) -Iproto_src/
-LDFLAGS 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL -lSDL_image  -lGL -lGLU
+CFLAGS		= -O2 -I$(LIB_SRCDIR) -Iproto_src/
+LDFLAGS 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL -lSDL_image  -lGL -lGLU -lpng
 
 
 # default makes prototype, but depends on regl3 not having changed
