@@ -16,9 +16,9 @@ public:
 	void Update				(vector2 worldPos);
 
 private:
-	void UpdateLoadStatus	(bool newStatus, int region);
+	void UpdateLoadStatus	(bool newStatus, int region, vector2 TileIndex);
 
-	int		m_SizeOfGrid;
+	int		m_GridSize;
 	Tile*	m_Grid;
 	float	m_TileSize;
 	float	m_BandWidth;
