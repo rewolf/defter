@@ -11,21 +11,9 @@ Deform::Deform(int coarseDim, int highDim){
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
 		{1.0f, 1.0f}};
 
-
-	m_no_error = true;
-	m_coarseDim = coarseDim;
-	m_highDim = highDim;
-
-/*
-	// Create the pingpong texture
-	glGenTextures(1, &m_heightmap.backup);
-	glBindTexture(GL_TEXTURE_2D, m_heightmap.backup);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	*/
+	m_no_error	= true;
+	m_coarseDim	= coarseDim;
+	m_highDim	= highDim;
 
 	// Setup heightmap framebuffer
 	glGenFramebuffers(1, &m_fbo_heightmap);
@@ -47,18 +35,8 @@ Deform::Deform(int coarseDim, int highDim){
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, renderQuad, GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-	
-	/*
-	// Copy original map into backup
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			m_heightmap.current, 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glBindTexture(GL_TEXTURE_2D, m_heightmap.backup);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 0, 0, width, height, 0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
-	glGenerateMipmap(GL_TEXTURE_2D);
-*/
+
+	m_initialised = false;
 }
 
 //--------------------------------------------------------
@@ -79,25 +57,36 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	GLenum	bpp				= isCoarse ? GL_R16 	 : GL_R8;
 	GLuint	backupTex;
 
-	// Create the pingpong texture
-	glGenTextures(1, &backupTex);
-	glBindTexture(GL_TEXTURE_2D, backupTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, bpp, dim, dim, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	// Copy original map into backup
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			texdata.heightmap, 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glBindTexture(GL_TEXTURE_2D, backupTex);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0, 0, dim, dim, 0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
-	glGenerateMipmap(GL_TEXTURE_2D);
+	// check if doing a high detail deform
+	if (!isCoarse || !m_initialised){
+		// Create the pingpong texture
+		glGenTextures(1, &backupTex);
+		glBindTexture(GL_TEXTURE_2D, backupTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, bpp, dim, dim, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+		// Copy original map into backup
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+				texdata.heightmap, 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glBindTexture(GL_TEXTURE_2D, backupTex);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0, 0, dim, dim, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// set that has been initialised
+		if (!m_initialised && isCoarse){
+			m_initialised = true;
+			m_coarseBackup = backupTex;
+		}
+	}
+	else
+		backupTex = m_coarseBackup;
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -142,13 +131,45 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	// Reset viewport and framebuffer as it was
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	
+
+	if (isCoarse){
+		// Setup textures to copy heightmap changes to the other map
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+				texdata.heightmap, 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glBindTexture(GL_TEXTURE_2D, backupTex);
+
+		// Move the clicked texture coordinate back to between [0,1]
+		if (tex_coord.u > 1.0f)
+			tex_coord.u -= int(tex_coord.u);
+		if (tex_coord.v > 1.0f)
+			tex_coord.v -= int(tex_coord.v);
+		if (tex_coord.u < .0f)
+			tex_coord.u -= int(tex_coord.u) - 1;
+		if (tex_coord.v < .0f)
+			tex_coord.v -= int(tex_coord.v) - 1;
+		// Setup the regions for copying
+		int copyW = (int)ceil(dimScale.x * dim) ;
+		int copyH = (int)ceil(dimScale.y * dim);
+		int copyX = max(0, (int)(dim * tex_coord.u) - copyW/2);
+		int copyY = max(0, (int)(dim * tex_coord.v) - copyH/2);
+		// Make sure it's not out of bounds
+		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
+		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
+		// Copy the changed subimage
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+	}
+
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Regenerate normals and tangent
 	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
 
-	glDeleteTextures(1, &backupTex);
+	if (!isCoarse)
+		glDeleteTextures(1, &backupTex);
 }
 //--------------------------------------------------------
 void

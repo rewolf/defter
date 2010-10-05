@@ -28,6 +28,8 @@ public:
 
 	int				m_coarseDim;
 	int				m_highDim;
+	GLuint			m_coarseBackup;
+	bool			m_initialised;
 
 	bool			m_no_error;
 };

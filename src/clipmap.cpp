@@ -5,6 +5,7 @@
 #include <vector>
 using namespace reMath;
 #include "re_shader.h"
+#include "util.h"
 #include "deform.h"
 #include "clipmap.h"
 
