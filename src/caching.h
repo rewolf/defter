@@ -25,7 +25,7 @@ private:
 	float	m_BandPercent;
 	float	m_CoarseOffset;
 	int		m_RegionPrevious;
-	int		m_RegionCurrent;
+	vector2	m_TileIndexPrevious;
 };
 
 #endif

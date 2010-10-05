@@ -17,6 +17,12 @@ Caching::Caching(int clipDim, int coarseDim, float clipRes, int highDim, float h
 	//Create the grid
 	m_Grid			= new Tile[m_GridSize*m_GridSize];
 
+	for (int i = 0; i < m_GridSize * m_GridSize; i++){
+//		m_Grid[i].m_TexID = 
+		m_Grid[i].m_LoadedPrevious = false;
+		m_Grid[i].m_LoadedCurrent  = false;
+	}
+
 	//Calculate the band values
 	m_BandWidth		= (m_TileSize - (clipDim * clipRes)) * 0.9f;
 	m_BandPercent	= m_BandWidth / m_TileSize;
@@ -25,8 +31,8 @@ Caching::Caching(int clipDim, int coarseDim, float clipRes, int highDim, float h
 	m_CoarseOffset	= coarseDim * clipRes * 0.5f;
 
 	//Set default values
-	m_RegionPrevious= 0;
-	m_RegionCurrent	= 0;
+	m_RegionPrevious	= 0;
+	m_TileIndexPrevious	= vector2(.0f);
 }
 
 //--------------------------------------------------------
@@ -37,6 +43,7 @@ Caching::~Caching(){
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
+	int	region;
 	worldPos          += vector2(m_CoarseOffset);
 	vector2 tilePos    = (worldPos/m_TileSize);
 	// Get the tile index into the array
@@ -49,49 +56,48 @@ Caching::Update (vector2 worldPos){
 	// do this so we can check absolute distance from centre
 	vector2 absTilePos = tilePos.Abs();
 
-	// Identify the new tile region
-	m_RegionPrevious = m_RegionCurrent;
-
 	// Center block
 	if (absTilePos < vector2(m_BandPercent * .5f)){
-		m_RegionCurrent = 4;
+		region = 4;
 	}
 	// Vertical Band
 	else if (absTilePos.x < m_BandPercent * .5f){
 		if (tilePos.y < 0)
-			m_RegionCurrent = 1;
+			region = 1;
 		else
-			m_RegionCurrent = 7;
+			region = 7;
 	}
 	// Horizontal Band
 	else if (absTilePos.y < m_BandPercent * .5f){
 		if (tilePos.x < 0)
-			m_RegionCurrent = 3;
+			region = 3;
 		else
-			m_RegionCurrent = 5;
+			region = 5;
 	}
 	// Quads
 	else {
 		if (tilePos.x < .0f){
 			if (tilePos.y < .0f)
-				m_RegionCurrent = 0;
+				region = 0;
 			else
-				m_RegionCurrent = 6;
+				region = 6;
 		}
 		else{
 			if (tilePos.y < .0f)
-				m_RegionCurrent = 2;
+				region = 2;
 			else
-				m_RegionCurrent = 8;
+				region = 8;
 		}
 	}
 
-	if (m_RegionCurrent != m_RegionPrevious){
-		UpdateLoadStatus(false, m_RegionPrevious, tileIndex);
-		UpdateLoadStatus(true,  m_RegionCurrent,  tileIndex);
+	if (region != m_RegionPrevious){
+		UpdateLoadStatus(false, m_RegionPrevious, m_TileIndexPrevious);
+		UpdateLoadStatus(true,  region,  tileIndex);
 	}
 
-
+	// Identify the new tile region
+	m_RegionPrevious 	= region;
+	m_TileIndexPrevious	= tileIndex;
 }
 
 //--------------------------------------------------------

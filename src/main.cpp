@@ -230,6 +230,9 @@ DefTer::Init(){
 		fprintf(stderr, "Could not create skybox\n");
 	}
 
+	// Create Caching System
+	m_pCaching  = new Caching(255, m_coarsemap_width, .1f, 2048, .1f/3);
+
 	// Create the clipmap
 	m_pClipmap	= new Clipmap(255, .1f, 5, m_coarsemap_width);
 	m_pClipmap->init();
@@ -403,6 +406,7 @@ DefTer::ProcessInput(float dt){
 		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_enabled));
 	}
 
+	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z));
 	reGL3App::ProcessInput(dt);
 }
 
