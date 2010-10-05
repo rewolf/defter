@@ -11,7 +11,7 @@ struct	Tile {
 
 class Caching{
 public:
-	Caching					(int coarseDim, float clipRes, int highDim, float highRes);
+	Caching					(int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
 	void Update				(vector2 worldPos);
 

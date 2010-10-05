@@ -8,7 +8,23 @@ using namespace reMath;
 
 
 //--------------------------------------------------------
-Caching::Caching(int coarseDim, float clipRes, int highDim, float highRes){
-}
+Caching::Caching(int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
+	//Calculate the tile size and grid dimensions
+	m_TileSize		= highDim * highRes;
+	m_SizeOfGrid	= (int)((coarseDim * clipRes) / m_TileSize);
 
+	//Create the grid
+	m_Grid			= new Tile[m_SizeOfGrid*m_SizeOfGrid];
+
+	//Calculate the band values
+	m_BandWidth		= (m_TileSize - (clipDim * clipRes)) * 0.9f;
+	m_BandPercent	= m_BandWidth / m_TileSize;
+
+	//Calculate the offset value for the coarsemap to allow determining of tile index
+	m_CoarseOffset	= coarseDim * clipRes * 0.5f;
+
+	//Set default values
+	m_RegionPrevious= 0;
+	m_RegionCurrent	= 0;
+}
 
