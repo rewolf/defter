@@ -49,6 +49,10 @@ namespace reMath{
 
 		bool		operator==		(const vector2& vec) const;
 		bool		operator!=		(const vector2& vec) const;
+		bool		operator<		(const vector2& vec) const;
+		bool		operator<=		(const vector2& vec) const;
+		bool		operator>		(const vector2& vec) const;
+		bool		operator>=		(const vector2& vec) const;
 
 		float&		operator[]		(int idx) ;
 		string		str				(void);
@@ -62,6 +66,9 @@ namespace reMath{
 
 		void		Normalize		(void);
 		vector2		GetUnit			(void) const;
+
+		void		SetFloor		(void);
+		void		SetAbs			(void);
 
 
 	public:
@@ -98,6 +105,10 @@ namespace reMath{
 
 		bool		operator==		(const vector3& vec) const;
 		bool		operator!=		(const vector3& vec) const;
+		bool		operator<		(const vector3& vec) const;
+		bool		operator<=		(const vector3& vec) const;
+		bool		operator>		(const vector3& vec) const;
+		bool		operator>=		(const vector3& vec) const;
 
 		float&		operator[]		(int idx) ;
 		string		str				(void);
@@ -112,6 +123,9 @@ namespace reMath{
 
 		void		Normalize		(void);
 		vector3		GetUnit			(void) const;
+
+		void		SetFloor		(void);
+		void		SetAbs			(void);
 
 
 	public:

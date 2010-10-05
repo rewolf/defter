@@ -173,6 +173,42 @@ namespace reMath{
 	}
 
 	//-------------------------------------------------------------------------
+	// OPERATOR< tests whether this vector is less than another
+	bool
+	vector2::operator <(const vector2& vec) const{
+		if (x < vec.x && y < vec.y)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR<= tests whether this vector is less than or equal to another
+	bool
+	vector2::operator <=(const vector2& vec) const{
+		if (x <= vec.x && y <= vec.y)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR> tests whether this vector is greater than another
+	bool
+	vector2::operator >(const vector2& vec) const{
+		if (x > vec.x && y > vec.y)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR>= tests whether this vector is greater than or equal to another
+	bool
+	vector2::operator >=(const vector2& vec) const{
+		if (x >= vec.x && y >= vec.y)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
 	// OPERATOR[] returns a reference to the element at the given index
 	float& 
 	vector2::operator [](int idx){
@@ -232,7 +268,25 @@ namespace reMath{
 		float magInv = 1.0f/Mag();
 		return vector2(x*magInv, y*magInv);
 	}
-	
+
+	//-------------------------------------------------------------------------
+	// SETFLOOR floors the values in the vector
+	void 
+	vector2::SetFloor(){
+		x=floorf(x);
+		y=floorf(y);
+	}
+
+	//-------------------------------------------------------------------------
+	// SETABS sets the values to be their absolute form
+	void 
+	vector2::SetAbs(){
+		x=abs(x);
+		y=abs(y);
+	}
+
+
+
 	/**************************************************************************
 	 * vector3 
 	 **************************************************************************/
@@ -400,6 +454,42 @@ namespace reMath{
 	}
 
 	//-------------------------------------------------------------------------
+	// OPERATOR< tests whether this vector is less than another
+	bool
+	vector3::operator <(const vector3& vec) const{
+		if (x < vec.x && y < vec.y && z < vec.z)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR<= tests whether this vector is less than or equal to another
+	bool
+	vector3::operator <=(const vector3& vec) const{
+		if (x <= vec.x && y <= vec.y && z <= vec.z)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR> tests whether this vector is greater than another
+	bool
+	vector3::operator >(const vector3& vec) const{
+		if (x > vec.x && y > vec.y && z > vec.z)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR>= tests whether this vector is greater than or equal to another
+	bool
+	vector3::operator >=(const vector3& vec) const{
+		if (x >= vec.x && y >= vec.y && z >= vec.z)
+			return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
 	// OPERATOR[] returns a reference to the element at the given index
 	float& 
 	vector3::operator [](int idx){
@@ -467,6 +557,26 @@ namespace reMath{
 		float magInv = 1.0f/Mag();
 		return vector3(x*magInv, y*magInv, z*magInv);
 	}
+
+	//-------------------------------------------------------------------------
+	// SETFLOOR floors the values in the vector
+	void 
+	vector3::SetFloor(){
+		x=floorf(x);
+		y=floorf(y);
+		z=floorf(z);
+	}
+
+	//-------------------------------------------------------------------------
+	// SETABS sets the values to be their absolute form
+	void 
+	vector3::SetAbs(){
+		x=abs(x);
+		y=abs(y);
+		z=abs(z);
+	}
+
+
 
 	/**************************************************************************
 	 * vector4 - not fully functional
@@ -615,6 +725,8 @@ namespace reMath{
 		sprintf(out,"[%.2f, %.2f, %.2f, %.2f]",x,y,z,w);
 		return string(out);
 	}
+
+
 
 	/**************************************************************************
 	 * matrix3 
@@ -851,6 +963,8 @@ namespace reMath{
 			 - (m[3] * (m[1] * m[8] - m[7] * m[2]))
 			 + (m[6] * (m[1] * m[5] - m[4] * m[2]));
 	}
+
+
 
 	/**************************************************************************
 	 * matrix4 
@@ -1109,6 +1223,8 @@ namespace reMath{
 		return out;
 	}
 
+
+
 	/******************************************************************************
 	 * Projection Transform Functions
 	 ******************************************************************************/
@@ -1312,6 +1428,8 @@ namespace reMath{
 	close_enough(float f1, float f2){
 		return fabsf((f1 - f2) / ((f2 == 0.0f) ? 1.0f : f2)) < 1e-6f;
 	}
+
+
 
 	/******************************************************************************
 	 * Transform Functions
