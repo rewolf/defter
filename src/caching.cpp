@@ -37,7 +37,61 @@ Caching::~Caching(){
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
-	
+	worldPos          += vector2(m_CoarseOffset);
+	vector2 tilePos    = (worldPos/m_TileSize);
+	// Get the tile index into the array
+	vector2 tileIndex  = tilePos.Floor();
+
+	// Sift out just the fractional part to find location within the tile and offset to centre
+	// so that positive -> right of centre or below centre and negative left or above
+	tilePos -= (tileIndex + vector2(.5f));
+
+	// do this so we can check absolute distance from centre
+	vector2 absTilePos = tilePos.Abs();
+
+	// Identify the new tile region
+	m_RegionPrevious = m_RegionCurrent;
+
+	// Center block
+	if (absTilePos < vector2(m_BandPercent * .5f)){
+		m_RegionCurrent = 4;
+	}
+	// Vertical Band
+	else if (absTilePos.x < m_BandPercent * .5f){
+		if (tilePos.y < 0)
+			m_RegionCurrent = 1;
+		else
+			m_RegionCurrent = 7;
+	}
+	// Horizontal Band
+	else if (absTilePos.y < m_BandPercent * .5f){
+		if (tilePos.x < 0)
+			m_RegionCurrent = 3;
+		else
+			m_RegionCurrent = 5;
+	}
+	// Quads
+	else {
+		if (tilePos.x < .0f){
+			if (tilePos.y < .0f)
+				m_RegionCurrent = 0;
+			else
+				m_RegionCurrent = 6;
+		}
+		else{
+			if (tilePos.y < .0f)
+				m_RegionCurrent = 2;
+			else
+				m_RegionCurrent = 8;
+		}
+	}
+
+	if (m_RegionCurrent != m_RegionPrevious){
+		UpdateLoadStatus(false, m_RegionPrevious, tileIndex);
+		UpdateLoadStatus(true,  m_RegionCurrent,  tileIndex);
+	}
+
+
 }
 
 //--------------------------------------------------------
