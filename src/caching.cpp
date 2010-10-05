@@ -3,13 +3,16 @@
 #include "re_math.h"
 #include "util.h"
 using namespace reMath;
+#include "re_shader.h"
+#include "deform.h"
 #include "caching.h"
 
 #define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
 #define OFFSET(x, y, dim) (y * dim + x)
 
 //--------------------------------------------------------
-Caching::Caching(int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
+Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
+	m_pDeform		= pDeform;
 	//Calculate the tile size and grid dimensions
 	m_TileSize		= highDim * highRes;
 	m_GridSize		= (int)((coarseDim * clipRes) / m_TileSize);

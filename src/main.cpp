@@ -237,7 +237,7 @@ DefTer::Init(){
 	}
 
 	// Create Caching System
-	m_pCaching  = new Caching(CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	m_pCaching  = new Caching(m_pDeform, CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
 
 	// Create the clipmap
 	m_pClipmap	= new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);

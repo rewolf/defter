@@ -4,20 +4,23 @@
 #define _CACHING_H_
 
 struct	Tile {
-	GLuint	m_TexID;
+	TexData	m_texdata;
 	bool	m_LoadedPrevious;
 	bool	m_LoadedCurrent;
+	int		m_texID;
 };
 
 class Caching{
 public:
-	Caching					(int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
+	Caching					(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
 	void Update				(vector2 worldPos);
 
 private:
 	void UpdateLoadStatus	(bool newStatus, int region, vector2 TileIndex);
 
+
+	Deform*	m_pDeform;
 	int		m_GridSize;
 	Tile*	m_Grid;
 	float	m_TileSize;
