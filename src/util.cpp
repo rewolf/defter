@@ -111,7 +111,7 @@ LoadTexturePNG(GLuint* tex, int* width, int* height, string filename){
 
 	surface = IMG_Load(filename.c_str());
 	if (surface == NULL){
-		fprintf(stderr, "Could not load PNG %s: %s\n", filename.c_str(), IMG_GetError());
+		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
 		return false;
 	}
 
@@ -126,14 +126,13 @@ LoadTexturePNG(GLuint* tex, int* width, int* height, string filename){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	if (!CheckError("Loading PNG texture, setting parameters")){
-		printf("Could not load texture: %s\n", filename.c_str());
+		printf("\tFile: %s\n", filename.c_str());
 		return false;
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, *width, *height, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	
-
 	SDL_FreeSurface(surface);
 	return true;
 }
@@ -144,25 +143,33 @@ CheckError(string text){
 	GLuint err = glGetError();
 
 	if (err!=GL_NO_ERROR){
-		fprintf(stderr, "OpenGL Error: ");
+		fprintf(stderr, "\t\tError\n\tOpenGL Error: ");
 		switch(err){
 			case GL_INVALID_ENUM:
-				fprintf(stderr, "Invalid Enum  ");
+				fprintf(stderr, "Invalid Enum");
 				break;
 			case GL_INVALID_VALUE:
-				fprintf(stderr, "Invalid Value  ");
+				fprintf(stderr, "Invalid Value");
 				break;
 			case GL_INVALID_OPERATION:
-				fprintf(stderr, "Invalid Operation  ");
+				fprintf(stderr, "Invalid Operation");
 				break;
 			case GL_INVALID_FRAMEBUFFER_OPERATION:
-				fprintf(stderr, "Invalid FBO operation  ");
+				fprintf(stderr, "Invalid FBO operation");
 				break;
 			case GL_OUT_OF_MEMORY:
-				fprintf(stderr, "Out of Memory  ");
+				fprintf(stderr, "Out of Memory");
+				break;
+			case 0:
+				fprintf(stderr, "Unknown");
 				break;
 		}
-		printf ("[%s]\n", text.c_str());
+
+		// Print out messages only if have one set
+		printf("\n");
+		if (text.length() != 0)
+			printf ("\t[%s]\n", text.c_str());
+
 		return false;
 	}
 	return true;

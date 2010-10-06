@@ -77,7 +77,7 @@ int main(int argc, char* argv[]){
 	int sleepTime = 1000;
 	if (!test.Start())
 	{
-		printf("Application failed to start\n");
+		printf("\nApplication failed to start\n");
 		sleepTime *= 10;
 	}
 
@@ -128,6 +128,11 @@ DefTer::InitGL(){
 	}
 #endif
 
+	printf("\n\n");
+	printf("-----------------------------------------\n");
+	printf("------------Hardware Features------------\n");
+	printf("-----------------------------------------\n");
+
 	// Query some Hardware specs
 	shVersion = (char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &nTexUnits);
@@ -150,21 +155,21 @@ DefTer::InitGL(){
 	printf("Max array texture layers:\t%d\n", nTexLayers);
 	printf("Max vertex attributes:\t\t%d\n", nVertAttribs);
 
+	printf("\n");
+	printf("-----------------------------------------\n");
+	printf("------------Program Launching------------\n");
 	printf("-----------------------------------------\n");
 
-
+	printf("Setting up GL...");
 	glEnable(GL_CULL_FACE);
 	glClearColor(.4f, .4f,1.0f, 1.0f);
-
-	if (!CheckError("Enabling GL settings"))
+	if (!CheckError(""))
 		return false;
+	printf("\t\tDone\n");
 
 	// init projection matrix
 	aspect = float(m_config.winWidth)/m_config.winHeight;
 	m_proj_mat = perspective_proj(PI*.5f, aspect, NEAR_PLANE, FAR_PLANE);
-
-	// Init Camera
-	//m_cam_rotate.y = PI*.5f;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -176,10 +181,10 @@ DefTer::InitGL(){
 	glBindAttribLocation(m_shMain->m_programID, 1, "in_TexCoord");
 
 	// NB. must be done after binding attributes
-	printf("compiling shaders...\n");
+	printf("Compiling shaders...");
 	res = m_shMain->CompileAndLink();
 	if (!res){
-		printf("Will not continue without working shaders\n");
+		printf("\t\tError\n\tWill not continue without working shaders\n");
 		return false;
 	}
 
@@ -192,18 +197,35 @@ DefTer::InitGL(){
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
-	printf("done\n");
+	printf("\t\tDone\n");
 
-	printf("creating geometry...\n");
 	if (!Init())
 		return false;
-	printf("done\n");
 	
-	// Print key commands
+	//Print out some cool stats about the various components
+	printf("\n");
+	printf("-----------------------------------------\n");
+	printf("-------------Some Cool Stats-------------\n");
+	printf("-----------------------------------------\n");
 	printf(
-	"==================\n"
-	"  Key Controls:\n"
-	"==================\n"
+	"Clipmap Stats:\n"
+	"--------------\n"
+	"%s\n"
+	, m_pClipmap->m_clipmap_stats.c_str());
+	
+	/*printf("\n");
+	printf(
+	"Caching Stats:\n"
+	"--------------\n"
+	"%s\n"
+	, m_pCaching->m_caching_stats.c_str());*/
+
+	// Print key commands
+	printf("\n");
+	printf("-----------------------------------------\n");
+	printf("-------------System Controls-------------\n");
+	printf("-----------------------------------------\n");
+	printf(
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
 	"c\t"		"= En/Disable Frustum Culling\n"
@@ -211,8 +233,8 @@ DefTer::InitGL(){
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
 	"F12\t"		"= Screenshot\n"
-	"==================\n"
 	);
+
 	return true;
 }
 
@@ -221,32 +243,47 @@ bool
 DefTer::Init(){
 	int w,h;
 
-
 	// Load heightmap
-	printf("\tloading heightmap...\n");
-	if (!LoadHeightmap("images/hmap02.png"))
+	printf("Loading coarsemap...");
+	if (!LoadCoarseMap("images/hmap02.png"))
 		return false;
+	printf("\t\tDone\n");
+
+	// Load colormap
+	printf("Loading colormap...");
 	if (!LoadTexturePNG(&m_colormap_tex, &w, &h, "images/hmap01_texture.png"))
 		return false;
-	printf("\tdone\n");
+	printf("\t\tDone\n");
 
-	// Create the deformer object and skybox
+	// Create the deformer object
+	printf("Creating deformer...");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM);
-	m_pSkybox = new Skybox();
-
 	if (!m_pDeform->m_no_error){
-		fprintf(stderr, "Could not create deformer\n");
+		fprintf(stderr, "\t\tError\n\tCould not create deformer\n");
 	}
+	printf("\t\tDone\n");
+
+	// Create the skybox object
+	printf("Creating skybox...");
+	m_pSkybox = new Skybox();
 	if (!m_pSkybox->m_no_error){
-		fprintf(stderr, "Could not create skybox\n");
+		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
 	}
+	printf("\t\tDone\n");
 
 	// Create Caching System
-	m_pCaching  = new Caching(m_pDeform, CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	printf("Creating caching system...");
+	m_pCaching = new Caching(m_pDeform, CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	printf("\tDone\n");
 
 	// Create the clipmap
-	m_pClipmap	= new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
+	printf("Creating clipmap...");
+	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
+	printf("\t\tDone\n");
+	printf("Initialising clipmap...");
 	m_pClipmap->init();
+	printf("\t\tDone\n");
+	
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
 	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), 
@@ -256,36 +293,37 @@ DefTer::Init(){
 	float2 centre = { .5,  .5};
 	vector2 scale(1.0);
 
+	printf("Creating initial deform...");
 	m_pDeform->calculate_normals(m_coarsemap, centre, scale, true);
 	m_pDeform->displace_heightmap(m_coarsemap, centre, .0f, true);
+	printf("\tDone\n");
 
 	return true;
 }
 
 //--------------------------------------------------------
-// LOADTEXTURE loads a heightmap from a pgm file into the given texture name.  It assumes there are
-// no comment lines in the file.  The texture has a byte per texel.
+// LOADCOARSEMAP loads a heightmap from a png file for the coarse map.
+// It also allocates memory for the normal and tangent maps.
 bool
-DefTer::LoadHeightmap(string filename){
+DefTer::LoadCoarseMap(string filename){
 	SDL_Surface*  surface;
 	int bpp;
 
 	surface = IMG_Load(filename.c_str());
 	if (surface == NULL){
-		fprintf(stderr, "Could not load heightmap PNG %s: %s\n", filename.c_str(), IMG_GetError());
+		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
 		return false;
 	}
 
 	// Get image details
-	m_coarsemap_dim 	= surface->w;
-	bpp 	= surface->format->BytesPerPixel;
+	m_coarsemap_dim = surface->w;
+	bpp 			= surface->format->BytesPerPixel;
 
 	if (bpp!=1){
-		fprintf(stderr, "Cannot load heightmap files with more than 1 component: %s\n",
+		fprintf(stderr, "\t\tError\n\tCannot load files with more than 1 component: %s\n",
 				filename.c_str());
 		return false;
 	}
-
 
 	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &m_coarsemap.heightmap);
@@ -296,7 +334,7 @@ DefTer::LoadHeightmap(string filename){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	if (!CheckError("Loading PNG heightmap, setting parameters")){
-		fprintf(stderr, "file: %s\n", filename.c_str());
+		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
 
@@ -340,6 +378,7 @@ DefTer::ProcessInput(float dt){
 		//yaw
 		m_cam_rotate.y += dt*move.x*PI*.1f;
 	}
+
 	// Change the selected deformation location
 	if (m_input.IsButtonPressed(3)){
 		MousePos pos = m_input.GetMousePos();
@@ -398,7 +437,6 @@ DefTer::ProcessInput(float dt){
 		delete[] framebuffer;		
 	}
 
-
 	float speed = 1.33f;		// in m/s (average walking speed)
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		speed*=30.0f;
@@ -441,7 +479,6 @@ DefTer::Logic(float dt){
 
 	// pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
-
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
@@ -479,4 +516,3 @@ DefTer::Render(float dt){
 
 	SDL_GL_SwapWindow(m_pWindow);
 }
-

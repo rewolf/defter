@@ -49,6 +49,8 @@ public:
 	float		m_metre_to_tex;
 
 	bool 		m_enabled;
+
+	string		m_clipmap_stats;
 };
 
 

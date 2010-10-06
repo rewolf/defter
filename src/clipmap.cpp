@@ -19,7 +19,7 @@ using namespace reMath;
 Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 	if ( ((nVerts + 1) & nVerts ) != 0){
 		int pot = 1<<int(ceil(log2(nVerts+1)));
-		printf("\tWARNING: nVerts must be an integer  2^k - 1, Rounding up %d -> %d\n", nVerts, pot-1);
+		printf("\t\tWarning\n\tnVerts must be an integer  2^k - 1, Rounding up %d -> %d\n\t\t", nVerts, pot-1);
 		nVerts = pot-1;
 	}
 
@@ -43,13 +43,19 @@ Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 	m_metre_to_tex 	= m_texel_size/quad_size;
 	m_tex_to_metre 	= 1.0f/m_metre_to_tex;
 
-	// Output settings to stdout
-	printf("\tClipmap levels:\t\t\t%d\n", 		m_nLevels);
-	printf("\tFinest quad size:\t\t%.3fm\n", 		m_quad_size);
-	printf("\tVertices per ring-side:\t\t%d\n",	m_N);
-	printf("\tSample distance:\t\t%.3f\n",		m_texel_size);
-	printf("\tEffective heightmap size:\t%.2f\n", heightmap_dim * quad_size);
+	m_clipmap_stats = "";
+	// Output settings to string
+	stringstream sstr;
+	sstr.setf(ios::fixed, ios::floatfield);
+	sstr.precision(3);
+	sstr << "Clipmap levels:\t\t\t"			<< m_nLevels				<< "\n";
+	sstr << "Finest quad size:\t\t"			<< m_quad_size				<< "m\n";
+	sstr << "Vertices per ring-side:\t\t"	<< m_N						<< "\n";
+	sstr << "Sample distance:\t\t"			<< m_texel_size				<< "m\n";
+	sstr.precision(2);
+	sstr << "Effective heightmap size:\t"	<< heightmap_dim * quad_size<< "m\n";
 
+	m_clipmap_stats += sstr.str();
 }
 
 
@@ -454,11 +460,16 @@ Clipmap::init(){
 	m_draw_count[0]	 = m_min_draw_count;
 	m_draw_starts[0] = 0;
 
-	printf("\tFurthest point:\t\t\t%.2f\n",	-ffar*quad_size);
-	printf("\tVertex count:\t\t\t%d\n",(int)vertices.size());
-	printf("\tIndex count:\t\t\t%d\n",(int)indices.size());
-	printf("\tPrimitive count:\t\t%d\n",(int)indices.size()/3);
-	printf("\tClipmap Memory:\t\t\t%.2fMiB\n", (texcoords.size()*2 + vertices.size()*3 + indices.size())*4 /1024.0f/1024.0f);
+
+	stringstream sstr;
+	sstr.setf(ios::fixed, ios::floatfield);
+	sstr.precision(2);
+	sstr << "Furthest point:\t\t\t" << -ffar*quad_size << "m\n";
+	sstr << "Vertex count:\t\t\t" << (int)vertices.size() << "\n";
+	sstr << "Index count:\t\t\t" << (int)indices.size() << "\n";
+	sstr << "Primitive count:\t\t" << (int)indices.size()/3 << "\n";
+	sstr << "Clipmap Memory:\t\t\t" << (texcoords.size()*2 + vertices.size()*3 + indices.size())*4 /1024.0f/1024.0f << "MiB\n";
+	m_clipmap_stats += sstr.str();
 
 	// OpenGL STUFF
 	/////////////////////////////////////
@@ -559,8 +570,5 @@ Clipmap::render(){
 	glBindVertexArray(m_vao);
 	for (int i = 0; i < m_primcount; i++)
 		glDrawElements(GL_TRIANGLES, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
-
-	//glMultiDrawElements(GL_TRIANGLES, ( GLsizei*)(m_draw_count), 
-	//	GL_UNSIGNED_INT, (const GLvoid**)(m_draw_starts), m_primcount);
 }
 

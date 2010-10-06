@@ -16,6 +16,8 @@ public:
 	~Caching				(void);
 	void Update				(vector2 worldPos);
 
+	string					m_caching_stats;
+
 private:
 	void UpdateLoadStatus	(bool newStatus, int region, vector2 TileIndex);
 

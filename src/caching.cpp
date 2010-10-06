@@ -36,6 +36,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	//Set default values
 	m_RegionPrevious	= 0;
 	m_TileIndexPrevious	= vector2(.0f);
+	m_caching_stats = "";
 }
 
 //--------------------------------------------------------

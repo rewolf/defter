@@ -15,7 +15,7 @@ private:
 	bool		Init			(void);
 	bool		InitGL			(void);
 
-	bool		LoadHeightmap	(string filename); 
+	bool		LoadCoarseMap	(string filename); 
 
 public:
 	ShaderProg*		m_shMain;	// use the provided shader program class
