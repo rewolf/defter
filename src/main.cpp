@@ -24,6 +24,7 @@
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
 #	pragma comment(lib, "sdl_image.lib")
+#	pragma comment(lib, "libpng.lib")
 #endif
 
 class Deform;
