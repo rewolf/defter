@@ -51,7 +51,8 @@ Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 	sstr << "Clipmap levels:\t\t\t"			<< m_nLevels				<< "\n";
 	sstr << "Finest quad size:\t\t"			<< m_quad_size				<< "m\n";
 	sstr << "Vertices per ring-side:\t\t"	<< m_N						<< "\n";
-	sstr << "Sample distance:\t\t"			<< m_texel_size				<< "m\n";
+	sstr.precision(4);
+	sstr << "Sampling distance:\t\t"		<< m_texel_size				<< "	\n";
 	sstr.precision(2);
 	sstr << "Effective heightmap size:\t"	<< heightmap_dim * quad_size<< "m\n";
 

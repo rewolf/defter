@@ -233,6 +233,7 @@ DefTer::InitGL(){
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
 	"F12\t"		"= Screenshot\n"
+	"Esc\t"		"= Quit\n"
 	);
 
 	return true;
