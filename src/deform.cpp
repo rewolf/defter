@@ -41,7 +41,6 @@ Deform::Deform(int coarseDim, int highDim){
 
 //--------------------------------------------------------
 Deform::~Deform(){
-	//glDeleteTextures(1, &m_heightmap.backup);
 	glDeleteFramebuffers(1, &m_fbo_heightmap);
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteBuffers(1, &m_vbo);
@@ -79,8 +78,6 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		CheckError("Copying map into backup Tex");
-
 		// set that has been initialised
 		if (!m_initialised && isCoarse){
 			m_initialised = true;
@@ -114,27 +111,18 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 			dimScale.y);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "scale"), scale);
 
-	CheckError("Setting shader settings");
-
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
 
-	CheckError("Binding FBO");
-
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 			texdata.heightmap, 0);
-
-	CheckError("Setting FBO Color attachment");
 
 	// Set the draw buffer
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	// Bind the VAO
 	glBindVertexArray(m_vao);
-
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	CheckError("Rendering");
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -145,8 +133,6 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	
-	CheckError("Reset Viewport");
-
 	if (isCoarse){
 		// Setup textures to copy heightmap changes to the other map
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
@@ -174,20 +160,17 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
-
-		CheckError("Copying coarse map changes");
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	// Regenerate normals and tangent
-	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
-
-	CheckError("Normal Calc");
-
+	//Delete the created memory if need be
 	if (!isCoarse)
 		glDeleteTextures(1, &backupTex);
+
+	// Regenerate normals and tangent
+	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
 }
 //--------------------------------------------------------
 void
@@ -202,6 +185,7 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 	glViewport(0, 0, dim, dim);
 	// Enable the shader
 	glUseProgram(m_shNormal->m_programID);
+
 	// Bind the textures
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
@@ -209,12 +193,14 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
 	// Set the Shader sampler
 	glUniform1i(glGetUniformLocation(m_shNormal->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shNormal->m_programID, "tc_delta"), 1.0f/dim);
 	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "thingy"), tex_coord.u, tex_coord.v);
 	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "stamp_size_scale"), dimScale.x,
 			dimScale.y);
+
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
@@ -230,7 +216,7 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 	}else{
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	}
-
+	
 	// Bind the VAO
 	glBindVertexArray(m_vao);
 

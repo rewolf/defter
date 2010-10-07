@@ -20,6 +20,7 @@ public:
 
 private:
 	void UpdateLoadStatus	(bool newStatus, int region, vector2 TileIndex);
+	void DrawRadar			(void);
 
 
 	Deform*	m_pDeform;
@@ -29,7 +30,9 @@ private:
 	float	m_BandWidth;
 	float	m_BandPercent;
 	float	m_CoarseOffset;
+	int		m_RegionCurrent;
 	int		m_RegionPrevious;
+	vector2	m_TileIndexCurrent;
 	vector2	m_TileIndexPrevious;
 };
 

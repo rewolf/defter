@@ -111,7 +111,7 @@ LoadTexturePNG(GLuint* tex, int* width, int* height, string filename){
 
 	surface = IMG_Load(filename.c_str());
 	if (surface == NULL){
-		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
+		fprintf(stderr, "Error\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
 		return false;
 	}
 
@@ -143,7 +143,7 @@ CheckError(string text){
 	GLuint err = glGetError();
 
 	if (err!=GL_NO_ERROR){
-		fprintf(stderr, "\t\tError\n\tOpenGL Error: ");
+		fprintf(stderr, "Error\n\tOpenGL Error: ");
 		switch(err){
 			case GL_INVALID_ENUM:
 				fprintf(stderr, "Invalid Enum");
@@ -160,16 +160,13 @@ CheckError(string text){
 
 				FBOErr = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 				PrintFBOErr(FBOErr);
-
+				
 				FBOErr = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
 				PrintFBOErr(FBOErr);
 
 				break;
 			case GL_OUT_OF_MEMORY:
 				fprintf(stderr, "Out of Memory");
-				break;
-			case 0:
-				fprintf(stderr, "Unknown");
 				break;
 		}
 
