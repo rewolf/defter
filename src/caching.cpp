@@ -414,6 +414,7 @@ hdd_cacher(void* data){
 		// ------------
 
 		// pop a write request
+		SDL_Delay(10);
 	}
 }
 
