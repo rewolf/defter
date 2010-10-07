@@ -2,105 +2,54 @@
 #include "regl3.h"
 #include <SDL/SDL_image.h>
 #include "util.h"
-#include <png.h>
+#include "FreeImage.h"
 
 //--------------------------------------------------------
 bool
 SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip){
-	int color_type;
-	png_byte** row_pointers = (png_byte**)malloc(sizeof(png_byte*) * h);
 
-	// Setup rows
-	if (!flip)
-		for (int i = 0; i < h; i++)
-			row_pointers[i] = (png_byte*) (data + w * i * bitdepth * components);
-	else
-		for (int i = 0; i < h; i++)
-			row_pointers[h-1-i] = (png_byte*) (data + w * i * bitdepth * components);
+	FIBITMAP* 			image;
+	FREE_IMAGE_TYPE 	type;	// needed in case of 16-bit components
 
-	// open file
-	FILE* fp = fopen(filename, "wb");
-	if (!fp){
-		fprintf(stderr, "Could not open PNG file %s for saving.\n", filename);
+	if (bitdepth == 8) {  // 8-bits per component
+		image = FreeImage_Allocate(w, h, components * bitdepth);
+	} 
+	else if (bitdepth == 16){
+		switch(components){
+			case 1:
+				type = FIT_UINT16;
+				break;
+			case 3:
+				type = FIT_RGB16;		// FreeImage expects  data in BGR format
+				break;
+			case 4:
+				type = FIT_RGBA16;		// FreeImage expects  data in BGRA format
+				break;
+			default:
+				fprintf(stderr, "No support for 2-component textures when saving %s\n", filename);
+				return false;
+		}
+		image = FreeImage_AllocateT(type, w, h);
+	}
+	else{
+		fprintf(stderr, "Invalid bitdepth for %s.  Must be 16 or 32.\n",filename);
 		return false;
 	}
 
-	// create structures for hold png data and info
-	png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png_ptr){
-		fprintf(stderr,"Could not create png_ptr when writing %s\n", filename);
+	if (!image){
+		fprintf(stderr, "Failed to allocate bitmap space for %s\n", filename);
 		return false;
 	}
 
-	png_infop info_ptr = png_create_info_struct(png_ptr);
-	if (!info_ptr)	{
-		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-		fprintf(stderr, "Could not create info_ptr when writing %s\n", filename);
-		return false;
-	}
+	BYTE* bits = (BYTE*) FreeImage_GetBits(image);
+	memcpy(bits, data, bitdepth/8 * components * w * h);
 
-	// Set strange jump location
-	if (setjmp(png_jmpbuf(png_ptr))){
-		png_destroy_write_struct(&png_ptr, &info_ptr);
-		fclose(fp);
-		fprintf(stderr, "Could not set jump when writing %s\n", filename);
-		return false;
-	}
-
-	png_init_io(png_ptr, fp);
-
-	switch(components){
-		case 1:
-			color_type = PNG_COLOR_TYPE_GRAY;
-			break;
-		case 2:
-			color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
-			break;
-		case 3:
-			color_type = PNG_COLOR_TYPE_RGB;
-			break;
-		case 4:
-			color_type = PNG_COLOR_TYPE_RGBA;
-			break;
-		default:
-			fprintf(stderr, "Unsupported number of components %d to write file %s\n", components,
-				filename);
-			return false;
-	}
-
-	if (bitdepth != 1 && bitdepth != 2){
-		fprintf(stderr, "Unsupported bitdepth, should be 1 or 2, when writing %s\n", filename);
-		return false;
-	}
+	if (flip)
+		FreeImage_FlipVertical(image);
 	
-	// Set attributes of info struct
-	png_set_IHDR(png_ptr, info_ptr, w, h,
-		     bitdepth*8, color_type, PNG_INTERLACE_NONE,
-		     PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+	FreeImage_Save(FIF_PNG, image, filename, PNG_Z_BEST_SPEED);
 
-	// Write info to file
-	png_write_info(png_ptr, info_ptr);
-	if (setjmp(png_jmpbuf(png_ptr))){
-		fprintf(stderr, "failed to write info for %s\n", filename);
-		return false;
-	}
-	
-	png_write_image(png_ptr, row_pointers);
-	if (setjmp(png_jmpbuf(png_ptr))){
-		fprintf(stderr, "failed to write data for %s\n", filename);
-		return false;
-	}
-
-	png_write_end(png_ptr, NULL);
-
-	/* cleanup heap allocation */
-	//for (int i = 0; i < height; i++)
-	//	free(row_pointers[i]);
-	free(row_pointers);
-
-	fclose(fp);
-
-
+	FreeImage_Unload(image);
 	return true;
 }
 
