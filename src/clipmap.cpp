@@ -19,7 +19,7 @@ using namespace reMath;
 Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 	if ( ((nVerts + 1) & nVerts ) != 0){
 		int pot = 1 << int(ceil(log2((float)nVerts + 1.0f)));
-		printf("\t\tWarning\n\tnVerts must be an integer  2^k - 1, Rounding up %d -> %d\n\t\t", nVerts, pot-1);
+		printf("Warning\n\tnVerts must be an integer  2^k - 1, Rounding up %d -> %d\n\t\t\t\t", nVerts, pot-1);
 		nVerts = pot-1;
 	}
 

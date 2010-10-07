@@ -24,7 +24,7 @@
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
 #	pragma comment(lib, "sdl_image.lib")
-#	pragma comment(lib, "libpng.lib")
+#	pragma comment(lib, "freeimage.lib")
 #endif
 
 class Deform;
@@ -215,12 +215,12 @@ DefTer::InitGL(){
 	"%s\n"
 	, m_pClipmap->m_clipmap_stats.c_str());
 	
-	/*printf("\n");
+	printf("\n");
 	printf(
 	"Caching Stats:\n"
 	"--------------\n"
 	"%s\n"
-	, m_pCaching->m_caching_stats.c_str());*/
+	, m_pCaching->m_caching_stats.c_str());
 
 	// Print key commands
 	printf("\n");
@@ -260,45 +260,47 @@ DefTer::Init(){
 
 
 	// Load heightmap
-	printf("Loading coarsemap...");
-	if (!LoadCoarseMap("images/hmap02.png"))
+	printf("Loading coarsemap...\t\t");
+	if (!LoadCoarseMap("images/hmap03.png"))
 		return false;
-	printf("\t\tDone\n");
+	printf("Done\n");
 
 	// Load colormap
-	printf("Loading colormap...");
+	printf("Loading colormap...\t\t");
 	if (!LoadPNG(&m_colormap_tex, "images/hmap01_texture.png"))
 		return false;
-	printf("\t\tDone\n");
+	printf("Done\n");
 
 	// Create the deformer object
-	printf("Creating deformer...");
+	printf("Creating deformer...\t\t");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM);
 	if (!m_pDeform->m_no_error){
-		fprintf(stderr, "\t\tError\n\tCould not create deformer\n");
+		fprintf(stderr, "Error\n\tCould not create deformer\n");
+		return false;
 	}
-	printf("\t\tDone\n");
+	printf("Done\n");
 
 	// Create the skybox object
-	printf("Creating skybox...");
+	printf("Creating skybox...\t\t");
 	m_pSkybox = new Skybox();
 	if (!m_pSkybox->m_no_error){
 		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
+		return false;
 	}
-	printf("\t\tDone\n");
+	printf("Done\n");
 
 	// Create Caching System
-	printf("Creating caching system...");
-	m_pCaching = new Caching(m_pDeform, CLIPMAP_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
-	printf("\tDone\n");
+	printf("Creating caching system...\t");
+	m_pCaching = new Caching(m_pDeform, CLIPMAP_DIM * 2.0f, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	printf("Done\n");
 
 	// Create the clipmap
-	printf("Creating clipmap...");
+	printf("Creating clipmap...\t\t");
 	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
-	printf("\t\tDone\n");
-	printf("Initialising clipmap...");
+	printf("Done\n");
+	printf("Initialising clipmap...\t\t");
 	m_pClipmap->init();
-	printf("\t\tDone\n");
+	printf("Done\n");
 	
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
@@ -308,11 +310,10 @@ DefTer::Init(){
 	// Generate the normal map
 	float2 centre = { .5,  .5};
 	vector2 scale(1.0);
-
-	printf("Creating initial deform...");
+	printf("Creating initial deform...\t");
 	m_pDeform->calculate_normals(m_coarsemap, centre, scale, true);
 	m_pDeform->displace_heightmap(m_coarsemap, centre, .0f, true);
-	printf("\tDone\n");
+	printf("Done\n");
 
 	return true;
 }
@@ -330,7 +331,7 @@ DefTer::LoadCoarseMap(string filename){
 
 	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
 	if (image == NULL){
-		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n", filename.c_str());
+		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename.c_str());
 		return false;
 	}
 
@@ -342,7 +343,7 @@ DefTer::LoadCoarseMap(string filename){
 	FreeImage_FlipVertical(image);
 
 	if (bitdepth!=8){
-		fprintf(stderr, "\t\tError\n\tCannot load files with more than 1 component: %s\n",
+		fprintf(stderr, "Error\n\tCannot load files with more than 1 component: %s\n",
 				filename.c_str());
 		return false;
 	}

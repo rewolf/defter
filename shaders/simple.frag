@@ -32,7 +32,7 @@ void main(){
 	frag_Color = vec4(color * dot(light, normal),1.0);
 
 	fogZ = dot(position, position);
-	fogFactor = 1.0 - exp(-fogZ*.00005);
+	fogFactor = 1.0 - exp(-fogZ*.00003);
 
 	frag_Color = mix (frag_Color, const_fog_col, fogFactor);
 }

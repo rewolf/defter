@@ -65,7 +65,7 @@ LoadPNG(GLuint* tex, string filename, bool flip){
 	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
 
 	if (!image){
-		fprintf(stderr, "Failed to load image %s\n", filename.c_str());
+		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename.c_str());
 		return false;
 	}
 
@@ -112,7 +112,7 @@ CheckError(string text){
 	GLuint err = glGetError();
 
 	if (err!=GL_NO_ERROR){
-		fprintf(stderr, "\t\tError\n\tOpenGL Error: ");
+		fprintf(stderr, "Error\n\tOpenGL Error: ");
 		switch(err){
 			case GL_INVALID_ENUM:
 				fprintf(stderr, "Invalid Enum");
@@ -129,16 +129,13 @@ CheckError(string text){
 
 				FBOErr = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 				PrintFBOErr(FBOErr);
-
+				
 				FBOErr = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
 				PrintFBOErr(FBOErr);
 
 				break;
 			case GL_OUT_OF_MEMORY:
 				fprintf(stderr, "Out of Memory");
-				break;
-			case 0:
-				fprintf(stderr, "Unknown");
 				break;
 		}
 
