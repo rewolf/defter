@@ -9,7 +9,6 @@ using namespace reMath;
 
 //--------------------------------------------------------
 Skybox::Skybox(){
-	int w,h;
 	m_no_error = true;
 	m_shSky = new ShaderProg("shaders/skybox.vert","","shaders/skybox.frag");
 

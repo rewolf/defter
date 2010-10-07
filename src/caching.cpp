@@ -147,7 +147,23 @@ Caching::Update (vector2 worldPos){
 
 //--------------------------------------------------------
 void
-Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex){
+Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
+{
+	// Get the tile index into the array
+	// X = Column : Y = Row
+	vector2 tileIndex	= ((vector2(m_CoarseOffset) + clickPos) / m_TileSize).Floor();
+
+	int offset = (int)OFFSET(WRAP(tileIndex.x, m_GridSize), WRAP(tileIndex.y, m_GridSize), m_GridSize);
+	m_Grid[offset].m_modified = true;
+	
+	m_pDeform->displace_heightmap(coarseMap, clickPos, scale, true);
+
+	DrawRadar();
+}
+//--------------------------------------------------------
+void
+Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
+{
 	switch (region)
 	{
 	case 0:
@@ -215,9 +231,9 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex){
 void
 Caching::SetLoadStatus(bool newStatus, vector2 TileIndex, vector2 size)
 {
-	for (int row = TileIndex.y; row < TileIndex.y + (int)size.y; row++)
+	for (int row = TileIndex.y; row < (int)(TileIndex.y + size.y); row++)
 	{
-		for (int col = TileIndex.x; col < TileIndex.x + (int)size.x; col++)
+		for (int col = TileIndex.x; col < (int)(TileIndex.x + size.x); col++)
 		{
 			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
 
@@ -233,9 +249,9 @@ void
 Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 {
 	int curVal = INITOFFSET;
-	for (int row = TileIndex.y; row < TileIndex.y + (int)size.y; row++)
+	for (int row = TileIndex.y; row < (int)(TileIndex.y + size.y); row++)
 	{
-		for (int col = TileIndex.x; col < TileIndex.x + (int)size.x; col++)
+		for (int col = TileIndex.x; col < (int)(TileIndex.x + size.x); col++)
 		{
 			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
 
@@ -247,13 +263,23 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 void
 Caching::DrawRadar(void){
 	char *radar = new char[m_GridSize * m_GridSize];
-	memset(radar, '0', m_GridSize * m_GridSize);
+	memset(radar, '.', m_GridSize * m_GridSize);
 	
-	radar[(int)m_TileIndexCurrent.y * (m_GridSize) + (int)m_TileIndexCurrent.x] = 'X';
+	int index = (int)m_TileIndexCurrent.y * (m_GridSize) + (int)m_TileIndexCurrent.x;
+	radar[index] = 'X';
 
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
 	{
-		printf("%c", radar[i]);
+		if (m_Grid[i].m_modified)
+		{
+			if (i == index)
+				printf("Y");
+			else
+				printf("M");
+		}
+		else
+			printf("%c", radar[i]);
+
 		if ((i % m_GridSize) != (m_GridSize - 1))
 			printf(" ");
 		else
@@ -263,7 +289,7 @@ Caching::DrawRadar(void){
 	printf("--%d--\n", m_RegionCurrent);
 	printf("-----\n");
 
-	memset(radar, '0', m_GridSize * m_GridSize);
+	memset(radar, '.', m_GridSize * m_GridSize);
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
 	{
 		if (m_Grid[i].m_LoadedCurrent)

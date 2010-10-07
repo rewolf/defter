@@ -9,13 +9,17 @@ typedef struct{
 
 class Deform{
 public:
-	Deform (int coarseDim, int highDim);
+	Deform					(int coarseDim, int highDim, float metre_to_tex);
 	~Deform();
 
-	void		displace_heightmap			(TexData texdata, float2 tex_coord, float scale, bool isCoarse);
-	void 		calculate_normals			(TexData texdata, float2 tex_coord, vector2 scale, bool	isCoarse);
+	void displace_heightmap	(TexData texdata, vector2 clickPos, float scale, bool isCoarse);
+	void create_normalmap	(TexData texdata, bool isCoarse);
 
-public:
+	bool			m_no_error;
+
+private:
+	void calculate_normals	(TexData texdata, vector2 tex_coord, vector2 scale, bool isCoarse);
+	
 	ShaderProg*		m_shDeform;
 	ShaderProg*		m_shNormal;
 
@@ -28,10 +32,9 @@ public:
 
 	int				m_coarseDim;
 	int				m_highDim;
+	float			m_metre_to_tex;
 	GLuint			m_coarseBackup;
 	bool			m_initialised;
-
-	bool			m_no_error;
 };
 
 

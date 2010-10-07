@@ -7,13 +7,14 @@ using namespace reMath;
 #include "deform.h"
 
 //--------------------------------------------------------
-Deform::Deform(int coarseDim, int highDim){
+Deform::Deform(int coarseDim, int highDim, float metre_to_tex){
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
 		{1.0f, 1.0f}};
 
-	m_no_error	= true;
-	m_coarseDim	= coarseDim;
-	m_highDim	= highDim;
+	m_no_error		= true;
+	m_coarseDim		= coarseDim;
+	m_highDim		= highDim;
+	m_metre_to_tex	= metre_to_tex;
 
 	// Setup heightmap framebuffer
 	glGenFramebuffers(1, &m_fbo_heightmap);
@@ -50,12 +51,12 @@ Deform::~Deform(){
 
 //--------------------------------------------------------
 void
-Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool isCoarse){
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, float scale, bool isCoarse){
 	int 	viewport[4];
-	int		dim 			= isCoarse ? m_coarseDim : m_highDim;
-	GLenum	bpp				= isCoarse ? GL_R16 	 : GL_R8;
+	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
+	vector2 tex_coord	= (clickPos * m_metre_to_tex) + vector2(0.5f);
+	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 	GLuint	backupTex;
-
 
 	// check if doing a high detail deform
 	if (!isCoarse || !m_initialised){
@@ -106,7 +107,7 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 
 	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/dim);
-	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "thingy"), tex_coord.u, tex_coord.v);
+	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "thingy"), tex_coord.x, tex_coord.y);
 	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "stamp_size_scale"), dimScale.x,
 			dimScale.y);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "scale"), scale);
@@ -142,19 +143,19 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		glBindTexture(GL_TEXTURE_2D, backupTex);
 
 		// Move the clicked texture coordinate back to between [0,1]
-		if (tex_coord.u > 1.0f)
-			tex_coord.u -= int(tex_coord.u);
-		if (tex_coord.v > 1.0f)
-			tex_coord.v -= int(tex_coord.v);
-		if (tex_coord.u < .0f)
-			tex_coord.u -= int(tex_coord.u) - 1;
-		if (tex_coord.v < .0f)
-			tex_coord.v -= int(tex_coord.v) - 1;
+		if (tex_coord.x > 1.0f)
+			tex_coord.x -= int(tex_coord.x);
+		if (tex_coord.y > 1.0f)
+			tex_coord.y -= int(tex_coord.y);
+		if (tex_coord.x < .0f)
+			tex_coord.x -= int(tex_coord.x) - 1;
+		if (tex_coord.y < .0f)
+			tex_coord.y -= int(tex_coord.y) - 1;
 		// Setup the regions for copying
 		int copyW = (int)ceil(dimScale.x * dim) ;
 		int copyH = (int)ceil(dimScale.y * dim);
-		int copyX = max(0, (int)(dim * tex_coord.u) - copyW/2);
-		int copyY = max(0, (int)(dim * tex_coord.v) - copyH/2);
+		int copyX = max(0, (int)(dim * tex_coord.x) - copyW/2);
+		int copyY = max(0, (int)(dim * tex_coord.y) - copyH/2);
 		// Make sure it's not out of bounds
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
@@ -172,11 +173,12 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	// Regenerate normals and tangent
 	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
 }
+
 //--------------------------------------------------------
 void
-Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, bool isCoarse){
+Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, bool isCoarse){
 	int 	viewport[4];
-	int		dim 			= isCoarse ? m_coarseDim : m_highDim;
+	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -197,7 +199,7 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 	// Set the Shader sampler
 	glUniform1i(glGetUniformLocation(m_shNormal->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shNormal->m_programID, "tc_delta"), 1.0f/dim);
-	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "thingy"), tex_coord.u, tex_coord.v);
+	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "thingy"), tex_coord.x, tex_coord.y);
 	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "stamp_size_scale"), dimScale.x,
 			dimScale.y);
 
@@ -239,4 +241,11 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 		glBindTexture(GL_TEXTURE_2D, texdata.tangentmap);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
+}
+
+//--------------------------------------------------------
+void
+Deform::create_normalmap(TexData texdata, bool isCoarse)
+{
+	calculate_normals(texdata, vector2(0.5f), vector2(1.0f), isCoarse);
 }

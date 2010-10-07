@@ -16,8 +16,9 @@ public:
 	Caching					(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
 	void Update				(vector2 worldPos);
+	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
 
-	string					m_caching_stats;
+	string			m_caching_stats;
 
 private:
 	void UpdateTiles		(bool newStatus, int region, vector2 TileIndex);

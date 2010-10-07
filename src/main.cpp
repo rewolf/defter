@@ -247,8 +247,6 @@ DefTer::InitGL(){
 //--------------------------------------------------------
 bool
 DefTer::Init(){
-	int w,h;
-
 	glGenBuffers(2, m_pbo);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,
@@ -271,9 +269,17 @@ DefTer::Init(){
 		return false;
 	printf("Done\n");
 
+	// Create the clipmap
+	printf("Creating clipmap...\t\t");
+	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
+	printf("Done\n");
+	printf("Initialising clipmap...\t\t");
+	m_pClipmap->init();
+	printf("Done\n");
+
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
-	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM);
+	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex);
 	if (!m_pDeform->m_no_error){
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
 		return false;
@@ -291,28 +297,20 @@ DefTer::Init(){
 
 	// Create Caching System
 	printf("Creating caching system...\t");
-	m_pCaching = new Caching(m_pDeform, CLIPMAP_DIM * 2.0f, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	m_pCaching = new Caching(m_pDeform, (int)(CLIPMAP_DIM * 2.0f), m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
 	printf("Done\n");
 
-	// Create the clipmap
-	printf("Creating clipmap...\t\t");
-	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
-	printf("Done\n");
-	printf("Initialising clipmap...\t\t");
-	m_pClipmap->init();
-	printf("Done\n");
-	
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
 	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), 
 			m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 	
-	// Generate the normal map
-	float2 centre = { .5,  .5};
-	vector2 scale(1.0);
+	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->calculate_normals(m_coarsemap, centre, scale, true);
-	m_pDeform->displace_heightmap(m_coarsemap, centre, .0f, true);
+	m_pDeform->create_normalmap(m_coarsemap, true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), .0f, true);
+	if (!CheckError("Creating initial deform"))
+		return false;
 	printf("Done\n");
 
 	return true;
@@ -325,8 +323,6 @@ bool
 DefTer::LoadCoarseMap(string filename){
 	FIBITMAP*		image;
 	BYTE*			bits;
-	int				width;
-	int				height;
 	int				bitdepth;
 
 	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
@@ -391,7 +387,7 @@ void
 DefTer::ProcessInput(float dt){
 	int wheel_ticks = m_input.GetWheelTicks();
 	MouseDelta move = m_input.GetMouseDelta();
-	static float2 clickPos;
+	static vector2 clickPos;
 	static bool clicked = false;
 
 	// Rotate Camera
@@ -420,20 +416,26 @@ DefTer::ProcessInput(float dt){
 		vector3 p = perspective_unproj_world(
 				frag, w, h, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 		p += m_cam_translate;
-		p *= m_pClipmap->m_metre_to_tex;
-		float2 tc = {p.x+.5f, p.z+.5f};
 
+		//Store the clicked position in world space
 		clicked = true;
-		clickPos = tc;
+		clickPos = vector2(p.x, p.z);
+
+		//Calc the value in terms of tex coords
+		p *= m_pClipmap->m_metre_to_tex;
+		p += vector3(0.5f);
 
 		// pass to shader
 		glUseProgram(m_shMain->m_programID);
-		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), tc.u, tc.v);
+		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), p.x, p.z);
 	}
 
 	// Change the selected deformation location
 	if (clicked && wheel_ticks!=0)
-		m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
+	{
+		//m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
+		m_pCaching->DeformHighDetail(m_coarsemap, clickPos, .1f * wheel_ticks);
+	}
 
 	static bool wireframe = false;
 	// Toggle wireframe
