@@ -239,7 +239,7 @@ DefTer::InitGL(){
 	"Esc\t"		"= Quit\n"
 	);
 
-
+	//Initialise FreeImage
 	FreeImage_Initialise();
 
 	return true;

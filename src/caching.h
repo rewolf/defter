@@ -5,6 +5,7 @@
 
 struct	Tile {
 	TexData	m_texdata;
+	bool	m_modified;
 	bool	m_LoadedPrevious;
 	bool	m_LoadedCurrent;
 	int		m_texID;
@@ -19,7 +20,9 @@ public:
 	string					m_caching_stats;
 
 private:
-	void UpdateLoadStatus	(bool newStatus, int region, vector2 TileIndex);
+	void UpdateTiles		(bool newStatus, int region, vector2 TileIndex);
+	void SetLoadStatus		(bool newStatus, vector2 TileIndex, vector2 size);
+	void SetActiveStatus	(bool newStatus, vector2 TileIndex, vector2 size);
 	void DrawRadar			(void);
 
 

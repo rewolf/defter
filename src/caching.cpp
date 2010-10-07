@@ -10,6 +10,8 @@ using namespace reMath;
 #define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
 #define OFFSET(x, y, dim) (y * dim + x)
 
+#define INITOFFSET	0
+
 //--------------------------------------------------------
 Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
 	m_pDeform		= pDeform;
@@ -22,9 +24,10 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	m_Grid			= new Tile[m_GridSize*m_GridSize];
 
 	for (int i = 0; i < m_GridSize * m_GridSize; i++){
-//		m_Grid[i].m_TexID = 
-		m_Grid[i].m_LoadedPrevious = false;
-		m_Grid[i].m_LoadedCurrent  = false;
+		m_Grid[i].m_texID			= -1;
+		m_Grid[i].m_modified		= false;
+		m_Grid[i].m_LoadedPrevious	= false;
+		m_Grid[i].m_LoadedCurrent	= false;
 	}
 
 	//Calculate the band values
@@ -108,26 +111,29 @@ Caching::Update (vector2 worldPos){
 	}
 
 	if (m_RegionCurrent != m_RegionPrevious){
-		UpdateLoadStatus(false, m_RegionPrevious, m_TileIndexPrevious);
-		UpdateLoadStatus(true,  m_RegionCurrent,  m_TileIndexCurrent);
+		UpdateTiles(false, m_RegionPrevious, m_TileIndexPrevious);
+		UpdateTiles(true,  m_RegionCurrent,  m_TileIndexCurrent);
 		updateRadar = true;
-	}
 
-	// Check all tiles for loading/unloading
-	for (int i = 0; i < m_GridSize * m_GridSize; i++){
-		// If it was loaded
-		if (m_Grid[i].m_LoadedPrevious){
-			// But need not be loaded anymore
-			if (!m_Grid[i].m_LoadedCurrent){
-				// UNLOAD
+		// Check all tiles for loading/unloading
+		for (int i = 0; i < m_GridSize * m_GridSize; i++){
+			// If it was loaded
+			if (m_Grid[i].m_LoadedPrevious){
+				// But need not be loaded anymore
+				if (!m_Grid[i].m_LoadedCurrent){
+					// UNLOAD
+				}
 			}
-		}
-		// If it wasn't loaded
-		else{
-			// But needs to be!!!
-			if (m_Grid[i].m_LoadedCurrent){
-				// LOAD
+			// If it wasn't loaded
+			else{
+				// But needs to be!!!
+				if (m_Grid[i].m_LoadedCurrent){
+					// LOAD
+				}
 			}
+
+			//Set the previous state equal to the current one
+			m_Grid[i].m_LoadedPrevious = m_Grid[i].m_LoadedCurrent;
 		}
 	}
 
@@ -141,96 +147,100 @@ Caching::Update (vector2 worldPos){
 
 //--------------------------------------------------------
 void
-Caching::UpdateLoadStatus (bool newStatus, int region, vector2 TileIndex){
+Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex){
 	switch (region)
 	{
 	case 0:
 		//Top-Left
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y - 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y - 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f));
+		SetActiveStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f));
 		break;
 
 	case 1:
 		//Top-Centre
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(3.0f, 2.0f));
+		SetActiveStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(1.0f, 2.0f));
 		break;
 
 	case 2:
 		//Top-Right
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y - 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y - 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f));
+		SetActiveStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f));
 		break;
 
 	case 3:
 		//Centre-Left
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f, 3.0f));
+		SetActiveStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f, 1.0f));
 		break;
 
 	case 4:
 		//Centre-Centre
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	- 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(3.0f));
+		SetActiveStatus(newStatus, TileIndex, vector2(1.0f));
 		break;
 
 	case 5:
 		//Centre-Right
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y	- 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x	+ 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f, 3.0f));
+		SetActiveStatus(newStatus, TileIndex, vector2(2.0f, 1.0f));
 		break;
 
 	case 6:
 		//Bottom-Left
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y + 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y + 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f));
+		SetActiveStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f));
 		break;
 
 	case 7:
 		//Bottom-Centre
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x - 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y	+ 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(3.0f, 2.0f));
+		SetActiveStatus(newStatus, TileIndex, vector2(1.0f, 2.0f));
 		break;
 
 	case 8:
 		//Bottom-Right
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y		, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x		, m_GridSize), WRAP(TileIndex.y + 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
-		m_Grid[(int)OFFSET(WRAP(TileIndex.x + 1	, m_GridSize), WRAP(TileIndex.y + 1	, m_GridSize), m_GridSize)].m_LoadedCurrent = newStatus;
+		SetLoadStatus(newStatus, TileIndex, vector2(2.0f));
+		SetActiveStatus(newStatus, TileIndex, vector2(2.0f));
 		break;
 
 	default:
 		break;
+	}
+}
+
+//--------------------------------------------------------
+//Sets the status for the tiles around the given one
+//Starts at TileIndex and iterates based on the value stored in size
+void
+Caching::SetLoadStatus(bool newStatus, vector2 TileIndex, vector2 size)
+{
+	for (int row = TileIndex.y; row < TileIndex.y + (int)size.y; row++)
+	{
+		for (int col = TileIndex.x; col < TileIndex.x + (int)size.x; col++)
+		{
+			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
+
+			m_Grid[offset].m_LoadedCurrent	= newStatus;
+		}
+	}
+}
+
+//--------------------------------------------------------
+//Sets the texID for the tiles around the given one
+//Starts at TileIndex and iterates based on the value stored in size
+void
+Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
+{
+	int curVal = INITOFFSET;
+	for (int row = TileIndex.y; row < TileIndex.y + (int)size.y; row++)
+	{
+		for (int col = TileIndex.x; col < TileIndex.x + (int)size.x; col++)
+		{
+			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
+
+			m_Grid[offset].m_texID	= (newStatus ? curVal++ : -1);
+		}
 	}
 }
 
@@ -260,6 +270,9 @@ Caching::DrawRadar(void){
 			radar[i] = 'L';
 		else
 			radar[i] = 'U';
+
+		if (m_Grid[i].m_texID != -1)
+			radar[i] = 'A';
 	}
 	
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
