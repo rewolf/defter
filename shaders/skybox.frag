@@ -13,4 +13,6 @@ void main(){
 	float fogZ, fogFactor;
 
 	frag_Color = texture(sky, frag_TexCoord);
+	fogFactor  = clamp(-.06 * frag_pos.y + 1, .0, 1.0);
+	frag_Color = fogFactor * const_fog_col + (1-fogFactor)*frag_Color;
 }

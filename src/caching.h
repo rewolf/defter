@@ -25,18 +25,19 @@ private:
 	void SetActiveStatus	(bool newStatus, vector2 TileIndex, vector2 size);
 	void DrawRadar			(void);
 
+	SDL_Thread*		m_loadThread;
 
-	Deform*	m_pDeform;
-	int		m_GridSize;
-	Tile*	m_Grid;
-	float	m_TileSize;
-	float	m_BandWidth;
-	float	m_BandPercent;
-	float	m_CoarseOffset;
-	int		m_RegionCurrent;
-	int		m_RegionPrevious;
-	vector2	m_TileIndexCurrent;
-	vector2	m_TileIndexPrevious;
+	Deform*			m_pDeform;
+	int				m_GridSize;
+	Tile*			m_Grid;
+	float			m_TileSize;
+	float			m_BandWidth;
+	float			m_BandPercent;
+	float			m_CoarseOffset;
+	int				m_RegionCurrent;
+	int				m_RegionPrevious;
+	vector2			m_TileIndexCurrent;
+	vector2			m_TileIndexPrevious;
 };
 
 #endif
