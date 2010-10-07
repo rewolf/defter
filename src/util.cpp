@@ -1,6 +1,5 @@
 
 #include "regl3.h"
-#include <SDL/SDL_image.h>
 #include "util.h"
 #include "FreeImage.h"
 
@@ -10,6 +9,7 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 
 	FIBITMAP* 			image;
 	FREE_IMAGE_TYPE 	type;	// needed in case of 16-bit components
+	BYTE*				bits;
 
 	if (bitdepth == 8) {  // 8-bits per component
 		image = FreeImage_Allocate(w, h, components * bitdepth);
@@ -41,7 +41,7 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 		return false;
 	}
 
-	BYTE* bits = (BYTE*) FreeImage_GetBits(image);
+	bits = (BYTE*) FreeImage_GetBits(image);
 	memcpy(bits, data, bitdepth/8 * components * w * h);
 
 	if (flip)
@@ -55,17 +55,19 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 
 //--------------------------------------------------------
 bool 
-LoadTexturePNG(GLuint* tex, int* width, int* height, string filename){
-	SDL_Surface*  surface;
+LoadPNG(GLuint* tex, string filename, bool flip){
+	FIBITMAP*		image;
+	BYTE*			bits;
+	int				width;
+	int				height;
+	int				bitdepth;
 
-	surface = IMG_Load(filename.c_str());
-	if (surface == NULL){
-		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
+	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
+
+	if (!image){
+		fprintf(stderr, "Failed to load image %s\n", filename.c_str());
 		return false;
 	}
-
-	*width = surface->w;
-	*height= surface->h;
 
 	glGenTextures(1, tex);
 	glBindTexture(GL_TEXTURE_2D, *tex);
@@ -75,14 +77,32 @@ LoadTexturePNG(GLuint* tex, int* width, int* height, string filename){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	if (!CheckError("Loading PNG texture, setting parameters")){
-		printf("\tFile: %s\n", filename.c_str());
+		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, *width, *height, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+	if (flip)
+		FreeImage_FlipVertical(image);
+
+	bits 	= (BYTE*) FreeImage_GetBits(image);
+	width	= FreeImage_GetWidth(image);
+	height	= FreeImage_GetHeight(image);
+	bitdepth= FreeImage_GetBPP(image);
+
+	switch(bitdepth){
+		case 32:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, bits);
+			break;
+		case 24:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, bits);
+			break;
+		default:
+			fprintf(stderr, "Failed to load image %s of bitdepth %d\n", filename.c_str(), bitdepth);
+			return false;
+	}
 	glGenerateMipmap(GL_TEXTURE_2D);
 	
-	SDL_FreeSurface(surface);
+	FreeImage_Unload(image);
 	return true;
 }
 

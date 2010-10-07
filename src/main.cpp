@@ -32,7 +32,6 @@ class Deform;
 #include <vector>
 #include <limits.h>
 #include "regl3.h"
-#include <SDL/SDL_image.h>
 #include "FreeImage.h"
 #include "re_math.h"
 using namespace reMath;
@@ -268,7 +267,7 @@ DefTer::Init(){
 
 	// Load colormap
 	printf("Loading colormap...");
-	if (!LoadTexturePNG(&m_colormap_tex, &w, &h, "images/hmap01_texture.png"))
+	if (!LoadPNG(&m_colormap_tex, "images/hmap01_texture.png"))
 		return false;
 	printf("\t\tDone\n");
 
@@ -323,20 +322,26 @@ DefTer::Init(){
 // It also allocates memory for the normal and tangent maps.
 bool
 DefTer::LoadCoarseMap(string filename){
-	SDL_Surface*  surface;
-	int bpp;
+	FIBITMAP*		image;
+	BYTE*			bits;
+	int				width;
+	int				height;
+	int				bitdepth;
 
-	surface = IMG_Load(filename.c_str());
-	if (surface == NULL){
-		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n\t%s\n", filename.c_str(), IMG_GetError());
+	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
+	if (image == NULL){
+		fprintf(stderr, "\t\tError\n\tCould not load PNG: %s\n", filename.c_str());
 		return false;
 	}
 
 	// Get image details
-	m_coarsemap_dim = surface->w;
-	bpp 			= surface->format->BytesPerPixel;
+	m_coarsemap_dim = FreeImage_GetWidth(image);
+	bitdepth		= FreeImage_GetBPP(image);
+	bits 			= (BYTE*) FreeImage_GetBits(image);
 
-	if (bpp!=1){
+	FreeImage_FlipVertical(image);
+
+	if (bitdepth!=8){
 		fprintf(stderr, "\t\tError\n\tCannot load files with more than 1 component: %s\n",
 				filename.c_str());
 		return false;
@@ -356,12 +361,10 @@ DefTer::LoadCoarseMap(string filename){
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,
-			GL_UNSIGNED_BYTE, surface->pixels);
+			GL_UNSIGNED_BYTE, bits);
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
-
-	SDL_FreeSurface(surface);
 
 	// Allocate GPU Texture space for normalmap
 	glActiveTexture(GL_TEXTURE1);
@@ -377,6 +380,8 @@ DefTer::LoadCoarseMap(string filename){
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glActiveTexture(GL_TEXTURE0);
+
+	FreeImage_Unload(image);
 	return true;
 }
 

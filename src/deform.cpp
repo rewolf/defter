@@ -79,8 +79,6 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		CheckError("Copying map into backup Tex");
-
 		// set that has been initialised
 		if (!m_initialised && isCoarse){
 			m_initialised = true;
