@@ -33,6 +33,7 @@ class Deform;
 #include <limits.h>
 #include "regl3.h"
 #include <SDL/SDL_image.h>
+#include "FreeImage.h"
 #include "re_math.h"
 using namespace reMath;
 #include "re_shader.h"
@@ -98,12 +99,14 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf){
 
 //--------------------------------------------------------
 DefTer::~DefTer(){
+	FreeImage_DeInitialise();
 	glUseProgram(0);
 	RE_DELETE(m_shMain);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
+	glDeleteBuffers(2, m_pbo);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.normalmap);
 	glDeleteTextures(1, &m_coarsemap.tangentmap);
@@ -236,6 +239,9 @@ DefTer::InitGL(){
 	"Esc\t"		"= Quit\n"
 	);
 
+
+	FreeImage_Initialise();
+
 	return true;
 }
 
@@ -243,6 +249,16 @@ DefTer::InitGL(){
 bool
 DefTer::Init(){
 	int w,h;
+
+	glGenBuffers(2, m_pbo);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
+	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,
+			GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
+	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,
+			GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
 
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
@@ -427,17 +443,41 @@ DefTer::ProcessInput(float dt){
 	}
 
 	// Take screenshot
-	static int lastScreenshot = 1;
+	static bool transferring  = false;
+	static int index     = 0;
+	static int nextIndex = 1;
 	if (m_input.WasKeyPressed(SDLK_F12)){
-		char filename[256];
-		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
-		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
 
-		sprintf(filename, "screenshot%05d.png", lastScreenshot++);
-		SavePNG(filename, framebuffer, 1, 3, SCREEN_W, SCREEN_H, true);
+		glReadBuffer(GL_FRONT);
 
-		delete[] framebuffer;		
+		// Start reading into the PBO
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[index]);
+		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, 0);
+		transferring = true;
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+		glReadBuffer(0);	
 	}
+	else if (transferring){
+		static int lastScreenshot = 1;
+		char filename[256];
+		GLubyte* framebuffer;
+
+		// Read from the other PBO into the array
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[index]);
+		framebuffer = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+
+		if (framebuffer){
+			sprintf(filename, "screenshot%05d.png", lastScreenshot++);
+			SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false);
+			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+		}
+		else{
+			printf("fail array\n");
+		}
+		transferring = false;
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+		glReadBuffer(0);	
+	}	
 
 	float speed = 1.33f;		// in m/s (average walking speed)
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))

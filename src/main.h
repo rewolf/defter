@@ -28,6 +28,8 @@ public:
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
+	GLuint			m_pbo[2];
+
 	matrix4			m_proj_mat;
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
