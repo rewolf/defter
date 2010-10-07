@@ -45,7 +45,7 @@ float reTimer::getElapsed(){
     QueryPerformanceCounter((LARGE_INTEGER*)&temp);
     elapsed = temp - m_now;
     m_now += elapsed;
-    return elapsed * m_freqInv;
+    return ((float)(elapsed * m_freqInv));
 #else
     timeval temp;
     gettimeofday(&temp, 0);
@@ -57,7 +57,7 @@ float reTimer::getElapsed(){
 
 float reTimer::getFPS(){
 #ifdef _WIN32
-	return m_frameCount/((m_now - m_start)*m_freqInv);
+	return ((float)(m_frameCount/((m_now - m_start)*m_freqInv)));
 #else
         return float(m_frameCount)/float(m_now.tv_sec-m_start.tv_sec +  (m_now.tv_usec - m_start.tv_usec) * 1.0e-6);
 #endif        

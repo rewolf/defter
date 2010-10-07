@@ -79,6 +79,8 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 
+		CheckError("Copying map into backup Tex");
+
 		// set that has been initialised
 		if (!m_initialised && isCoarse){
 			m_initialised = true;
@@ -111,10 +113,19 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "stamp_size_scale"), dimScale.x,
 			dimScale.y);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "scale"), scale);
+
+	CheckError("Setting shader settings");
+
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
+
+	CheckError("Binding FBO");
+
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 			texdata.heightmap, 0);
+
+	CheckError("Setting FBO Color attachment");
+
 	// Set the draw buffer
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	// Bind the VAO
@@ -122,6 +133,8 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	CheckError("Rendering");
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -132,6 +145,7 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	
+	CheckError("Reset Viewport");
 
 	if (isCoarse){
 		// Setup textures to copy heightmap changes to the other map
@@ -160,6 +174,8 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+
+		CheckError("Copying coarse map changes");
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
@@ -167,6 +183,8 @@ Deform::displace_heightmap(TexData texdata, float2 tex_coord, float scale, bool 
 
 	// Regenerate normals and tangent
 	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
+
+	CheckError("Normal Calc");
 
 	if (!isCoarse)
 		glDeleteTextures(1, &backupTex);
@@ -236,4 +254,3 @@ Deform::calculate_normals(TexData texdata, float2 tex_coord, vector2 dimScale, b
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 }
-

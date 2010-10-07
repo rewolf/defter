@@ -400,11 +400,11 @@ DefTer::ProcessInput(float dt){
 	if (m_input.IsButtonPressed(3)){
 		MousePos pos = m_input.GetMousePos();
 		float val;
-		float w = m_config.winWidth;
-		float h = m_config.winHeight;
+		float w = (float)m_config.winWidth;
+		float h = (float)m_config.winHeight;
 		float aspect = float(m_config.winWidth)/m_config.winHeight;
 		// get value in z-buffer
-		glReadPixels(pos.x, m_config.winHeight- pos.y, 1,1,GL_DEPTH_COMPONENT, GL_FLOAT, &val);
+		glReadPixels((GLint)pos.x, (GLint)(m_config.winHeight- pos.y), 1,1,GL_DEPTH_COMPONENT, GL_FLOAT, &val);
 
 		vector3 frag(pos.x,pos.y,val);
 		// derive inverse of view transform (could just use transpose of view matrix
@@ -507,13 +507,15 @@ DefTer::ProcessInput(float dt){
 		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_enabled));
 	}
 
-	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z));
 	reGL3App::ProcessInput(dt);
 }
 
 //--------------------------------------------------------
 void 
 DefTer::Logic(float dt){
+	//Update the caching system
+	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z));
+
 	// Update position
 	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
 	glUseProgram(m_shMain->m_programID);

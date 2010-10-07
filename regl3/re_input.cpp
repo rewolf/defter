@@ -59,8 +59,8 @@ void Input::WheelDown(){
 }
 
 void Input::MoveMouse(SDL_MouseMotionEvent evt){
-	m_mouse_pos.x = evt.x;
-	m_mouse_pos.y = evt.y;
+	m_mouse_pos.x = (float)evt.x;
+	m_mouse_pos.y = (float)evt.y;
 	m_mouse_delta.x += evt.xrel;
 	m_mouse_delta.y += evt.yrel;
 }

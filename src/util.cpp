@@ -105,6 +105,14 @@ CheckError(string text){
 				break;
 			case GL_INVALID_FRAMEBUFFER_OPERATION:
 				fprintf(stderr, "Invalid FBO operation");
+				GLenum FBOErr;
+
+				FBOErr = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+				PrintFBOErr(FBOErr);
+
+				FBOErr = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
+				PrintFBOErr(FBOErr);
+
 				break;
 			case GL_OUT_OF_MEMORY:
 				fprintf(stderr, "Out of Memory");
@@ -122,4 +130,35 @@ CheckError(string text){
 		return false;
 	}
 	return true;
+}
+
+void
+PrintFBOErr(GLenum err){
+	printf("\n");
+	switch (err){
+	case GL_FRAMEBUFFER_UNDEFINED:
+		fprintf(stderr, "FB Undefined");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+		fprintf(stderr, "FB Incomplete Attachment");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+		fprintf(stderr, "FB Incomplete Missing Attachment");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+		fprintf(stderr, "FB Incomplete Draw Buffer");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+		fprintf(stderr, "FB Incomplete Read Buffer");
+		break;
+	case GL_FRAMEBUFFER_UNSUPPORTED:
+		fprintf(stderr, "FB Unsupported");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+		fprintf(stderr, "FB Incomplete Multisample");
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+		fprintf(stderr, "FB Incomplete Layer Targets");
+		break;
+	}
 }

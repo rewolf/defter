@@ -18,16 +18,16 @@ using namespace reMath;
 //--------------------------------------------------------
 Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 	if ( ((nVerts + 1) & nVerts ) != 0){
-		int pot = 1<<int(ceil(log2(nVerts+1)));
+		int pot = 1 << int(ceil(log2((float)nVerts + 1.0f)));
 		printf("\t\tWarning\n\tnVerts must be an integer  2^k - 1, Rounding up %d -> %d\n\t\t", nVerts, pot-1);
 		nVerts = pot-1;
 	}
 
-	m_enabled		= true;
-	m_N				= nVerts;
-	m_nLevels		= nLevels;
-	m_quad_size		= quad_size;
-	m_heightmap_dim	= heightmap_dim;
+	m_enabled			= true;
+	m_N					= nVerts;
+	m_nLevels			= nLevels;
+	m_quad_size			= quad_size;
+	m_heightmap_dim		= heightmap_dim;
 	m_min_draw_count	= 0;
 
 	//////////////////////////////////////////////////
@@ -452,7 +452,7 @@ Clipmap::init(){
 
 	m_min_draw_count = indices.size();
 	// Add this offset to all blocks' start indices
-	for (int i = 0; i < blocks.size(); i++)
+	for (int i = 0; i < (int)blocks.size(); i++)
 		blocks[i].start_index += m_min_draw_count * sizeof(INDEX);
 	// Append the cullable block indices to the base indices
 	indices.insert(indices.end(), cullable.begin(), cullable.end());
@@ -536,7 +536,7 @@ void
 Clipmap::cull(matrix4& mvp, vector2 shift){
 	// initialise primcount to 1 for base indices
 	m_primcount = 1;
-	for (int i = 0; i < blocks.size(); i++){
+	for (int i = 0; i < (int)blocks.size(); i++){
 		cull_block& block = blocks[i];
 
 		if (!m_enabled){
@@ -572,4 +572,3 @@ Clipmap::render(){
 	for (int i = 0; i < m_primcount; i++)
 		glDrawElements(GL_TRIANGLES, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
 }
-

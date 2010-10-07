@@ -13,7 +13,7 @@ Skybox::Skybox(){
 	m_no_error = true;
 	m_shSky = new ShaderProg("shaders/skybox.vert","","shaders/skybox.frag");
 
-	m_no_error &= m_shSky->CompileAndLink();
+	m_no_error = m_no_error && m_shSky->CompileAndLink();
 	glUseProgram(m_shSky->m_programID);
 	glUniform1i(glGetUniformLocation(m_shSky->m_programID, "sky"), 0);
 

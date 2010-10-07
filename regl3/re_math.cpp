@@ -1549,9 +1549,9 @@ namespace reMath{
 		float c = cosf(angle);
 		float s = sinf(angle);
 
-		int x = vec.x;
-		int y = vec.y;
-		int z = vec.z;
+		int x = (int)vec.x;
+		int y = (int)vec.y;
+		int z = (int)vec.z;
 
 		// first column
 		mat[0] = x*x*(1-c)+c; 
