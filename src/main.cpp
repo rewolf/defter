@@ -30,6 +30,7 @@
 class Deform;
 
 #include <vector>
+#include <list>
 #include <limits.h>
 #include "regl3.h"
 #include "FreeImage.h"

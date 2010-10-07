@@ -10,6 +10,10 @@ struct	Tile {
 	bool	m_LoadedCurrent;
 	int		m_texID;
 };
+	
+// function for caching thread
+int hdd_cacher(void* data);
+
 
 class Caching{
 public:
@@ -18,7 +22,9 @@ public:
 	void Update				(vector2 worldPos);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
 
-	string			m_caching_stats;
+	friend int hdd_cacher 	(void* data);
+
+	string					m_caching_stats;
 
 private:
 	void UpdateTiles		(bool newStatus, int region, vector2 TileIndex);
@@ -26,7 +32,14 @@ private:
 	void SetActiveStatus	(bool newStatus, vector2 TileIndex, vector2 size);
 	void DrawRadar			(void);
 
-	SDL_Thread*		m_loadThread;
+	void Load				(Tile& tile);
+	void Unload				(Tile& tile);
+	void UpdatePBOs			();
+
+	SDL_Thread*		m_cacheThread;
+	SDL_mutex*		m_cacheQueueMutex;
+	list<int>		m_cacheQueue;
+	bool			m_threadRunning;
 
 	Deform*			m_pDeform;
 	int				m_GridSize;
@@ -40,5 +53,6 @@ private:
 	vector2			m_TileIndexCurrent;
 	vector2			m_TileIndexPrevious;
 };
+
 
 #endif
