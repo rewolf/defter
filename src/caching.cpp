@@ -5,6 +5,7 @@
 using namespace reMath;
 #include "re_shader.h"
 #include "deform.h"
+#include <queue>
 #include "caching.h"
 
 #define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
@@ -47,18 +48,27 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	sstr << "Clipmap Size:\t\t"	<< clipDim * clipRes << "\n";
 	sstr << "Tile Size:\t\t\t"	<< m_TileSize << "m\n";
 	sstr << "Band Width:\t\t\t"	<< m_BandWidth << "m\n";
-	sstr << "Band %:\t\t\t\t"	<< m_BandPercent << "%\n";
+	sstr << "Band %:\t\t\t\t"	<< (m_BandPercent * 100) << "%\n";
 	m_caching_stats += sstr.str();
+
+	m_threadRunning 	= true;
+	m_cacheThread 		= SDL_CreateThread(hdd_cacher, (void*)this);
+	m_cacheQueueMutex	= SDL_CreateMutex();
 }
 
 //--------------------------------------------------------
 Caching::~Caching(){
+	m_threadRunning = false;
+	SDL_WaitThread(m_cacheThread, NULL);
+	SDL_DestroyMutex(m_cacheQueueMutex);
 	delete[] m_Grid;
 }
 
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
+	UpdatePBOs();
+
 	bool updateRadar	= false;
 	worldPos		   += vector2(m_CoarseOffset);
 	vector2 tilePos		= (worldPos/m_TileSize);
@@ -121,14 +131,14 @@ Caching::Update (vector2 worldPos){
 			if (m_Grid[i].m_LoadedPrevious){
 				// But need not be loaded anymore
 				if (!m_Grid[i].m_LoadedCurrent){
-					// UNLOAD
+					Unload(m_Grid[i]);
 				}
 			}
 			// If it wasn't loaded
 			else{
 				// But needs to be!!!
 				if (m_Grid[i].m_LoadedCurrent){
-					// LOAD
+					Load(m_Grid[i]);
 				}
 			}
 
@@ -244,6 +254,7 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 	}
 }
 
+//--------------------------------------------------------
 void
 Caching::DrawRadar(void){
 	char *radar = new char[m_GridSize * m_GridSize];
@@ -286,3 +297,97 @@ Caching::DrawRadar(void){
 	printf("-----\n");
 	printf("-----\n");
 }
+
+//--------------------------------------------------------
+// Called by the GL thread.  Puts the tile on the queue for loading
+void
+Caching::Load(Tile& tile){
+	// Removed any existing requests for this tile
+		// lock write queue
+		// search and remove
+		// unlock write queue
+		// check read queue ??
+
+	// Grab PBO from pool
+		// wait on semaphore for a PBO
+
+	// Map PBO for data transfer
+
+	// Push a request for CPU to load image data into mapped PBO array
+		// set pointer to mapped PBO in request struct
+		// lock read queue
+		// push request onto queue
+		// unlock queue
+}
+
+//--------------------------------------------------------
+// Called by the GL thread.  Puts the tile on the queue for unloading
+void
+Caching::Unload(Tile& tile){
+	// Remove any existing requests for this tile
+
+	// Check if tile has been modified
+	
+	// if so...
+
+	// Get a PBO and Bind
+
+	// Begin DMA transfer from GPU texture memory into PBO
+
+	// Push request for CPU thread to write data to disk
+
+	// Unbind 
+}
+
+//--------------------------------------------------------
+void
+Caching::UpdatePBOs(){
+	// Allocate PBOs to Load/Unload requests
+	// ??
+
+	// process maximum 4
+	for (int i = 0; i < 4; i++){
+		// check if any transfers from sysmem are ready
+			// lock ready queue
+			// check size -> break if empty
+			// grab ready struct
+			// unlock ready queue
+
+		// Unmap the PBO 
+
+		// Begin transfer
+			// call glTex(Sub)Image
+
+		// Release the PBO for someone else to use next frame around.
+			// push PBO onto PBO queue/pool
+			// increment semaphore
+	}
+}
+
+//--------------------------------------------------------
+// A global function that represents the execution of the caching thread whose
+// job it is to load and save data from and to files on the hdd.
+int
+hdd_cacher(void* data){
+	Caching* pCaching = (Caching*)data;
+	while (pCaching->m_threadRunning){
+		// pop a read request
+			// lock read queue
+			// pop request
+			// unlock read queue
+
+		// load image to sys memory
+
+		// memcpy image to mapped PBO buffer memory
+
+		// notify GL thread that memory is ready for transfer (another list ?)
+			// lock ready queue
+			// push struct
+			// unlock ready queue
+
+		// ------------
+
+		// pop a write request
+	}
+}
+
