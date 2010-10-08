@@ -284,7 +284,7 @@ DefTer::Init()
 
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
-	if (!LoadCoarseMap("images/hmap03.png"))
+	if (!LoadCoarseMap("images/hmap02.png"))
 		return false;
 	printf("Done\n");
 

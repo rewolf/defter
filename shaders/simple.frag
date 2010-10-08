@@ -22,7 +22,7 @@ const vec4 const_fog_col= vec4(.3, .3, .3, 1.0);
 
 vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
-vec4 light_Specular	= vec4(0.9, 0.0, 0.9, 1.0);
+vec4 light_Specular	= vec4(0.9, 0.9, 0.9, 1.0);
 
 //------------------------------------------------------------------------------
 void main()
