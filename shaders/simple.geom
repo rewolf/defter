@@ -8,10 +8,12 @@ layout(triangle_strip, max_vertices=170)  out;
 
 
 // Incoming from vertex shader
+in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
 
 // Outgoing per-vertex information
-out vec2 hmap_texCoord;
+out vec3 frag_View;
+out vec2 frag_TexCoord;
 out vec3 position;
 
 //--------------------------------------------------------
@@ -43,16 +45,22 @@ void main(){
 
 	gl_Position = vertex[0];
 	position = vertex[0].xyz;
-	hmap_texCoord = geom_TexCoord[0];
+	frag_View = geom_View[0];
+	frag_TexCoord = geom_TexCoord[0];
 	EmitVertex();
+
 	gl_Position = vertex[1];
 	position = vertex[1].xyz;
-	hmap_texCoord = geom_TexCoord[1];
+	frag_View = geom_View[1];
+	frag_TexCoord = geom_TexCoord[1];
 	EmitVertex();
+
 	gl_Position = vertex[2];
 	position = vertex[2].xyz;
-	hmap_texCoord = geom_TexCoord[2];
+	frag_View = geom_View[2];
+	frag_TexCoord = geom_TexCoord[2];
 	EmitVertex();
+
 	EndPrimitive();
 }
 

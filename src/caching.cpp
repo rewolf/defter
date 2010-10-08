@@ -128,7 +128,7 @@ Caching::~Caching(){
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
-	UpdatePBOs();
+	//UpdatePBOs();
 
 	bool updateRadar	= false;
 	worldPos		   += vector2(m_CoarseOffset);

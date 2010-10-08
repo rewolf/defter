@@ -19,6 +19,7 @@ uniform mat4 view;
 in vec3 in_Position;
 in vec2 in_TexCoord;
 
+out vec3 geom_View;
 out vec2 geom_TexCoord;
 
 // GLOBALS
@@ -32,10 +33,12 @@ const float HEIGHT 		= 20.0;
 // the camera, starts at 0,0
 void main()
 {
+	// Variables
 	float height, lod, texToMetre, metreToTex;
 	vec2 texCoord, camera_world, shift, camera_tex;
 	float camera_height;
 
+	// Extract data passed in
 	camera_tex	= cam_and_shift.xy;
 	shift	 	= cam_and_shift.zw;
 	texToMetre	= scales.x;
@@ -45,24 +48,31 @@ void main()
 	camera_world = camera_tex * texToMetre;
 
 	// Compute texture coordinates for vertex and lookup height
-	texCoord = in_TexCoord + camera_tex + shift*metreToTex;
+	texCoord = in_TexCoord + camera_tex + shift * metreToTex;
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= texture(heightmap, texCoord).r;
-	camera_height = -texture(heightmap, 0.5+camera_tex, .0).r * HEIGHT - 2.5;
+	height 	= texture2D(heightmap, texCoord).r;
+	camera_height = -texture(heightmap, 0.5 + camera_tex, .0).r * HEIGHT - 2.5;
 
 	// Set vertex position and height from heightmap
-	gl_Position = vec4(in_Position.x, height*HEIGHT, in_Position.y, 1.0);
+	vec4 pos = vec4(in_Position.x, height*HEIGHT, in_Position.y, 1.0);
 
 	// Shift the roaming mesh so that vertices maintain same heights
 	// The following MAD instruction shifts the x and z coordinates by s and t
-	gl_Position = gl_Position + const_list.xyxy * shift.sttt;
+	pos = pos + const_list.xyxy * shift.sttt;
 	// So gl_Position contains the basic heightfield worldspace coordinate
+	pos = pos + const_list.yxyy * camera_height;
 
 	// Pos contains the transformed coordinate in eye-space.
-	gl_Position = projection * view * (const_list.yxyy * camera_height + gl_Position);
+	pos = view * pos;
+
+	// Calculate the view vector
+	geom_View = -(pos.xyz / pos.w);
 	
-	// Send through the texcoord
+	// Save out the gl_Position
+	gl_Position = projection * pos;
+	
+	// Save out the texCoord
 	geom_TexCoord = texCoord;
 }
