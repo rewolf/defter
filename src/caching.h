@@ -19,6 +19,7 @@ struct CacheRequest{
 	GLuint			pbo;
 	GLubyte*		ptr;
 	Tile*			tile;
+	bool			useZero;
 };
 	
 // function for caching thread
@@ -65,13 +66,17 @@ private:
 
 	// threading
 	SDL_Thread*			m_cacheThread;
-	SDL_mutex*			m_doneQueueMutex;
+	SDL_mutex*			m_doneLoadQueueMutex;
+	SDL_mutex*			m_doneUnloadQueueMutex;
 	SDL_mutex*			m_loadQueueMutex;
 	SDL_mutex*			m_unloadQueueMutex;
-	list<CacheRequest>	m_readyQueue;
-	list<CacheRequest>	m_doneQueue;
-	list<CacheRequest>	m_loadQueue;
-	list<CacheRequest>	m_unloadQueue;
+	list<CacheRequest>	m_readyLoadQueue;	// load requests waiting for a PBO
+	list<CacheRequest>	m_loadQueue;		// load requests waiting to read from file
+	list<CacheRequest>	m_doneLoadQueue;	// load requests needing GL transfer to texture
+	list<CacheRequest>	m_readyUnloadQueue;	// unload requests waiting for a PBO
+	list<CacheRequest>	m_busyUnloadQueue;	// unload requests busy reading from tex to PBO
+	list<CacheRequest>	m_unloadQueue;		// unload requests waiting to copy to file
+	list<CacheRequest>	m_doneUnloadQueue;	// unload requests with a PBO to unmap and release
 	queue<GLuint>		m_pboPackPool;
 	queue<GLuint>		m_pboUnpackPool;
 	GLuint				m_pbos[PBO_POOL*2];

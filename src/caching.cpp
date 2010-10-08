@@ -11,6 +11,9 @@ using namespace reMath;
 #include "FreeImage.h"
 #ifdef _WIN32
 #	include "direct.h"
+#else
+#	include "sys/stat.h"
+#	define  mkdir(x)	mkdir(x, S_IRWXU)
 #endif
 
 #define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
@@ -23,12 +26,14 @@ using namespace reMath;
 #define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
 
 #define DEBUG_ON		(1)
-#ifdef DEBUG_ON
+#if DEBUG_ON
 	#define DEBUG(x)		printf(x)
 	#define DEBUG2(x,y)		printf(x,y)
 	#define DEBUG3(x,y,z)	printf(x,y,z)
 #else
 	#define DEBUG(x)		{}
+	#define DEBUG2(x,y)		{}
+	#define DEBUG3(x,y,z)	{}
 #endif
 
 //--------------------------------------------------------
@@ -74,10 +79,11 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	m_caching_stats += sstr.str();
 
 	// Intitialise threading constructs
-	m_threadRunning 	= true;
-	m_loadQueueMutex	= SDL_CreateMutex();
-	m_unloadQueueMutex	= SDL_CreateMutex();
-	m_doneQueueMutex	= SDL_CreateMutex();
+	m_threadRunning 		= true;
+	m_loadQueueMutex		= SDL_CreateMutex();
+	m_unloadQueueMutex		= SDL_CreateMutex();
+	m_doneLoadQueueMutex	= SDL_CreateMutex();
+	m_doneUnloadQueueMutex	= SDL_CreateMutex();
 	
 	// Initialise PBO pool
 	int texSize = sizeof(GLbyte) * highDim * highDim;
@@ -110,7 +116,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 Caching::~Caching(){
 	m_threadRunning = false;
 	SDL_WaitThread(m_cacheThread, NULL);
-	SDL_DestroyMutex(m_doneQueueMutex);
+	SDL_DestroyMutex(m_doneLoadQueueMutex);
 	SDL_DestroyMutex(m_loadQueueMutex);
 	SDL_DestroyMutex(m_unloadQueueMutex);
 	delete[] m_Grid;
@@ -396,7 +402,7 @@ Caching::Load(Tile* tile){
 		}
 	}*/
 
-	m_readyQueue.push_back(load);
+	m_readyLoadQueue.push_back(load);
 	DEBUG3("Pushed tile %d %d\n", load.tile->m_row, load.tile->m_col);
 }
 
@@ -404,35 +410,47 @@ Caching::Load(Tile* tile){
 // Called by the GL thread.  Puts the tile on the queue for unloading
 void
 Caching::Unload(Tile* tile){
-	// Remove any existing requests for this tile
+	CacheRequest unload;
+	unload.type = UNLOAD;
+	unload.tile = tile;
 
-	// Check if tile has been modified
-	
-	// if so...
-
-	// Get a PBO and Bind
-
-	// Begin DMA transfer from GPU texture memory into PBO
-
-	// Push request for CPU thread to write data to disk
-
-	// Unbind 
+	m_readyUnloadQueue.push_back(unload);
+	DEBUG3("Pushed tile %d %d for unload\n", unload.tile->m_row, unload.tile->m_col);
 }
 
 //--------------------------------------------------------
 // Allocates PBOs to Load/Unload requests (ready queue) and signals CPU queue
 // also.. retrieves data readied by CPU (done queue)
-// This is the only function that alters the PBO semaphore
+// This is the only function that alters the PBO pools
 void
 Caching::UpdatePBOs(){
 	CacheRequest load;
+	CacheRequest unload;
 
-	// Allocate PBOs to Load/Unload requests
+	// Take unload requests that should be transferring from GPU mem to PBO and map them to sysmem
+	for (int i = 0; i < 2 && m_busyUnloadQueue.size() ; i++){
+		unload = m_busyUnloadQueue.front();
+		m_busyUnloadQueue.pop_front();
+
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
+		unload.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+		if (!unload.ptr){
+			fprintf(stderr, "BAD ERROR: Could not map unload PBO pointer!!!!!\n");
+			m_busyUnloadQueue.push_front(unload);
+			break;
+		}
+
+		LOCK(m_unloadQueueMutex);
+		m_unloadQueue.push_back(unload);
+		UNLOCK(m_unloadQueueMutex);
+	}
+
+	// Allocate PBOs to Load requests and map to sys memory
 	while (m_pboUnpackPool.size()){
-		if (m_readyQueue.size()){
-			// pop request of queue
-			load = m_readyQueue.front();
-			m_readyQueue.pop_front();
+		if (m_readyLoadQueue.size()){
+			// pop request off queue
+			load = m_readyLoadQueue.front();
+			m_readyLoadQueue.pop_front();
 
 			// pop PBO
 			load.pbo = m_pboUnpackPool.front();
@@ -443,8 +461,9 @@ Caching::UpdatePBOs(){
 			load.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
 			if (!load.ptr){
 				fprintf(stderr, "BAD ERROR: Could not map PBO pointer!!!!!\n");
-				m_readyQueue.push_front(load);
+				m_readyLoadQueue.push_front(load);
 				m_pboUnpackPool.push(load.pbo);
+				break;
 			}
 
 			// Push request onto the load queue for CPU
@@ -457,20 +476,45 @@ Caching::UpdatePBOs(){
 		}
 	}
 
-	// process maximum R
+	// Allocate PBOs to Unload requests and begin GPU transfer to PBO
+	while (m_pboPackPool.size()){
+		if (m_readyUnloadQueue.size()){
+			// pop request off queue
+			unload = m_readyUnloadQueue.front();
+			m_readyUnloadQueue.pop_front();
+
+			// pop PBO
+			unload.pbo = m_pboPackPool.front();
+			m_pboPackPool.pop();
+
+			// Begin the transfer to PBO from GPU texture memory
+			glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
+	//		glBindTexture(GL_TEXTURE_2D, unload.tile->m_texdata.m_heightmap);
+	//		glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, 0);
+			DEBUG("Transferring FROM texture\n");
+
+			// Push request onto the busy queue to be checked next frame
+			m_busyUnloadQueue.push_back(unload);
+		}
+		else{
+			break;
+		}
+	}
+
+	// process maximum R done load requests
 	for (int i = 0; i < READS_PER_FRAME; i++){
 		// Get a load-ready struct
-		LOCK(m_doneQueueMutex);
-		if (m_doneQueue.size()){
-			load = m_doneQueue.front();
-			m_doneQueue.pop_front();
+		LOCK(m_doneLoadQueueMutex);
+		if (m_doneLoadQueue.size()){
+			load = m_doneLoadQueue.front();
+			m_doneLoadQueue.pop_front();
 			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
 		}
 		else{
-			UNLOCK(m_doneQueueMutex);
+			UNLOCK(m_doneLoadQueueMutex);
 			break;
 		}
-		UNLOCK(m_doneQueueMutex);
+		UNLOCK(m_doneLoadQueueMutex);
 
 		// Unmap the PBO from sysmem pointer
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
@@ -479,9 +523,38 @@ Caching::UpdatePBOs(){
 		CheckError("Unmapping buffer\n");
 		// Begin transfer
 		DEBUG("Begin transfer\n");
+		if (load.useZero){
+			DEBUG3("Init Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
+		}
+		else{
+//		glTexImage2D(..
+		}
 
 		// Release the PBO for someone else to use next frame around.
 		m_pboUnpackPool.push(load.pbo);
+	}
+
+	// process maximum R done unload requests
+	for (int i = 0; i < READS_PER_FRAME; i++){
+		// Get a finished unload struct
+		LOCK(m_doneUnloadQueueMutex);
+		if (m_doneUnloadQueue.size()){
+			unload = m_doneUnloadQueue.front();
+			m_doneUnloadQueue.pop_front();
+			DEBUG3("Tile %d %d done, and can be unmapped\n", unload.tile->m_row, unload.tile->m_col);
+		}
+		else{
+			UNLOCK(m_doneUnloadQueueMutex);
+			break;
+		}
+		UNLOCK(m_doneUnloadQueueMutex);
+
+		// Unmap the PBO from sysmem pointer
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
+		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+
+		// Release the PBO for someone else to use next frame around.
+		m_pboPackPool.push(unload.pbo);
 	}
 }
 
@@ -508,20 +581,46 @@ hdd_cacher(void* data){
 		if (gotRequest){
 			// load image to sys memory mapped by PBO
 			DEBUG3("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
-			pCaching->LoadTextureData(load.tile, load.ptr);
+			if (!pCaching->LoadTextureData(load.tile, load.ptr)){
+				// if this failed, we notify GL thread to use Zero Texture
+				load.useZero = true;
+			}else{
+				load.useZero = false;
+			}
 
 			// notify GL thread that memory is done and ready for transfer (another list ?)
-			LOCK(pCaching->m_doneQueueMutex);
-			pCaching->m_doneQueue.push_back(load);
-			UNLOCK(pCaching->m_doneQueueMutex);
+			LOCK(pCaching->m_doneLoadQueueMutex);
+			pCaching->m_doneLoadQueue.push_back(load);
+			UNLOCK(pCaching->m_doneLoadQueueMutex);
 			DEBUG("Pushing to done queue\n");
 		}else{
-			SDL_Delay(10);
+			SDL_Delay(5);
 		}
 
 		// ----------------------
 
 		// pop a write request
+		gotRequest = false;
+		LOCK(pCaching->m_unloadQueueMutex);
+		if (pCaching->m_unloadQueue.size()){
+			gotRequest = true;
+			unload = pCaching->m_unloadQueue.front();
+			pCaching->m_unloadQueue.pop_front();
+		}
+		UNLOCK(pCaching->m_unloadQueueMutex);
+
+		// Write the data to disk
+		if (gotRequest){
+			DEBUG3("Writing tile %d %d to image file\n", unload.tile->m_row, unload.tile->m_col);
+			if (!pCaching->SaveTextureData(unload.tile, unload.ptr))
+				fprintf(stderr," ERROR: :could not write the tile !!!\n");
+			DEBUG("Pushing to unload done queue\n");
+			LOCK(pCaching->m_doneUnloadQueueMutex);
+			pCaching->m_doneUnloadQueue.push_back(unload);
+			UNLOCK(pCaching->m_doneUnloadQueueMutex);
+		}else{
+			SDL_Delay(5);
+		}
 	}
 	return 0;
 }
@@ -541,7 +640,6 @@ Caching::LoadTextureData(Tile* tile, GLubyte* data){
 	image = FreeImage_Load(FIF_PNG, filename, 0);
 
 	if (!image){
-		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename);
 		return false;
 	}
 
@@ -550,5 +648,31 @@ Caching::LoadTextureData(Tile* tile, GLubyte* data){
 	memcpy(data, bits, sizeof(GLubyte) * m_highDim * m_highDim);
 
 	FreeImage_Unload(image);
+	return true;
+}
+
+//--------------------------------------------------------
+inline bool
+Caching::SaveTextureData(Tile* tile, GLubyte* data){
+	FIBITMAP* 		image;
+	BYTE*			bits;
+	char			filename[256];
+	
+	sprintf(filename, "cache/tile%02d_%02d.png", tile->m_row, tile->m_col);
+
+	mkdir("cache");
+	image = FreeImage_Allocate(m_highDim, m_highDim, 8);
+
+	bits = (BYTE*) FreeImage_GetBits(image);
+	memcpy(bits, data, m_highDim * m_highDim);
+
+	if (!FreeImage_Save(FIF_PNG, image, filename, PNG_Z_BEST_SPEED)){
+		FreeImage_Unload(image);
+		return false;
+	}
+
+	FreeImage_Unload(image);
+		
+	return true;
 }
 
