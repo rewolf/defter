@@ -54,27 +54,31 @@ using namespace reMath;
 #define SCREEN_W			(1024)
 #define SCREEN_H			(768)
 
-#define HIGH_DIM			(2048)
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
 #define CLIPMAP_LEVELS		(5)
-#define HIGH_RES			(CLIPMAP_RES/3.0f)
+#define CACHING_LEVEL		(2)
+#define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
+#define HIGH_DIM			(1024 * CACHING_LEVEL)
+#define HIGH_RES			(CLIPMAP_RES / 3.0f)
+#define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 
 
 /******************************************************************************
  * Main 
  ******************************************************************************/
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[])
+{
 	AppConfig conf;
 	conf.VSync = false;
 	conf.gl_major = 3;
 	conf.gl_minor = 2;
 	conf.fsaa=0;
-	conf.sleepTime = .0f;
+	conf.sleepTime = .01f;
 	conf.winWidth = SCREEN_W;
 	conf.winHeight= SCREEN_H;
 	DefTer test(conf);
-	
+
 	int sleepTime = 1000;
 	if (!test.Start())
 	{
@@ -85,12 +89,14 @@ int main(int argc, char* argv[]){
 #ifdef _WIN32
 	Sleep(sleepTime);
 #endif
+
 	return 0;
 }
 
 
 //--------------------------------------------------------
-DefTer::DefTer(AppConfig& conf) : reGL3App(conf){
+DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
+{
 	m_shMain  = NULL;
 	m_pDeform = NULL;
 	m_pClipmap= NULL;
@@ -98,7 +104,8 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf){
 }
 
 //--------------------------------------------------------
-DefTer::~DefTer(){
+DefTer::~DefTer()
+{
 	FreeImage_DeInitialise();
 	glUseProgram(0);
 	RE_DELETE(m_shMain);
@@ -115,7 +122,8 @@ DefTer::~DefTer(){
 
 //--------------------------------------------------------
 bool
-DefTer::InitGL(){
+DefTer::InitGL()
+{
 	int res;
 	char* shVersion;
 	int nVertTexUnits, nGeomTexUnits, nTexUnits, nTexUnitsCombined, nColorAttachments, nTexSize,
@@ -124,8 +132,10 @@ DefTer::InitGL(){
 
 	if (!reGL3App::InitGL())
 		return false;
+
 #ifdef _WIN32
-	if (glewInit()!=GLEW_OK){
+	if (glewInit()!=GLEW_OK)
+	{
 		printf("Could not init GLEW\n");
 		return false;
 	}
@@ -170,13 +180,16 @@ DefTer::InitGL(){
 		return false;
 	printf("\t\tDone\n");
 
-	// init projection matrix
-	aspect = float(m_config.winWidth)/m_config.winHeight;
-	m_proj_mat = perspective_proj(PI*.5f, aspect, NEAR_PLANE, FAR_PLANE);
+	// Init projection matrix
+	aspect			= (float)(m_config.winWidth / m_config.winHeight);
+	m_proj_mat		= perspective_proj(PI*.5f, aspect, NEAR_PLANE, FAR_PLANE);
+
+	// Set the initial stamp mode to coarse map
+	m_is_hd_stamp	= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
-	m_shMain = new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -186,17 +199,20 @@ DefTer::InitGL(){
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...");
 	res = m_shMain->CompileAndLink();
-	if (!res){
+	if (!res)
+	{
 		printf("\t\tError\n\tWill not continue without working shaders\n");
 		return false;
 	}
 
 	// Assign samplers to texture units
 	glUseProgram(m_shMain->m_programID);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"),0);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"),1);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap")	,2);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"), 1);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "hd_aura"), HD_AURA);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -247,14 +263,13 @@ DefTer::InitGL(){
 
 //--------------------------------------------------------
 bool
-DefTer::Init(){
+DefTer::Init()
+{
 	glGenBuffers(2, m_pbo);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
-	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,
-			GL_STREAM_READ);
+	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
-	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,
-			GL_STREAM_READ);
+	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 
@@ -281,7 +296,8 @@ DefTer::Init(){
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex);
-	if (!m_pDeform->m_no_error){
+	if (!m_pDeform->m_no_error)
+	{
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
 		return false;
 	}
@@ -290,7 +306,8 @@ DefTer::Init(){
 	// Create the skybox object
 	printf("Creating skybox...\t\t");
 	m_pSkybox = new Skybox();
-	if (!m_pSkybox->m_no_error){
+	if (!m_pSkybox->m_no_error)
+	{
 		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
 		return false;
 	}
@@ -298,13 +315,12 @@ DefTer::Init(){
 
 	// Create Caching System
 	printf("Creating caching system...\t");
-	m_pCaching = new Caching(m_pDeform, (int)(CLIPMAP_DIM * 2.0f), m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	m_pCaching = new Caching(m_pDeform, CACHING_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
 	printf("Done\n");
 
 	// Shader uniforms
 	glUseProgram(m_shMain->m_programID);
-	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), 
-			m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
+	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 	
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
@@ -321,13 +337,15 @@ DefTer::Init(){
 // LOADCOARSEMAP loads a heightmap from a png file for the coarse map.
 // It also allocates memory for the normal and tangent maps.
 bool
-DefTer::LoadCoarseMap(string filename){
+DefTer::LoadCoarseMap(string filename)
+{
 	FIBITMAP*		image;
 	BYTE*			bits;
 	int				bitdepth;
 
 	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
-	if (image == NULL){
+	if (image == NULL)
+	{
 		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename.c_str());
 		return false;
 	}
@@ -339,7 +357,8 @@ DefTer::LoadCoarseMap(string filename){
 
 	FreeImage_FlipVertical(image);
 
-	if (bitdepth!=8){
+	if (bitdepth!=8)
+	{
 		fprintf(stderr, "Error\n\tCannot load files with more than 1 component: %s\n",
 				filename.c_str());
 		return false;
@@ -353,13 +372,13 @@ DefTer::LoadCoarseMap(string filename){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	if (!CheckError("Loading PNG heightmap, setting parameters")){
+	if (!CheckError("Loading PNG heightmap, setting parameters"))
+	{
 		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,
-			GL_UNSIGNED_BYTE, bits);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -385,76 +404,103 @@ DefTer::LoadCoarseMap(string filename){
 
 //--------------------------------------------------------
 void
-DefTer::ProcessInput(float dt){
+DefTer::UpdateStamp(int stampID)
+{
+	if (stampID == 0)
+		m_is_hd_stamp = false;
+	else
+		m_is_hd_stamp = true;
+
+	glUseProgram(m_shMain->m_programID);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+	printf("%.0f\n", (m_is_hd_stamp ? 1.0f : 0.0f));
+}
+
+//--------------------------------------------------------
+void
+DefTer::ProcessInput(float dt)
+{
 	int wheel_ticks = m_input.GetWheelTicks();
 	MouseDelta move = m_input.GetMouseDelta();
 	static vector2 clickPos;
 	static bool clicked = false;
 
 	// Rotate Camera
-	if (m_input.IsButtonPressed(1)){
-		//pitch
+	if (m_input.IsButtonPressed(1))
+	{
+		// Pitch
 		m_cam_rotate.x += dt*move.y*PI*.1f;
-		//yaw
+		// Yaw
 		m_cam_rotate.y += dt*move.x*PI*.1f;
 	}
 
 	// Change the selected deformation location
-	if (m_input.IsButtonPressed(3)){
+	if (m_input.IsButtonPressed(3))
+	{
 		MousePos pos = m_input.GetMousePos();
 		float val;
 		float w = (float)m_config.winWidth;
 		float h = (float)m_config.winHeight;
-		float aspect = float(m_config.winWidth)/m_config.winHeight;
-		// get value in z-buffer
-		glReadPixels((GLint)pos.x, (GLint)(m_config.winHeight- pos.y), 1,1,GL_DEPTH_COMPONENT, GL_FLOAT, &val);
+		float aspect = w / h;
+		// Get value in z-buffer
+		glReadPixels((GLint)pos.x, (GLint)(m_config.winHeight- pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
 
-		vector3 frag(pos.x,pos.y,val);
-		// derive inverse of view transform (could just use transpose of view matrix
+		vector3 frag(pos.x, pos.y, val);
+		// Derive inverse of view transform (could just use transpose of view matrix
 		matrix4 inverse = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 
-		// request unprojected coordinate
-		vector3 p = perspective_unproj_world(
-				frag, w, h, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
-		p += m_cam_translate;
+		// Request unprojected coordinate
+		vector3 p = perspective_unproj_world(frag, w, h, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
-		//Store the clicked position in world space
+		// Check that the dot is not further than the max 'allowable distance'
+		/*if (p.Mag() > HD_AURA)
+		{
+			float scale = HD_AURA / p.Mag();
+			p *= scale;
+		}*/
+
+		p += m_cam_translate;
+		
+		// Store the clicked position in world space
 		clicked = true;
 		clickPos = vector2(p.x, p.z);
 
-		//Calc the value in terms of tex coords
+		// Calc the value in terms of tex coords
 		p *= m_pClipmap->m_metre_to_tex;
 		p += vector3(0.5f);
 
-		// pass to shader
+		// Pass to shader
 		glUseProgram(m_shMain->m_programID);
 		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), p.x, p.z);
 	}
 
 	// Change the selected deformation location
-	if (clicked && wheel_ticks!=0)
+	if (clicked && wheel_ticks != 0)
 	{
-		//m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
-		m_pCaching->DeformHighDetail(m_coarsemap, clickPos, .1f * wheel_ticks);
+		if (m_is_hd_stamp)
+			m_pCaching->DeformHighDetail(m_coarsemap, clickPos, .1f * wheel_ticks);
+		else
+			m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;
 	// Toggle wireframe
-	if (m_input.WasKeyPressed(SDLK_l)){
-		wireframe^=true;
-		if (wireframe){
+	if (m_input.WasKeyPressed(SDLK_l))
+	{
+		wireframe ^= true;
+		if (wireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else{
+		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
 	}
 
 	// Take screenshot
 	static bool transferring  = false;
 	static int index     = 0;
 	static int nextIndex = 1;
-	if (m_input.WasKeyPressed(SDLK_F12)){
+	if (m_input.WasKeyPressed(SDLK_o))
+	{
 
 		glReadBuffer(GL_FRONT);
 
@@ -465,7 +511,8 @@ DefTer::ProcessInput(float dt){
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 		glReadBuffer(0);	
 	}
-	else if (transferring){
+	else if (transferring)
+	{
 		static int lastScreenshot = 1;
 		char filename[256];
 		GLubyte* framebuffer;
@@ -474,44 +521,63 @@ DefTer::ProcessInput(float dt){
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[index]);
 		framebuffer = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 
-		if (framebuffer){
-			sprintf(filename, "screenshot%05d.png", lastScreenshot++);
+		if (framebuffer)
+		{
+			sprintf(filename, "Temp\\screenshot%05d.png", lastScreenshot++);
 			SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false);
 			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 		}
-		else{
+		else
+		{
 			printf("fail array\n");
 		}
 		transferring = false;
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 		glReadBuffer(0);	
-	}	
+	}
 
-	float speed = 1.33f;		// in m/s (average walking speed)
+	//Switch stamps
+	if (m_input.WasKeyPressed(SDLK_h))
+	{
+		if (m_is_hd_stamp)
+			UpdateStamp(0);
+		else
+			UpdateStamp(1);
+	}
+
+	// Controls to handle movement of the camera
+	// Speed in m/s (average walking speed)
+	float speed = 1.33f;
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		speed*=30.0f;
-	if (m_input.IsKeyPressed(SDLK_w)){
+	if (m_input.IsKeyPressed(SDLK_w))
+	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
 	}
-	if (m_input.IsKeyPressed(SDLK_s)){
+	if (m_input.IsKeyPressed(SDLK_s))
+	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
 	}
-	if (m_input.IsKeyPressed(SDLK_a)){
+	if (m_input.IsKeyPressed(SDLK_a))
+	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
 	}
-	if (m_input.IsKeyPressed(SDLK_d)){
+	if (m_input.IsKeyPressed(SDLK_d))
+	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 	}
+	// Boundary check for wrapping position
 	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
 	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
 	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 	
 	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_c)){
+	if (m_input.WasKeyPressed(SDLK_c))
+	{
 		m_pClipmap->m_enabled ^= true;
 		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_enabled));
 	}
@@ -520,8 +586,9 @@ DefTer::ProcessInput(float dt){
 }
 
 //--------------------------------------------------------
-void 
-DefTer::Logic(float dt){
+void
+DefTer::Logic(float dt)
+{
 	//Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z));
 
@@ -534,13 +601,13 @@ DefTer::Logic(float dt){
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
-	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), 
-			pos.x,	pos.z, 	m_clipmap_shift.x, 	m_clipmap_shift.y);
+	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 }
 
 //--------------------------------------------------------
 void
-DefTer::Render(float dt){
+DefTer::Render(float dt)
+{
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	matrix4 rotate, viewproj;

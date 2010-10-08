@@ -2,17 +2,11 @@
 #ifndef _CLIPMAP_H_
 #define _CLIPMAP_H_
 
-// define new types for easy changing
-typedef GLuint 	INDEX;
-typedef vector2	VERTEX;
-typedef float2	TEXCOORD;
-
 struct cull_block{
 	int		count;
 	int		start_index;
-	VERTEX	bound[4];
+	vector2	bound[4];
 };
-
 
 class Clipmap{
 public:
@@ -24,8 +18,8 @@ public:
 	void		render			();
 private:
 	void		create_block	(int vertstart, int width, int height, 
-									std::vector<VERTEX> &vertices,
-									std::vector<INDEX> &indices);
+									std::vector<vector2> &vertices,
+									std::vector<GLuint> &indices);
 
 public:
 	vector<cull_block> blocks;

@@ -75,10 +75,10 @@ Clipmap::init(){
 	int i,j;
 	float quad_size, texel_size, left, ffar;
 	int vmarker, vcount;
-	std::vector <VERTEX>	vertices;
-	std::vector <TEXCOORD>	texcoords;
-	std::vector <INDEX>		indices;
-	std::vector <INDEX>		cullable;
+	std::vector <vector2>	vertices;
+	std::vector <vector2>	texcoords;
+	std::vector <GLuint>		indices;
+	std::vector <GLuint>		cullable;
 
 	quad_size  = m_quad_size;
 	texel_size = m_texel_size;
@@ -90,13 +90,13 @@ Clipmap::init(){
 	ffar  = - (m_N-1) * .5f;
 	for (i = 0; i < m_N;i++){
 		for (j = 0; j < m_N; j++){
-			VERTEX v;
-			TEXCOORD tc;
+			vector2 v;
+			vector2 tc;
 
 			v.x = left*quad_size + j*quad_size;
 			v.y = ffar*quad_size + i*quad_size;
-			tc.u= 0.5f + left*texel_size + j*texel_size;
-			tc.v= 0.5f + ffar*texel_size + i*texel_size;;
+			tc.x= 0.5f + left*texel_size + j*texel_size;
+			tc.y= 0.5f + ffar*texel_size + i*texel_size;;
 
 			vertices.push_back(v);
 			texcoords.push_back(tc);
@@ -121,20 +121,20 @@ Clipmap::init(){
 
 		// Create degnerate triangles around the centre top
 		for (int j = 0; j < (m_N-1)/2+1; j++){
-			VERTEX v;
-			TEXCOORD tc;
+			vector2 v;
+			vector2 tc;
 
 			v.x  = left*quad_size/2 + j * quad_size;
 			v.y  = ffar*quad_size/2;
-			tc.u = 0.5f + left*texel_size/2 + j*texel_size;
-			tc.v = 0.5f + ffar*texel_size/2;
+			tc.x = 0.5f + left*texel_size/2 + j*texel_size;
+			tc.y = 0.5f + ffar*texel_size/2;
 
 			if (j > 0){
-				VERTEX vm = v;
+				vector2 vm = v;
 				vm.x -= 0.5f*quad_size;
 	//			vm.y += 0.25f*quad_size;	// delete this line
-				TEXCOORD tcm = tc;
-				tcm.u-= 0.5f*texel_size;
+				vector2 tcm = tc;
+				tcm.x-= 0.5f*texel_size;
 				vertices.push_back(vm);
 				texcoords.push_back(tcm);
 
@@ -150,20 +150,20 @@ Clipmap::init(){
 		}
 		// Create degnerate triangles around the centre bottom
 		for (int j = 0; j < (m_N-1)/2+1; j++){
-			VERTEX v;
-			TEXCOORD tc;
+			vector2 v;
+			vector2 tc;
 
 			v.x  = left*quad_size/2 + j * quad_size;
 			v.y  = ffar*quad_size/2 + (m_N-1) * quad_size/2;
-			tc.u = 0.5f + left*texel_size/2 + j*texel_size;
-			tc.v = 0.5f + ffar*texel_size/2 + (m_N-1)*texel_size/2;
+			tc.x = 0.5f + left*texel_size/2 + j*texel_size;
+			tc.y = 0.5f + ffar*texel_size/2 + (m_N-1)*texel_size/2;
 
 			if (j > 0){
-				VERTEX vm = v;
+				vector2 vm = v;
 				vm.x -= 0.5f*quad_size;
 	//			vm.y -= 0.25f*quad_size;	// delete this line
-				TEXCOORD tcm = tc;
-				tcm.u-= 0.5f*texel_size;
+				vector2 tcm = tc;
+				tcm.x-= 0.5f*texel_size;
 				vertices.push_back(vm);
 				texcoords.push_back(tcm);
 
@@ -179,20 +179,20 @@ Clipmap::init(){
 		}
 		// Create degnerate triangles around the centre left
 		for (int j = 0; j < (m_N-1)/2+1; j++){
-			VERTEX v;
-			TEXCOORD tc;
+			vector2 v;
+			vector2 tc;
 
 			v.x  = left*quad_size/2;
 			v.y  = ffar*quad_size/2 + j * quad_size;
-			tc.u = 0.5f + left*texel_size/2;
-			tc.v = 0.5f + ffar*texel_size/2 + j * texel_size;
+			tc.x = 0.5f + left*texel_size/2;
+			tc.y = 0.5f + ffar*texel_size/2 + j * texel_size;
 
 			if (j > 0){
-				VERTEX vm = v;
+				vector2 vm = v;
 				vm.y -= 0.5f*quad_size;
 	//			vm.x += 0.25f*quad_size;	// delete this line
-				TEXCOORD tcm = tc;
-				tcm.v-= 0.5f*texel_size;
+				vector2 tcm = tc;
+				tcm.y-= 0.5f*texel_size;
 				vertices.push_back(vm);
 				texcoords.push_back(tcm);
 
@@ -208,20 +208,20 @@ Clipmap::init(){
 		}
 		// Create degnerate triangles around the centre right
 		for (int j = 0; j < (m_N-1)/2+1; j++){
-			VERTEX v;
-			TEXCOORD tc;
+			vector2 v;
+			vector2 tc;
 
 			v.x  = left*quad_size/2 + (m_N-1)*quad_size/2;
 			v.y  = ffar*quad_size/2 + j * quad_size;
-			tc.u = 0.5f + left*texel_size/2 + (m_N-1)*texel_size/2;
-			tc.v = 0.5f + ffar*texel_size/2 + j * texel_size;
+			tc.x = 0.5f + left*texel_size/2 + (m_N-1)*texel_size/2;
+			tc.y = 0.5f + ffar*texel_size/2 + j * texel_size;
 
 			if (j > 0){
-				VERTEX vm = v;
+				vector2 vm = v;
 				vm.y -= 0.5f*quad_size;
 	//			vm.x -= 0.25f*quad_size;	// delete this line
-				TEXCOORD tcm = tc;
-				tcm.v-= 0.5f*texel_size;
+				vector2 tcm = tc;
+				tcm.y-= 0.5f*texel_size;
 				vertices.push_back(vm);
 				texcoords.push_back(tcm);
 
@@ -237,17 +237,17 @@ Clipmap::init(){
 		}
 		// Construct the L shape top/bottom strip
 		for (int j = 0; j < (m_N-1)/2+1; j++){
-			VERTEX v1,v2;
-			TEXCOORD tc1,tc2;
+			vector2 v1,v2;
+			vector2 tc1,tc2;
 
 			v1.x = left*quad_size/2 + j*quad_size;;
 			v1.y = ffar*quad_size/2 - quad_size + (i%2==1? (m_N+1)*quad_size/2 : 0);
 			v2 = v1;
 			v2.y += quad_size;
-			tc1.u = 0.5f + left*texel_size/2 + j*texel_size;
-			tc1.v = 0.5f + ffar*texel_size/2 - texel_size + (i%2==1? (m_N+1)*texel_size/2 : 0);
+			tc1.x = 0.5f + left*texel_size/2 + j*texel_size;
+			tc1.y = 0.5f + ffar*texel_size/2 - texel_size + (i%2==1? (m_N+1)*texel_size/2 : 0);
 			tc2 = tc1;
-			tc2.v += texel_size;
+			tc2.y += texel_size;
 
 			if (j>0){
 				indices.push_back( vcount - 1);
@@ -265,17 +265,17 @@ Clipmap::init(){
 		}
 		// Construct the L shape left/right strip
 		for (int j = 0; j < (m_N-1)/2+2; j++){
-			VERTEX v1,v2;
-			TEXCOORD tc1,tc2;
+			vector2 v1,v2;
+			vector2 tc1,tc2;
 
 			v1.x = left*quad_size/2 - quad_size + (i%2==0? (m_N+1)*quad_size/2 : 0);
 			v1.y = ffar*quad_size/2 + j*quad_size - (i%2==0? quad_size: 0);
 			v2 = v1;
 			v2.x += quad_size;
-			tc1.u = 0.5f + left*texel_size/2 - texel_size + (i%2==0? (m_N+1)*texel_size/2 : 0);
-			tc1.v = 0.5f + ffar*texel_size/2 + j*texel_size - (i%2==0? texel_size: 0);
+			tc1.x = 0.5f + left*texel_size/2 - texel_size + (i%2==0? (m_N+1)*texel_size/2 : 0);
+			tc1.y = 0.5f + ffar*texel_size/2 + j*texel_size - (i%2==0? texel_size: 0);
 			tc2 = tc1;
-			tc2.u += texel_size;
+			tc2.x += texel_size;
 
 			if (j>0){
 				indices.push_back( vcount );
@@ -301,13 +301,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_N; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ k * quad_size;
 				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.u	= 0.5f + left * texel_size + k * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + j * texel_size;
+				tc.x	= 0.5f + left * texel_size + k * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -324,13 +324,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_N; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + m_N - m_M) * quad_size;
 				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + m_N - m_M) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + j * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + m_N - m_M) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -347,13 +347,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + m_M - 1) * quad_size;
 				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + j * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -364,13 +364,13 @@ Clipmap::init(){
 		vmarker = vcount;		
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < 3; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + 2*m_M - 2) * quad_size;
 				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + 2*m_M - 2) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + j * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + 2*m_M - 2) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -381,13 +381,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + 2*m_M ) * quad_size;
 				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + 2*m_M) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + j * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + 2*m_M) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -400,13 +400,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + m_M - 1) * quad_size;
 				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -417,13 +417,13 @@ Clipmap::init(){
 		vmarker = vcount;		
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < 3; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + 2*m_M - 2) * quad_size;
 				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + 2*m_M - 2) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + 2*m_M - 2) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -434,13 +434,13 @@ Clipmap::init(){
 		vmarker = vcount;
 		for (int j = 0; j < m_M; j++){
 			for (int k = 0; k < m_M; k++){
-				VERTEX v;
-				TEXCOORD tc;
+				vector2 v;
+				vector2 tc;
 
 				v.x 	= left * quad_size 	+ (k + 2*m_M ) * quad_size;
 				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.u	= 0.5f + left * texel_size + (k + 2*m_M) * texel_size;
-				tc.v	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
+				tc.x	= 0.5f + left * texel_size + (k + 2*m_M) * texel_size;
+				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
 				
 				vertices.push_back(v);
 				texcoords.push_back(tc);
@@ -453,7 +453,7 @@ Clipmap::init(){
 	m_min_draw_count = indices.size();
 	// Add this offset to all blocks' start indices
 	for (int i = 0; i < (int)blocks.size(); i++)
-		blocks[i].start_index += m_min_draw_count * sizeof(INDEX);
+		blocks[i].start_index += m_min_draw_count * sizeof(GLuint);
 	// Append the cullable block indices to the base indices
 	indices.insert(indices.end(), cullable.begin(), cullable.end());
 
@@ -484,29 +484,29 @@ Clipmap::init(){
 
 	// Setup the vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 	// Setup the texcoord buffer
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(TEXCOORD) * vertices.size(), &texcoords[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices.size(), &texcoords[0], GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
 	// Setup the index buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(INDEX) * indices.size(), &indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), &indices[0], GL_STATIC_DRAW);
 	return true;
 }
 
 //--------------------------------------------------------
 void
 Clipmap::create_block(int vertstart, int width, int height, 
-					  std::vector<VERTEX> &vertices, std::vector<INDEX> &indices){
+					  std::vector<vector2> &vertices, std::vector<GLuint> &indices){
 	cull_block block;
 	int idx;
 
 	idx 				= indices.size();	
-	block.start_index	= indices.size() * sizeof(INDEX);	// offset into indexbuffer
+	block.start_index	= indices.size() * sizeof(GLuint);	// offset into indexbuffer
 	block.count			= (width-1)*(height-1) * 6; 		// number of indices
 
 	// Form the triangles and push them onto the index list
@@ -546,7 +546,7 @@ Clipmap::cull(matrix4& mvp, vector2 shift){
 		}
 		else{
 			for (int j = 0; j < 4; j++){
-				VERTEX& v = block.bound[j];
+				vector2& v = block.bound[j];
 				vector4 frag = mvp * vector4(v.x+shift.x, -20.0f, v.y+shift.y, 1.0f);
 				vector4 NDC  = frag * (1.0f / frag.w);
 
