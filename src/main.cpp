@@ -32,6 +32,14 @@ class Deform;
 #include <vector>
 #include <list>
 #include <limits.h>
+
+#ifdef _WIN32
+#	include <direct.h>
+#else
+#	include <sys/stat.h>
+#	define mkdir(x) mkdir(x, S_IRWXU)
+#endif
+
 #include "regl3.h"
 #include "FreeImage.h"
 #include "re_math.h"
@@ -181,11 +189,12 @@ DefTer::InitGL()
 	printf("\t\tDone\n");
 
 	// Init projection matrix
-	aspect			= (float)(m_config.winWidth / m_config.winHeight);
+	aspect			= float(m_config.winWidth) / float(m_config.winHeight);
 	m_proj_mat		= perspective_proj(PI*.5f, aspect, NEAR_PLANE, FAR_PLANE);
 
-	// Set the initial stamp mode to coarse map
+	// Set the initial stamp mode and clicked state
 	m_is_hd_stamp	= false;
+	m_clicked		= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -271,7 +280,6 @@ DefTer::Init()
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
 
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
@@ -403,6 +411,7 @@ DefTer::LoadCoarseMap(string filename)
 }
 
 //--------------------------------------------------------
+// This method will change the active stamp
 void
 DefTer::UpdateStamp(int stampID)
 {
@@ -411,20 +420,55 @@ DefTer::UpdateStamp(int stampID)
 	else
 		m_is_hd_stamp = true;
 
+	// Update the click position
+	UpdateClickPos();
+
 	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
-
-	printf("%.0f\n", (m_is_hd_stamp ? 1.0f : 0.0f));
 }
 
 //--------------------------------------------------------
+// Updates the click position such that it follows the camera in HD mode,
+// Also will hide in shaders if no point is currently 'clicked'
+void
+DefTer::UpdateClickPos(void)
+{
+	vector2 temp(2.0f);
+	if (m_clicked)
+	{
+		// Check that the dot is not further than the max 'allowable distance' if in HD stamp mode
+		if (m_is_hd_stamp)
+		{
+			vector2 camPos(m_cam_translate.x, m_cam_translate.z);
+			m_clickPos -= camPos;
+
+			// Calculate the magnitude and scale to keep in range
+			float pmag  = m_clickPos.Mag();
+			if (pmag > HD_AURA)
+			{
+				float scale = HD_AURA / pmag;
+				m_clickPos *= scale;
+			}
+			m_clickPos += camPos;
+		}
+
+		// Create a temporary vector and convert clickPos into tex space
+		temp  = m_clickPos * m_pClipmap->m_metre_to_tex;
+		temp += vector2(0.5f);
+	}
+
+	// Pass to shader
+	glUseProgram(m_shMain->m_programID);
+	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), temp.x, temp.y);
+}
+
+//--------------------------------------------------------
+// Process user input
 void
 DefTer::ProcessInput(float dt)
 {
 	int wheel_ticks = m_input.GetWheelTicks();
 	MouseDelta move = m_input.GetMouseDelta();
-	static vector2 clickPos;
-	static bool clicked = false;
 
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
@@ -452,36 +496,23 @@ DefTer::ProcessInput(float dt)
 
 		// Request unprojected coordinate
 		vector3 p = perspective_unproj_world(frag, w, h, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
-
-		// Check that the dot is not further than the max 'allowable distance'
-		/*if (p.Mag() > HD_AURA)
-		{
-			float scale = HD_AURA / p.Mag();
-			p *= scale;
-		}*/
-
+		// Factor in the camera translation
 		p += m_cam_translate;
-		
-		// Store the clicked position in world space
-		clicked = true;
-		clickPos = vector2(p.x, p.z);
 
-		// Calc the value in terms of tex coords
-		p *= m_pClipmap->m_metre_to_tex;
-		p += vector3(0.5f);
+		m_clickPos	= vector2(p.x, p.z);
+		m_clicked	= true;
 
-		// Pass to shader
-		glUseProgram(m_shMain->m_programID);
-		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), p.x, p.z);
+		//Update the clicked position in shaders, etc...
+		UpdateClickPos();
 	}
 
 	// Change the selected deformation location
-	if (clicked && wheel_ticks != 0)
+	if (m_clicked && wheel_ticks != 0)
 	{
 		if (m_is_hd_stamp)
-			m_pCaching->DeformHighDetail(m_coarsemap, clickPos, .1f * wheel_ticks);
+			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .1f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, clickPos, .1f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, .1f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;
@@ -499,9 +530,8 @@ DefTer::ProcessInput(float dt)
 	static bool transferring  = false;
 	static int index     = 0;
 	static int nextIndex = 1;
-	if (m_input.WasKeyPressed(SDLK_o))
+	if (m_input.WasKeyPressed(SDLK_F12))
 	{
-
 		glReadBuffer(GL_FRONT);
 
 		// Start reading into the PBO
@@ -523,22 +553,25 @@ DefTer::ProcessInput(float dt)
 
 		if (framebuffer)
 		{
-			sprintf(filename, "Temp\\screenshot%05d.png", lastScreenshot++);
+			mkdir("ScreenShots");
+			sprintf(filename, "ScreenShots\\screenshot%05d.png", lastScreenshot++);
 			SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false);
 			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 		}
 		else
 		{
-			printf("fail array\n");
+			printf("Screenshot Failed\n");
 		}
 		transferring = false;
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 		glReadBuffer(0);	
 	}
 
-	//Switch stamps
+	// Switch stamps
 	if (m_input.WasKeyPressed(SDLK_h))
 	{
+		m_clicked = false;
+
 		if (m_is_hd_stamp)
 			UpdateStamp(0);
 		else
@@ -554,21 +587,25 @@ DefTer::ProcessInput(float dt)
 	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
+		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_s))
 	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
+		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_a))
 	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
+		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_d))
 	{
 		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
+		UpdateClickPos();
 	}
 	// Boundary check for wrapping position
 	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;

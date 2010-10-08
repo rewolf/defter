@@ -28,12 +28,12 @@ void main(){
 
 	// Add in an overlay for an aura that allows the HD defs in
 	if (distance((cam_and_shift.xy + 0.5), hmap_texCoord) < hd_aura * scales.y)
-		color	+= is_hd_stamp * (color * vec3(0.0, 0.0, 1.0));
+		color	+= 2.0 * is_hd_stamp * (color * vec3(0.0, 0.0, 1.0));
 
 	if (distance(click_pos, hmap_texCoord)< .5 * scales.y)
 		color	 = vec3(1.0, 0.0, 0.0);
 
-	// worldspace normal
+	// Worldspace normal
 	normal = normalize(texture(normalmap, hmap_texCoord).rbg*2.0 - 1.0);
 
 	frag_Color = vec4(color * dot(light, normal), 1.0);
