@@ -128,7 +128,7 @@ Caching::~Caching(){
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
-	//UpdatePBOs();
+	UpdatePBOs();
 
 	bool updateRadar	= false;
 	worldPos		   += vector2(m_CoarseOffset);
@@ -211,6 +211,9 @@ Caching::Update (vector2 worldPos){
 	// Identify the new tile region
 	m_RegionPrevious 	= m_RegionCurrent;
 	m_TileIndexPrevious	= m_TileIndexCurrent;
+
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	if (updateRadar)
 		DrawRadar();
