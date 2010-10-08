@@ -25,7 +25,7 @@ struct CacheRequest{
 // function for caching thread
 int hdd_cacher(void* data);
 
-#define PBO_POOL		(5)
+#define PBO_POOL		(4)
 
 class Caching{
 public:
@@ -63,6 +63,9 @@ private:
 	int					m_RegionPrevious;
 	vector2				m_TileIndexCurrent;
 	vector2				m_TileIndexPrevious;
+
+	// textures	
+	GLuint				m_zeroTex;
 
 	// threading
 	SDL_Thread*			m_cacheThread;

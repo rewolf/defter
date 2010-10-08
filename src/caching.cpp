@@ -78,6 +78,20 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	sstr << "Band %:\t\t\t\t"	<< (m_BandPercent * 100) << "%\n";
 	m_caching_stats += sstr.str();
 
+
+	// Create the default Zero-texture
+	glGenTextures(1, &m_zeroTex);
+	glBindTexture(GL_TEXTURE_2D, m_zeroTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	GLubyte* zeroData = new GLubyte[highDim * highDim];
+	memset(zeroData, 0, highDim*highDim);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
+	delete[] zeroData;
+
+
 	// Intitialise threading constructs
 	m_threadRunning 		= true;
 	m_loadQueueMutex		= SDL_CreateMutex();
@@ -117,8 +131,10 @@ Caching::~Caching(){
 	m_threadRunning = false;
 	SDL_WaitThread(m_cacheThread, NULL);
 	SDL_DestroyMutex(m_doneLoadQueueMutex);
+	SDL_DestroyMutex(m_doneUnloadQueueMutex);
 	SDL_DestroyMutex(m_loadQueueMutex);
 	SDL_DestroyMutex(m_unloadQueueMutex);
+	glDeleteTextures(1, &m_zeroTex);
 	delete[] m_Grid;
 
 	// delete PBO pool
@@ -439,11 +455,13 @@ Caching::UpdatePBOs(){
 
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
 		unload.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+		CheckError("Mapping unload/pack buffer");
 		if (!unload.ptr){
 			fprintf(stderr, "BAD ERROR: Could not map unload PBO pointer!!!!!\n");
 			m_busyUnloadQueue.push_front(unload);
 			break;
 		}
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 		LOCK(m_unloadQueueMutex);
 		m_unloadQueue.push_back(unload);
@@ -464,6 +482,8 @@ Caching::UpdatePBOs(){
 			// Map PBO to system memory for texture loading
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
 			load.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+			CheckError("Mapping load/unpack buffer");
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 			if (!load.ptr){
 				fprintf(stderr, "BAD ERROR: Could not map PBO pointer!!!!!\n");
 				m_readyLoadQueue.push_front(load);
@@ -494,9 +514,11 @@ Caching::UpdatePBOs(){
 
 			// Begin the transfer to PBO from GPU texture memory
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
-	//		glBindTexture(GL_TEXTURE_2D, unload.tile->m_texdata.m_heightmap);
-	//		glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, 0);
+			glBindTexture(GL_TEXTURE_2D, unload.tile->m_texdata.heightmap);
+			glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 			DEBUG("Transferring FROM texture\n");
+			CheckError("Reading texture data from GPU to PBO");
+			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 			// Push request onto the busy queue to be checked next frame
 			m_busyUnloadQueue.push_back(unload);
@@ -525,14 +547,17 @@ Caching::UpdatePBOs(){
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
-		CheckError("Unmapping buffer\n");
+		CheckError("Unmapping unpack buffer");
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 		// Begin transfer
 		DEBUG("Begin transfer\n");
 		if (load.useZero){
 			DEBUG3("Init Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
+			load.tile->m_texdata.heightmap = m_zeroTex;
 		}
 		else{
-//		glTexImage2D(..
+		//	glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.m_heightmap);
+		//	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_highDim, m_highDim, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 		}
 
 		// Release the PBO for someone else to use next frame around.
@@ -557,6 +582,8 @@ Caching::UpdatePBOs(){
 		// Unmap the PBO from sysmem pointer
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
 		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+		CheckError("Unmapping pack buffer");
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 		// Release the PBO for someone else to use next frame around.
 		m_pboPackPool.push(unload.pbo);
