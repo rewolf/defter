@@ -224,12 +224,17 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 	// X = Column : Y = Row
 	vector2 tileIndex	= ((vector2(m_CoarseOffset) + clickPos) / m_TileSize).Floor();
 
-	int offset = (int)OFFSET(WRAP(tileIndex.x, m_GridSize), WRAP(tileIndex.y, m_GridSize), m_GridSize);
-	m_Grid[offset].m_modified = true;
-	
-	m_pDeform->displace_heightmap(coarseMap, clickPos, scale, true);
+	int index = (int)OFFSET(WRAP(tileIndex.x, m_GridSize), WRAP(tileIndex.y, m_GridSize), m_GridSize);
 
-	DrawRadar();
+	if (m_Grid[index].m_texID != -1)
+	{
+		m_Grid[index].m_modified = true;
+		m_pDeform->displace_heightmap(coarseMap, clickPos, scale, true);
+
+		DrawRadar();
+	}
+	else
+		printf("High Def out of bounds");
 }
 //--------------------------------------------------------
 void
@@ -302,9 +307,9 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
 void
 Caching::SetLoadStatus(bool newStatus, vector2 TileIndex, vector2 size)
 {
-	for (int row = TileIndex.y; row < (int)(TileIndex.y + size.y); row++)
+	for (float row = TileIndex.y; row < TileIndex.y + size.y; row++)
 	{
-		for (int col = TileIndex.x; col < (int)(TileIndex.x + size.x); col++)
+		for (float col = TileIndex.x; col < TileIndex.x + size.x; col++)
 		{
 			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
 
@@ -320,9 +325,9 @@ void
 Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 {
 	int curVal = INITOFFSET;
-	for (int row = TileIndex.y; row < (int)(TileIndex.y + size.y); row++)
+	for (float row = TileIndex.y; row < TileIndex.y + size.y; row++)
 	{
-		for (int col = TileIndex.x; col < (int)(TileIndex.x + size.x); col++)
+		for (float col = TileIndex.x; col < TileIndex.x + size.x; col++)
 		{
 			int offset = (int)OFFSET(WRAP(col, m_GridSize), WRAP(row, m_GridSize), m_GridSize);
 

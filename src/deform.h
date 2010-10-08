@@ -2,11 +2,6 @@
 #ifndef _DEFORM_H_
 #define _DEFORM_H_
 
-typedef struct{
-	float u,v;
-} float2;
-
-
 class Deform{
 public:
 	Deform					(int coarseDim, int highDim, float metre_to_tex);

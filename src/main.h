@@ -16,6 +16,8 @@ private:
 	bool		InitGL			(void);
 
 	bool		LoadCoarseMap	(string filename); 
+	void		UpdateStamp		(int stampID);
+	void		UpdateClickPos	(void);
 
 public:
 	ShaderProg*		m_shMain;	// use the provided shader program class
@@ -27,6 +29,10 @@ public:
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
+
+	bool			m_is_hd_stamp;
+	bool			m_clicked;
+	vector2			m_clickPos;
 
 	GLuint			m_pbo[2];
 
