@@ -6,15 +6,35 @@ using namespace reMath;
 #include "re_shader.h"
 #include "deform.h"
 #include <list>
+#include <queue>
 #include "caching.h"
+#include "FreeImage.h"
+#ifdef _WIN32
+#	include "direct.h"
+#endif
 
 #define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
 #define OFFSET(x, y, dim) (y * dim + x)
 
-#define INITOFFSET	0
+#define INITOFFSET		(0)
+
+#define READS_PER_FRAME	(3)
+#define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
+#define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
+
+#define DEBUG_ON		(1)
+#ifdef DEBUG_ON
+	#define DEBUG(x)		printf(x)
+	#define DEBUG2(x,y)		printf(x,y)
+	#define DEBUG3(x,y,z)	printf(x,y,z)
+#else
+	#define DEBUG(x)		{}
+#endif
 
 //--------------------------------------------------------
 Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
+	m_coarseDim		= coarseDim;
+	m_highDim		= highDim;
 	m_pDeform		= pDeform;
 	//Calculate the tile size and grid dimensions
 	m_TileSize		= highDim * highRes;
@@ -29,6 +49,8 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		m_Grid[i].m_modified		= false;
 		m_Grid[i].m_LoadedPrevious	= false;
 		m_Grid[i].m_LoadedCurrent	= false;
+		m_Grid[i].m_row				= i / m_GridSize;
+		m_Grid[i].m_col				= i % m_GridSize;
 	}
 
 	//Calculate the band values
@@ -51,17 +73,50 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	sstr << "Band %:\t\t\t\t"	<< (m_BandPercent * 100) << "%\n";
 	m_caching_stats += sstr.str();
 
+	// Intitialise threading constructs
 	m_threadRunning 	= true;
+	m_loadQueueMutex	= SDL_CreateMutex();
+	m_unloadQueueMutex	= SDL_CreateMutex();
+	m_doneQueueMutex	= SDL_CreateMutex();
+	
+	// Initialise PBO pool
+	int texSize = sizeof(GLbyte) * highDim * highDim;
+	glGenBuffers(PBO_POOL*2, m_pbos);
+	for (int i = 0 ; i < PBO_POOL; i++){
+		GLuint pbo;
+
+		// Pack
+		pbo = m_pbos[i];
+		m_pboPackPool.push(pbo);
+
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+		glBufferData(GL_PIXEL_PACK_BUFFER, texSize, NULL, GL_STREAM_READ);
+
+		// Unpack
+		pbo = m_pbos[i+PBO_POOL];
+		m_pboUnpackPool.push(pbo);
+
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, texSize, NULL, GL_STREAM_DRAW);
+	}
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	
+	// create and launch cache thread
 	m_cacheThread 		= SDL_CreateThread(hdd_cacher, (void*)this);
-	m_cacheQueueMutex	= SDL_CreateMutex();
 }
 
 //--------------------------------------------------------
 Caching::~Caching(){
 	m_threadRunning = false;
 	SDL_WaitThread(m_cacheThread, NULL);
-	SDL_DestroyMutex(m_cacheQueueMutex);
+	SDL_DestroyMutex(m_doneQueueMutex);
+	SDL_DestroyMutex(m_loadQueueMutex);
+	SDL_DestroyMutex(m_unloadQueueMutex);
 	delete[] m_Grid;
+
+	// delete PBO pool
+	glDeleteBuffers(PBO_POOL*2, m_pbos);
 }
 
 //--------------------------------------------------------
@@ -131,14 +186,14 @@ Caching::Update (vector2 worldPos){
 			if (m_Grid[i].m_LoadedPrevious){
 				// But need not be loaded anymore
 				if (!m_Grid[i].m_LoadedCurrent){
-					Unload(m_Grid[i]);
+					Unload(m_Grid + i);
 				}
 			}
 			// If it wasn't loaded
 			else{
 				// But needs to be!!!
 				if (m_Grid[i].m_LoadedCurrent){
-					Load(m_Grid[i]);
+					Load(m_Grid + i);
 				}
 			}
 
@@ -327,29 +382,28 @@ Caching::DrawRadar(void){
 //--------------------------------------------------------
 // Called by the GL thread.  Puts the tile on the queue for loading
 void
-Caching::Load(Tile& tile){
-	// Removed any existing requests for this tile
-		// lock write queue
-		// search and remove
-		// unlock write queue
-		// check read queue ??
+Caching::Load(Tile* tile){
+	// Create struct
+	CacheRequest load;
+	load.type = LOAD;
+	load.tile = tile;
 
-	// Grab PBO from pool
-		// wait on semaphore for a PBO
+	// Check for existing requests for this tile that negate this request and remove all
+	/*for (list<CacheRequest>::iterator i = m_readyQueue.begin(); i != m_readyQueue.end(); i++){
+		if (i->tile == tile){
+			i = m_readyQueue.erase(i);
+			i--;
+		}
+	}*/
 
-	// Map PBO for data transfer
-
-	// Push a request for CPU to load image data into mapped PBO array
-		// set pointer to mapped PBO in request struct
-		// lock read queue
-		// push request onto queue
-		// unlock queue
+	m_readyQueue.push_back(load);
+	DEBUG3("Pushed tile %d %d\n", load.tile->m_row, load.tile->m_col);
 }
 
 //--------------------------------------------------------
 // Called by the GL thread.  Puts the tile on the queue for unloading
 void
-Caching::Unload(Tile& tile){
+Caching::Unload(Tile* tile){
 	// Remove any existing requests for this tile
 
 	// Check if tile has been modified
@@ -366,27 +420,68 @@ Caching::Unload(Tile& tile){
 }
 
 //--------------------------------------------------------
+// Allocates PBOs to Load/Unload requests (ready queue) and signals CPU queue
+// also.. retrieves data readied by CPU (done queue)
+// This is the only function that alters the PBO semaphore
 void
 Caching::UpdatePBOs(){
+	CacheRequest load;
+
 	// Allocate PBOs to Load/Unload requests
-	// ??
+	while (m_pboUnpackPool.size()){
+		if (m_readyQueue.size()){
+			// pop request of queue
+			load = m_readyQueue.front();
+			m_readyQueue.pop_front();
 
-	// process maximum 4
-	for (int i = 0; i < 4; i++){
-		// check if any transfers from sysmem are ready
-			// lock ready queue
-			// check size -> break if empty
-			// grab ready struct
-			// unlock ready queue
+			// pop PBO
+			load.pbo = m_pboUnpackPool.front();
+			m_pboUnpackPool.pop();
 
-		// Unmap the PBO 
+			// Map PBO to system memory for texture loading
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
+			load.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+			if (!load.ptr){
+				fprintf(stderr, "BAD ERROR: Could not map PBO pointer!!!!!\n");
+				m_readyQueue.push_front(load);
+				m_pboUnpackPool.push(load.pbo);
+			}
 
+			// Push request onto the load queue for CPU
+			LOCK(m_loadQueueMutex);
+			m_loadQueue.push_back(load);
+			UNLOCK(m_loadQueueMutex);
+		}
+		else{
+			break;
+		}
+	}
+
+	// process maximum R
+	for (int i = 0; i < READS_PER_FRAME; i++){
+		// Get a load-ready struct
+		LOCK(m_doneQueueMutex);
+		if (m_doneQueue.size()){
+			load = m_doneQueue.front();
+			m_doneQueue.pop_front();
+			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
+		}
+		else{
+			UNLOCK(m_doneQueueMutex);
+			break;
+		}
+		UNLOCK(m_doneQueueMutex);
+
+		// Unmap the PBO from sysmem pointer
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+
+		CheckError("Unmapping buffer\n");
 		// Begin transfer
-			// call glTex(Sub)Image
+		DEBUG("Begin transfer\n");
 
 		// Release the PBO for someone else to use next frame around.
-			// push PBO onto PBO queue/pool
-			// increment semaphore
+		m_pboUnpackPool.push(load.pbo);
 	}
 }
 
@@ -396,25 +491,64 @@ Caching::UpdatePBOs(){
 int
 hdd_cacher(void* data){
 	Caching* pCaching = (Caching*)data;
+	CacheRequest load, unload;
+	bool gotRequest;
 	while (pCaching->m_threadRunning){
-		// pop a read request
-			// lock read queue
-			// pop request
-			// unlock read queue
+		// pop a load request
+		gotRequest = false;
+		LOCK(pCaching->m_loadQueueMutex);
+		if (pCaching->m_loadQueue.size()){
+			gotRequest = true;
+			load = pCaching->m_loadQueue.front();
+			pCaching->m_loadQueue.pop_front();
+		}
+		UNLOCK(pCaching->m_loadQueueMutex);
 
-		// load image to sys memory
+		// Actually read the image file from disk
+		if (gotRequest){
+			// load image to sys memory mapped by PBO
+			DEBUG3("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
+			pCaching->LoadTextureData(load.tile, load.ptr);
 
-		// memcpy image to mapped PBO buffer memory
+			// notify GL thread that memory is done and ready for transfer (another list ?)
+			LOCK(pCaching->m_doneQueueMutex);
+			pCaching->m_doneQueue.push_back(load);
+			UNLOCK(pCaching->m_doneQueueMutex);
+			DEBUG("Pushing to done queue\n");
+		}else{
+			SDL_Delay(10);
+		}
 
-		// notify GL thread that memory is ready for transfer (another list ?)
-			// lock ready queue
-			// push struct
-			// unlock ready queue
-
-		// ------------
+		// ----------------------
 
 		// pop a write request
-		SDL_Delay(10);
 	}
+	return 0;
+}
+
+//--------------------------------------------------------
+inline bool
+Caching::LoadTextureData(Tile* tile, GLubyte* data){
+	FIBITMAP*		image;
+	BYTE*			bits;
+	int				width;
+	int				height;
+	int				bitdepth;
+	char			filename[256];
+	
+	sprintf(filename, "cache/tile%02d_%02d.png", tile->m_row, tile->m_col);
+
+	image = FreeImage_Load(FIF_PNG, filename, 0);
+
+	if (!image){
+		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename);
+		return false;
+	}
+
+	bits = (BYTE*) FreeImage_GetBits(image);
+
+	memcpy(data, bits, sizeof(GLubyte) * m_highDim * m_highDim);
+
+	FreeImage_Unload(image);
 }
 
