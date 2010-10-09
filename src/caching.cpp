@@ -228,6 +228,9 @@ Caching::Update (vector2 worldPos){
 	m_RegionPrevious 	= m_RegionCurrent;
 	m_TileIndexPrevious	= m_TileIndexCurrent;
 
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
 	if (updateRadar)
 		DrawRadar();
 }
