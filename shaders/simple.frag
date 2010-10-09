@@ -10,6 +10,7 @@ uniform float is_hd_stamp;
 
 in vec2 hmap_texCoord;
 in vec3 position;
+in vec3 normal;
 
 out vec4 frag_Color;
 
@@ -20,7 +21,7 @@ const vec3 light		= -normalize(vec3(.86, -1.4, .5));
 
 //------------------------------------------------------------------------------
 void main(){
-	vec3 normal, color;
+	vec3  color;
 	float fogZ, fogFactor;
 
 	// Set the color tex
@@ -34,12 +35,14 @@ void main(){
 		color	 = vec3(1.0, 0.0, 0.0);
 
 	// Worldspace normal
-	normal = normalize(texture(normalmap, hmap_texCoord).rbg*2.0 - 1.0);
+//	normal = normalize(texture(normalmap, hmap_texCoord).rbg*2.0 - 1.0);
 
-	frag_Color = vec4(color * dot(light, normal), 1.0);
+	frag_Color = vec4(color * dot(light, normalize(normal)), 1.0);
 
 	fogZ = dot(position, position);
 	fogFactor = 1.0 - exp(-fogZ*.00003);
 
 	frag_Color = mix (frag_Color, const_fog_col, fogFactor);
+
+	//frag_Color = vec4( (normal + 1.0) * .5, 1.0);
 }

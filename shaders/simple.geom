@@ -1,5 +1,6 @@
 #version 150 core
 
+uniform sampler2D normalmap;
 // Declare the incoming primitive type
 layout(triangles) in;
 
@@ -13,6 +14,7 @@ in vec2 geom_TexCoord[3];
 // Outgoing per-vertex information
 out vec2 hmap_texCoord;
 out vec3 position;
+out vec3 normal;
 
 //--------------------------------------------------------
 void main(){
@@ -44,14 +46,17 @@ void main(){
 	gl_Position = vertex[0];
 	position = vertex[0].xyz;
 	hmap_texCoord = geom_TexCoord[0];
+	normal = texture(normalmap, geom_TexCoord[0]).rbg*2 - 1;
 	EmitVertex();
 	gl_Position = vertex[1];
 	position = vertex[1].xyz;
 	hmap_texCoord = geom_TexCoord[1];
+	normal = texture(normalmap, geom_TexCoord[1]).rbg*2 - 1;
 	EmitVertex();
 	gl_Position = vertex[2];
 	position = vertex[2].xyz;
 	hmap_texCoord = geom_TexCoord[2];
+	normal = texture(normalmap, geom_TexCoord[2]).rbg*2 - 1;
 	EmitVertex();
 	EndPrimitive();
 }
