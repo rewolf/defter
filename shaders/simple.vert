@@ -5,6 +5,7 @@
 
 // UNIFORMS
 //---------
+uniform sampler2D normalmap;
 uniform sampler2D heightmap;
 // texToMetre = .x  ; metreToTex = .y
 uniform vec2 scales;
@@ -20,6 +21,7 @@ in vec3 in_Position;
 in vec2 in_TexCoord;
 
 out vec2 geom_TexCoord;
+out vec3 geom_Normal;
 
 // GLOBALS
 //--------
@@ -63,6 +65,8 @@ void main()
 	// Pos contains the transformed coordinate in eye-space.
 	gl_Position = projection * view * (const_list.yxyy * camera_height + gl_Position);
 	
-	// Send through the texcoord
+	// Send through the texcoord and normal
 	geom_TexCoord = texCoord;
+
+	geom_Normal	  = texture(normalmap, texCoord).rbg * 2.0 - 1.0;
 }

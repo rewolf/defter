@@ -1,6 +1,5 @@
 #version 150 core
 
-uniform sampler2D normalmap;
 // Declare the incoming primitive type
 layout(triangles) in;
 
@@ -10,9 +9,10 @@ layout(triangle_strip, max_vertices=170)  out;
 
 // Incoming from vertex shader
 in vec2 geom_TexCoord[3];
+in vec3 geom_Normal[3];
 
 // Outgoing per-vertex information
-out vec2 hmap_texCoord;
+out vec2 texCoord;
 out vec3 position;
 out vec3 normal;
 
@@ -43,20 +43,20 @@ void main(){
 	if (!any(lessThan(z, w)))
 		return;
 
-	gl_Position = vertex[0];
-	position = vertex[0].xyz;
-	hmap_texCoord = geom_TexCoord[0];
-	normal = texture(normalmap, geom_TexCoord[0]).rbg*2 - 1;
+	gl_Position 	= vertex[0];
+	position 		= vertex[0].xyz;
+	texCoord 		= geom_TexCoord[0];
+	normal 			= geom_Normal[0];
 	EmitVertex();
-	gl_Position = vertex[1];
-	position = vertex[1].xyz;
-	hmap_texCoord = geom_TexCoord[1];
-	normal = texture(normalmap, geom_TexCoord[1]).rbg*2 - 1;
+	gl_Position 	= vertex[1];
+	position 		= vertex[1].xyz;
+	texCoord 		= geom_TexCoord[1];
+	normal 			= geom_Normal[1];
 	EmitVertex();
-	gl_Position = vertex[2];
-	position = vertex[2].xyz;
-	hmap_texCoord = geom_TexCoord[2];
-	normal = texture(normalmap, geom_TexCoord[2]).rbg*2 - 1;
+	gl_Position 	= vertex[2];
+	position 		= vertex[2].xyz;
+	texCoord 		= geom_TexCoord[2];
+	normal 			= geom_Normal[2];
 	EmitVertex();
 	EndPrimitive();
 }
