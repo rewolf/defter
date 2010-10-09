@@ -10,6 +10,7 @@ layout(triangle_strip, max_vertices=170)  out;
 // Incoming from vertex shader
 in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
+in vec3 geom_Normal[3];
 
 // Outgoing per-vertex information
 out vec3 frag_View;
@@ -60,7 +61,6 @@ void main(){
 	frag_View = geom_View[2];
 	frag_TexCoord = geom_TexCoord[2];
 	EmitVertex();
-
 	EndPrimitive();
 }
 

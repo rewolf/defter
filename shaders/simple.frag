@@ -1,7 +1,7 @@
 #version 150 core
 
-uniform sampler2D normalmap;
 uniform sampler2D colormap;
+uniform sampler2D normalmap;
 uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;

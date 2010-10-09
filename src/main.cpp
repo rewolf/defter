@@ -63,6 +63,7 @@ using namespace reMath;
 #define SCREEN_W			(1024)
 #define SCREEN_H			(768)
 
+#define COARSEMAP_FILENAME	("images/hmap02.png")
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
 #define CLIPMAP_LEVELS		(5)
@@ -284,13 +285,13 @@ DefTer::Init()
 
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
-	if (!LoadCoarseMap("images/hmap02.png"))
+	if (!LoadCoarseMap(COARSEMAP_FILENAME))
 		return false;
 	printf("Done\n");
 
 	// Load colormap
 	printf("Loading colormap...\t\t");
-	if (!LoadPNG(&m_colormap_tex, "images/hmap01_texture.png"))
+	if (!LoadPNG(&m_colormap_tex, "images/hmap02_texture.png"))
 		return false;
 	printf("Done\n");
 
@@ -339,6 +340,20 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
+// Ouput normalmap
+	//
+	GLubyte *data  = new GLubyte[m_coarsemap_dim * m_coarsemap_dim * 3];
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+	SavePNG("coarsenormal.png", data, 8, 3, m_coarsemap_dim, m_coarsemap_dim);
+	delete [] data;
+// Output tangentmap
+	data  = new GLubyte[m_coarsemap_dim * m_coarsemap_dim * 3];
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+	SavePNG("coarsetangent.png", data, 8, 3, m_coarsemap_dim, m_coarsemap_dim);
+	delete [] data;
+	//
 	return true;
 }
 
@@ -396,12 +411,20 @@ DefTer::LoadCoarseMap(string filename)
 	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &m_coarsemap.normalmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Allocate GPU Texture space for tangentmap
 	glGenTextures(1, &m_coarsemap.tangentmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
