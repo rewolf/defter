@@ -20,6 +20,11 @@ struct CacheRequest{
 	GLubyte*		ptr;
 	Tile*			tile;
 	bool			useZero;
+	int				m_waitCount;
+};
+
+struct DeformOp{
+
 };
 	
 // function for caching thread

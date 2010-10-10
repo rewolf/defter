@@ -301,10 +301,13 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 
 	int index = (int)OFFSET(WRAP(tileIndex.x, m_GridSize), WRAP(tileIndex.y, m_GridSize), m_GridSize);
 
+	Tile tile = m_Grid[index];
+	printf(" click tile %d %d => %d\n", int(tileIndex.x), int(tileIndex.y), index);
+
 	if (m_Grid[index].m_texID != -1)
 	{
 		m_Grid[index].m_modified = true;
-		m_pDeform->displace_heightmap(coarseMap, clickPos, scale, true);
+		m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 1.0f, true);
 
 		DrawRadar();
 	}
@@ -487,6 +490,7 @@ Caching::Load(Tile* tile){
 	CacheRequest load;
 	load.type = LOAD;
 	load.tile = tile;
+	DEBUG3("LOAD %d %d\n", tile->m_row, tile->m_col);
 
 	// Check for existing requests for this tile that negate this request and remove all
 	/*for (list<CacheRequest>::iterator i = m_readyQueue.begin(); i != m_readyQueue.end(); i++){
@@ -506,7 +510,9 @@ Caching::Unload(Tile* tile){
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
+	DEBUG3("UNLOAD %d %d\n", tile->m_row, tile->m_col);
 
+	unload.m_waitCount = 0;
 	m_readyUnloadQueue.push_back(unload);
 }
 
@@ -575,11 +581,19 @@ Caching::UpdatePBOs(){
 	}
 
 	// UNLOADING : First phase - Acquire a PBO for the request
+	list<CacheRequest> skip;
 	while (m_pboPackPool.size()){
 		if (m_readyUnloadQueue.size()){
 			// pop request off queue
 			unload = m_readyUnloadQueue.front();
 			m_readyUnloadQueue.pop_front();
+			// It's possible that it hasn't fully loaded before it needs to be unloaded
+			if (unload.tile->m_texdata.heightmap==0){
+				unload.m_waitCount++;
+				skip.push_back(unload);
+				assert(unload.m_waitCount < 4);
+				continue;
+			}
 
 			// pop PBO
 			unload.pbo = m_pboPackPool.front();
@@ -600,6 +614,7 @@ Caching::UpdatePBOs(){
 			break;
 		}
 	}
+	m_readyUnloadQueue.insert(m_readyUnloadQueue.begin(), skip.begin(), skip.end());
 
 	// LOADING : Final phase - Texture memory transfer commences
 	for (int i = 0; i < READS_PER_FRAME; i++){

@@ -21,6 +21,7 @@ void main(){
 	dist = distance(fract(thingy), in_texCoord);
 
 	in_height += exp(-dist*dist*5000)*.3 * scale;
+	in_height += .5 * scale;
 
 	new_height = in_height;
 }

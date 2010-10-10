@@ -40,7 +40,8 @@ function build_table(){
 		for (var j = 0; j < w; j++){
 			table_string += "\t\t<td width=" + cellwidth + 	">"+
 					"<img width="+cellwidth+" id=img"+pad2(i)+pad2(j)+
-						" src=cache/tile"+pad2(i)+"_"+pad2(j)+".png?d="+randnum+">"+
+						" src='cache/tile"+pad2(i)+"_"+pad2(j)+".png?d="+randnum+"'"+
+						" alt='Tile ("+i+","+j+")' title='Tile ("+i+","+j+")'>"+
 				"</td>\n";
 		}
 		table_string += "\t</tr>\n";
