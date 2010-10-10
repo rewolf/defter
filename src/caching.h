@@ -46,8 +46,8 @@ private:
 
 	void Load				(Tile* tile);
 	void Unload				(Tile* tile);
-	bool LoadTextureData	(Tile* tile, GLubyte* data);
-	bool SaveTextureData	(Tile* tile, GLubyte* data);
+	bool LoadTextureData	(CacheRequest load);
+	bool SaveTextureData	(CacheRequest unload);
 	void UpdatePBOs			();
 
 	Deform*				m_pDeform;
@@ -65,7 +65,11 @@ private:
 	vector2				m_TileIndexPrevious;
 
 	// textures	
-	GLuint				m_zeroTex;
+	queue<TexData>		m_texQueue;
+	TexData				m_zeroTex;
+	GLuint				m_cacheHeightmapTex[9];
+	GLuint				m_cacheNormalTex[9];
+	GLuint				m_cacheTangentTex[9];
 
 	// threading
 	SDL_Thread*			m_cacheThread;

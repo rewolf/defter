@@ -7,6 +7,7 @@ using namespace reMath;
 #include "deform.h"
 #include <list>
 #include <queue>
+#include <assert.h>
 #include "caching.h"
 #include "FreeImage.h"
 #ifdef _WIN32
@@ -56,6 +57,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		m_Grid[i].m_LoadedCurrent	= false;
 		m_Grid[i].m_row				= i / m_GridSize;
 		m_Grid[i].m_col				= i % m_GridSize;
+		memset(&m_Grid[i].m_texdata, 0, sizeof(TexData));
 	}
 
 	//Calculate the band values
@@ -80,17 +82,64 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 
 
 	// Create the default Zero-texture
-	glGenTextures(1, &m_zeroTex);
-	glBindTexture(GL_TEXTURE_2D, m_zeroTex);
+	GLubyte* zeroData = new GLubyte[highDim * highDim];
+	glGenTextures(1, &m_zeroTex.heightmap);
+	glGenTextures(1, &m_zeroTex.normalmap);
+	glGenTextures(1, &m_zeroTex.tangentmap);
+	glBindTexture(GL_TEXTURE_2D, m_zeroTex.heightmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	GLubyte* zeroData = new GLubyte[highDim * highDim];
 	memset(zeroData, 0, highDim*highDim);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
+	glBindTexture(GL_TEXTURE_2D, m_zeroTex.normalmap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glBindTexture(GL_TEXTURE_2D, m_zeroTex.tangentmap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	delete[] zeroData;
 
+	// Create the block of 9 texture IDs
+	glGenTextures(9, m_cacheHeightmapTex);
+	glGenTextures(9, m_cacheNormalTex);
+	glGenTextures(9, m_cacheTangentTex);
+	for (int i = 0; i < 9; i++){
+		glBindTexture(GL_TEXTURE_2D, m_cacheHeightmapTex[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+
+		glBindTexture(GL_TEXTURE_2D, m_cacheNormalTex[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+		glBindTexture(GL_TEXTURE_2D, m_cacheTangentTex[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+		TexData texID = { 
+			m_cacheHeightmapTex[i],
+			m_cacheNormalTex[i],
+			m_cacheTangentTex[i]
+		};
+		m_texQueue.push(texID);
+	}
 
 	// Intitialise threading constructs
 	m_threadRunning 		= true;
@@ -134,11 +183,18 @@ Caching::~Caching(){
 	SDL_DestroyMutex(m_doneUnloadQueueMutex);
 	SDL_DestroyMutex(m_loadQueueMutex);
 	SDL_DestroyMutex(m_unloadQueueMutex);
-	glDeleteTextures(1, &m_zeroTex);
+	glDeleteTextures(1, &m_zeroTex.heightmap);
+	glDeleteTextures(1, &m_zeroTex.normalmap);
+	glDeleteTextures(1, &m_zeroTex.tangentmap);
 	delete[] m_Grid;
 
 	// delete PBO pool
 	glDeleteBuffers(PBO_POOL*2, m_pbos);
+
+	// delete texture ID pool
+	glDeleteTextures(9, m_cacheHeightmapTex);
+	glDeleteTextures(9, m_cacheNormalTex);
+	glDeleteTextures(9, m_cacheTangentTex);
 }
 
 //--------------------------------------------------------
@@ -366,6 +422,19 @@ Caching::DrawRadar(void){
 
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
 	{
+
+		printf("%2d", (int)m_Grid[i].m_texdata.heightmap);
+		if ((i % m_GridSize) != (m_GridSize - 1))
+			printf(" ");
+		else
+			printf("\n");
+	}
+
+	printf ("---###---\n");
+
+
+	for (int i = 0; i < m_GridSize * m_GridSize; i++)
+	{
 		if (m_Grid[i].m_modified)
 		{
 			if (i == index)
@@ -407,6 +476,7 @@ Caching::DrawRadar(void){
 	}
 	printf("-----\n");
 	printf("-----\n");
+	delete[] radar;
 }
 
 //--------------------------------------------------------
@@ -427,7 +497,6 @@ Caching::Load(Tile* tile){
 	}*/
 
 	m_readyLoadQueue.push_back(load);
-	DEBUG3("Pushed tile %d %d\n", load.tile->m_row, load.tile->m_col);
 }
 
 //--------------------------------------------------------
@@ -439,7 +508,6 @@ Caching::Unload(Tile* tile){
 	unload.tile = tile;
 
 	m_readyUnloadQueue.push_back(unload);
-	DEBUG3("Pushed tile %d %d for unload\n", unload.tile->m_row, unload.tile->m_col);
 }
 
 //--------------------------------------------------------
@@ -451,14 +519,16 @@ Caching::UpdatePBOs(){
 	CacheRequest load;
 	CacheRequest unload;
 
-	// Take unload requests that should be transferring from GPU mem to PBO and map them to sysmem
+	// UNLOADING : Middle phase - Mapping the buffer to system memory to be written to disk
 	for (int i = 0; i < 2 && m_busyUnloadQueue.size() ; i++){
 		unload = m_busyUnloadQueue.front();
 		m_busyUnloadQueue.pop_front();
 
+		// Now that it has been transferring to PBO for some time, try map to sys memory
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
 		unload.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 		CheckError("Mapping unload/pack buffer");
+		// if this failed, worry
 		if (!unload.ptr){
 			fprintf(stderr, "BAD ERROR: Could not map unload PBO pointer!!!!!\n");
 			m_busyUnloadQueue.push_front(unload);
@@ -471,7 +541,7 @@ Caching::UpdatePBOs(){
 		UNLOCK(m_unloadQueueMutex);
 	}
 
-	// Allocate PBOs to Load requests and map to sys memory
+	// LOADING : First phase - Acquire PBOs for loading from sys mem
 	while (m_pboUnpackPool.size()){
 		if (m_readyLoadQueue.size()){
 			// pop request off queue
@@ -504,7 +574,7 @@ Caching::UpdatePBOs(){
 		}
 	}
 
-	// Allocate PBOs to Unload requests and begin GPU transfer to PBO
+	// UNLOADING : First phase - Acquire a PBO for the request
 	while (m_pboPackPool.size()){
 		if (m_readyUnloadQueue.size()){
 			// pop request off queue
@@ -531,56 +601,77 @@ Caching::UpdatePBOs(){
 		}
 	}
 
-	// process maximum R done load requests
+	// LOADING : Final phase - Texture memory transfer commences
 	for (int i = 0; i < READS_PER_FRAME; i++){
 		// Get a load-ready struct
 		LOCK(m_doneLoadQueueMutex);
 		if (m_doneLoadQueue.size()){
 			load = m_doneLoadQueue.front();
+			// before popping off the queue, check if there is an available tex ID
+			if (!load.useZero && m_texQueue.size()==0){
+				DEBUG ("---No available texture ID\n");
+				UNLOCK(m_doneLoadQueueMutex);
+				break;
+			}
 			m_doneLoadQueue.pop_front();
 			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
+			UNLOCK(m_doneLoadQueueMutex);
 		}
 		else{
 			UNLOCK(m_doneLoadQueueMutex);
 			break;
 		}
-		UNLOCK(m_doneLoadQueueMutex);
 
 		// Unmap the PBO from sysmem pointer
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
 		CheckError("Unmapping unpack buffer");
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 		// Begin transfer
-		DEBUG("Begin transfer\n");
 		if (load.useZero){
-			DEBUG3("Init Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
-			load.tile->m_texdata.heightmap = m_zeroTex;
+			DEBUG3("Using Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
+			load.tile->m_texdata = m_zeroTex;
 		}
 		else{
-		//	glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.m_heightmap);
-		//	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_highDim, m_highDim, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+			// Get a texture ID
+			load.tile->m_texdata = m_texQueue.front();
+			m_texQueue.pop();
+			DEBUG3("Transferring TO texture (%d, %d)\n",
+					load.tile->m_texdata.heightmap, load.tile->m_texdata.normalmap);
+			glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.heightmap);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_BYTE, 0);
 		}
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-		// Release the PBO for someone else to use next frame around.
+		// Release the PBO for someone else to use next frame around. 
+		// NB. if another request tries to remap this buffer, it will wait for our
+		// transfer to finish -> don't worry that it's pushed onto the pool early
 		m_pboUnpackPool.push(load.pbo);
 	}
 
-	// process maximum R done unload requests
+	// UNLOADING : Final step of releasing PBO and TEXTURES
 	for (int i = 0; i < READS_PER_FRAME; i++){
+		TexData texID;
 		// Get a finished unload struct
 		LOCK(m_doneUnloadQueueMutex);
 		if (m_doneUnloadQueue.size()){
 			unload = m_doneUnloadQueue.front();
 			m_doneUnloadQueue.pop_front();
-			DEBUG3("Tile %d %d done, and can be unmapped\n", unload.tile->m_row, unload.tile->m_col);
+			texID = unload.tile->m_texdata;
+			assert(texID.heightmap!=0);
 		}
 		else{
 			UNLOCK(m_doneUnloadQueueMutex);
 			break;
 		}
 		UNLOCK(m_doneUnloadQueueMutex);
+
+		// if it isn't the shared Zero texture, release it into pool
+		if (texID.heightmap != m_zeroTex.heightmap){
+			DEBUG3("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.normalmap));
+			m_texQueue.push(texID);
+		}
+		memset(&unload.tile->m_texdata, 0, sizeof(TexData));
 
 		// Unmap the PBO from sysmem pointer
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
@@ -616,7 +707,7 @@ hdd_cacher(void* data){
 		if (gotRequest){
 			// load image to sys memory mapped by PBO
 			DEBUG3("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
-			if (!pCaching->LoadTextureData(load.tile, load.ptr)){
+			if (!pCaching->LoadTextureData(load)){
 				// if this failed, we notify GL thread to use Zero Texture
 				load.useZero = true;
 			}else{
@@ -627,7 +718,6 @@ hdd_cacher(void* data){
 			LOCK(pCaching->m_doneLoadQueueMutex);
 			pCaching->m_doneLoadQueue.push_back(load);
 			UNLOCK(pCaching->m_doneLoadQueueMutex);
-			DEBUG("Pushing to done queue\n");
 		}else{
 			SDL_Delay(5);
 		}
@@ -647,12 +737,9 @@ hdd_cacher(void* data){
 		// Write the data to disk
 		if (gotRequest){
 			DEBUG3("Writing tile %d %d to image file\n", unload.tile->m_row, unload.tile->m_col);
-			if (!pCaching->SaveTextureData(unload.tile, unload.ptr))
+			// Save the texture data to disk (and release PBO and texture ID)
+			if (!pCaching->SaveTextureData(unload))
 				fprintf(stderr," ERROR: :could not write the tile !!!\n");
-			DEBUG("Pushing to unload done queue\n");
-			LOCK(pCaching->m_doneUnloadQueueMutex);
-			pCaching->m_doneUnloadQueue.push_back(unload);
-			UNLOCK(pCaching->m_doneUnloadQueueMutex);
 		}else{
 			SDL_Delay(5);
 		}
@@ -662,7 +749,7 @@ hdd_cacher(void* data){
 
 //--------------------------------------------------------
 inline bool
-Caching::LoadTextureData(Tile* tile, GLubyte* data){
+Caching::LoadTextureData(CacheRequest load){
 	FIBITMAP*		image;
 	BYTE*			bits;
 	int				width;
@@ -670,7 +757,7 @@ Caching::LoadTextureData(Tile* tile, GLubyte* data){
 	int				bitdepth;
 	char			filename[256];
 	
-	sprintf(filename, "cache/tile%02d_%02d.png", tile->m_row, tile->m_col);
+	sprintf(filename, "cache/tile%02d_%02d.png", load.tile->m_row, load.tile->m_col);
 
 	image = FreeImage_Load(FIF_PNG, filename, 0);
 
@@ -680,7 +767,7 @@ Caching::LoadTextureData(Tile* tile, GLubyte* data){
 
 	bits = (BYTE*) FreeImage_GetBits(image);
 
-	memcpy(data, bits, sizeof(GLubyte) * m_highDim * m_highDim);
+	memcpy(load.ptr, bits, sizeof(GLubyte) * m_highDim * m_highDim);
 
 	FreeImage_Unload(image);
 	return true;
@@ -688,18 +775,23 @@ Caching::LoadTextureData(Tile* tile, GLubyte* data){
 
 //--------------------------------------------------------
 inline bool
-Caching::SaveTextureData(Tile* tile, GLubyte* data){
+Caching::SaveTextureData(CacheRequest unload){
 	FIBITMAP* 		image;
 	BYTE*			bits;
 	char			filename[256];
 	
-	sprintf(filename, "cache/tile%02d_%02d.png", tile->m_row, tile->m_col);
+	sprintf(filename, "cache/tile%02d_%02d.png", unload.tile->m_row, unload.tile->m_col);
 
 	mkdir("cache");
 	image = FreeImage_Allocate(m_highDim, m_highDim, 8);
 
 	bits = (BYTE*) FreeImage_GetBits(image);
-	memcpy(bits, data, m_highDim * m_highDim);
+	memcpy(bits, unload.ptr, m_highDim * m_highDim);
+
+	// Release the PBO and texture ID
+	LOCK(m_doneUnloadQueueMutex);
+	m_doneUnloadQueue.push_back(unload);
+	UNLOCK(m_doneUnloadQueueMutex);
 
 	if (!FreeImage_Save(FIF_PNG, image, filename, PNG_Z_BEST_SPEED)){
 		FreeImage_Unload(image);

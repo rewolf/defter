@@ -5,7 +5,6 @@
 
 // UNIFORMS
 //---------
-uniform sampler2D normalmap;
 uniform sampler2D heightmap;
 // texToMetre = .x  ; metreToTex = .y
 uniform vec2 scales;

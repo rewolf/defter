@@ -341,7 +341,7 @@ DefTer::Init()
 	printf("Done\n");
 
 // Ouput normalmap
-	//
+	/*/
 	GLubyte *data  = new GLubyte[m_coarsemap_dim * m_coarsemap_dim * 3];
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
@@ -353,7 +353,7 @@ DefTer::Init()
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
 	SavePNG("coarsetangent.png", data, 8, 3, m_coarsemap_dim, m_coarsemap_dim);
 	delete [] data;
-	//
+	/*/
 	return true;
 }
 

@@ -1,0 +1,70 @@
+
+<html>
+<head>
+<script language="javascript">
+
+
+function pad2(num){
+	return ("0"+num).slice(-2);
+}
+
+var winW = 630, winH = 460;
+
+if (parseInt(navigator.appVersion)>3) {
+	 if (navigator.appName=="Netscape") {
+		   winW = window.innerWidth;
+		     winH = window.innerHeight;
+			  }
+	  if (navigator.appName.indexOf("Microsoft")!=-1) {
+		    winW = document.body.offsetWidth;
+			  winH = document.body.offsetHeight;
+			   }
+}
+winH-=100;
+
+
+function hide_msg(){
+	document.getElementById("message").style.visibility="hidden";
+}
+
+function build_table(){
+	var table_string = "";
+	var w = document.getElementById("cols").value;
+	var h = document.getElementById("rows").value;
+	var cellwidth = parseInt(winH/h);
+	var randnum = parseInt(Math.random() * 9999999999);
+
+	table_string += "<table width="+(winH)+" cellpadding=0>\n";
+	for (var i = 0; i < h; i++){
+		table_string += "\t<tr>\n";
+		for (var j = 0; j < w; j++){
+			table_string += "\t\t<td width=" + cellwidth + 	">"+
+					"<img width="+cellwidth+" id=img"+pad2(i)+pad2(j)+
+						" src=cache/tile"+pad2(i)+"_"+pad2(j)+".png?d="+randnum+">"+
+				"</td>\n";
+		}
+		table_string += "\t</tr>\n";
+	}
+
+	document.getElementById("table_space").innerHTML = table_string;
+
+
+	document.getElementById("message").style.visibility="visible";
+	setTimeout('hide_msg()', 4000);
+}
+
+
+</script>
+
+</head>
+
+<body>
+
+Grid Size: 
+<input type="text" size=4 id="rows" value=6 /> rows 
+<input type="text" size=4 id="cols" value=6 /> columns
+<input type="button" id="buildBut" value="Show Cache" onclick="build_table()">
+<div id="message" style="visibility:hidden;">Patience while loading pics...</div>
+<div width="100%" height="1024" id="table_space"></div>
+</body>
+</html>
