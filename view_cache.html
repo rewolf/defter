@@ -3,56 +3,97 @@
 <head>
 <script language="javascript">
 
+var winW = 630, winH = 460;
+var nImages = 0;
+var nLoaded = 0;
+var nFailed = 0;
+var images;
+var w,h;
+var ctx;
 
 function pad2(num){
 	return ("0"+num).slice(-2);
 }
 
-var winW = 630, winH = 460;
+function init(){
+	if (parseInt(navigator.appVersion)>3) {
+		 if (navigator.appName=="Netscape") {
+			   winW = window.innerWidth;
+				 winH = window.innerHeight;
+				  }
+		  if (navigator.appName.indexOf("Microsoft")!=-1) {
+				winW = document.body.offsetWidth;
+				  winH = document.body.offsetHeight;
+				   }
+	}
+	winH-=100;
 
-if (parseInt(navigator.appVersion)>3) {
-	 if (navigator.appName=="Netscape") {
-		   winW = window.innerWidth;
-		     winH = window.innerHeight;
-			  }
-	  if (navigator.appName.indexOf("Microsoft")!=-1) {
-		    winW = document.body.offsetWidth;
-			  winH = document.body.offsetHeight;
-			   }
-}
-winH-=100;
+	var canvas = document.getElementById("imagelist");
+	ctx = canvas.getContext('2d');
 
-
-function hide_msg(){
-	document.getElementById("message").style.visibility="hidden";
+	ctx.canvas.width = winH;
+	ctx.canvas.height= winH;
 }
 
 function build_table(){
-	var table_string = "";
-	var w = document.getElementById("cols").value;
-	var h = document.getElementById("rows").value;
-	var cellwidth = parseInt(winH/h);
-	var randnum = parseInt(Math.random() * 9999999999);
-
-	table_string += "<table width="+(winH)+" cellpadding=0>\n";
-	for (var i = 0; i < h; i++){
-		table_string += "\t<tr>\n";
-		for (var j = 0; j < w; j++){
-			table_string += "\t\t<td width=" + cellwidth + 	">"+
-					"<img width="+cellwidth+" id=img"+pad2(i)+pad2(j)+
-						" src='cache/tile"+pad2(i)+"_"+pad2(j)+".png?d="+randnum+"'"+
-						" alt='Tile ("+i+","+j+")' title='Tile ("+i+","+j+")'"+
-						" style='filter:flipH()'>"+
-				"</td>\n";
-		}
-		table_string += "\t</tr>\n";
-	}
-
-	document.getElementById("table_space").innerHTML = table_string;
-
-
+	var randnum = parseInt(Math.random() * 999999999);
+	w = document.getElementById("cols").value;
+	h = document.getElementById("rows").value;
 	document.getElementById("message").style.visibility="visible";
-	setTimeout('hide_msg()', 4000);
+	nImages = w * h;
+	nLoaded = 0;
+	nFailed = 0;
+	images = new Array(nImages);
+	for (var i = 0; i < nImages; i++){
+		var row = parseInt(i / w);
+		var col = i % w;
+		images[i] 		 = new Image();
+		images[i].onload = img_loaded;
+		images[i].onerror=img_error;
+		images[i].fail   = true;
+		images[i].src 	 = "cache/tile"+pad2(row)+"_"+pad2(col)+".png?q="+randnum;
+	}
+	draw();
+}
+
+function img_loaded(evt){
+	nLoaded++;
+
+	evt.target.fail = false;
+	document.getElementById("loaded").innerHTML = nLoaded + "/"+nImages+" tiles loaded";
+	if (nLoaded==nImages-nFailed){
+		document.getElementById("message").style.visibility="hidden";
+		draw();
+	}
+}
+
+function img_error(evt){
+	nFailed++;
+	document.getElementById("failed").innerHTML = nFailed + " tiles not cached";
+	evt.target.fail = true;
+	if (nLoaded==nImages-nFailed){
+		document.getElementById("message").style.visibility="hidden";
+		draw();
+	}
+}
+
+function draw(){
+	var imgDim = parseInt(winH/h);
+	var imgPad = imgDim+1;
+	for (var i = 0; i < h; i++){
+		for (var j = 0; j < w; j++){
+			ctx.save();
+			ctx.translate(j*imgPad, (i+1)*imgPad);
+			ctx.scale(1, -1);
+			if (!images[i*w+j].fail)
+				ctx.drawImage(images[i*w+j], 0, 0, imgDim, imgDim);
+			else{
+				ctx.fillStyle = "#880000";
+				ctx.fillRect(0,0, imgDim, imgDim);
+			}
+			ctx.restore();
+		}
+	}
 }
 
 
@@ -60,12 +101,15 @@ function build_table(){
 
 </head>
 
-<body>
+<body onload="init()">
 Grid Size: 
 <input type="text" size=4 id="rows" value=6 /> rows 
 <input type="text" size=4 id="cols" value=6 /> columns
 <input type="button" id="buildBut" value="Show Cache" onclick="build_table()">
+&nbsp;&nbsp;&nbsp;<span id="loaded"></span>
+&nbsp;&nbsp;&nbsp;<span id="failed"></span>
 <div id="message" style="visibility:hidden;">Patience while loading pics...</div>
-<div width="100%" height="1024" id="table_space"></div>
+<canvas id="imagelist">no support for HTML5 canvas</canvas>
 </body>
+
 </html>

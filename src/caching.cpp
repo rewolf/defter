@@ -821,7 +821,7 @@ Caching::LoadTextureData(CacheRequest load){
 		return false;
 	}
 
-	FreeImage_FlipVertical(image);
+	//FreeImage_FlipVertical(image);
 	bits = (BYTE*) FreeImage_GetBits(image);
 
 	memcpy(load.ptr, bits, sizeof(GLubyte) * m_highDim * m_highDim);
@@ -845,7 +845,7 @@ Caching::SaveTextureData(CacheRequest unload){
 	bits = (BYTE*) FreeImage_GetBits(image);
 	memcpy(bits, unload.ptr, m_highDim * m_highDim);
 
-	FreeImage_FlipVertical(image);
+	//FreeImage_FlipVertical(image);
 
 	// Release the PBO and texture ID
 	LOCK(m_doneUnloadQueueMutex);
