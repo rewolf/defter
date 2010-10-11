@@ -7,12 +7,18 @@ in vec3 frag_pos;
 
 out vec4 frag_Color;
 
-const vec4 const_fog_col= vec4(.3, .3, .3, 1.0);
+const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
+const float log2		= 1.442695;
+const float fog_density	= 0.01;
 
 void main(){
-	float fogZ, fogFactor;
+	float fogY, fogFactor;
 
-	frag_Color = texture(sky, frag_TexCoord);
-	fogFactor  = clamp(-.06 * frag_pos.y + 1, .0, 1.0);
-	frag_Color = fogFactor * const_fog_col + (1-fogFactor)*frag_Color;
+	// Fog controls
+	fogY		= frag_pos.y - 10.0;
+	fogFactor	= exp2(-fog_density * fog_density * fogY * fogY * log2);
+	fogFactor	= clamp(fogFactor, 0.0, 1.0);
+
+	// Mix to get the final color
+	frag_Color = mix(texture(sky, frag_TexCoord), fog_col, fogFactor);
 }

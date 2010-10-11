@@ -64,6 +64,7 @@ using namespace reMath;
 #define SCREEN_H			(768)
 
 #define COARSEMAP_FILENAME	("images/hmap02.png")
+#define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
 #define CLIPMAP_LEVELS		(5)
@@ -291,7 +292,7 @@ DefTer::Init()
 
 	// Load colormap
 	printf("Loading colormap...\t\t");
-	if (!LoadPNG(&m_colormap_tex, "images/hmap02_texture.png"))
+	if (!LoadPNG(&m_colormap_tex, COARSEMAP_TEXTURE))
 		return false;
 	printf("Done\n");
 
