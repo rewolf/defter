@@ -24,7 +24,9 @@ struct CacheRequest{
 };
 
 struct DeformOp{
-
+	Tile*			tile;
+	vector2 		clickPos;
+	float			scale;
 };
 	
 // function for caching thread
@@ -68,6 +70,8 @@ private:
 	int					m_RegionPrevious;
 	vector2				m_TileIndexCurrent;
 	vector2				m_TileIndexPrevious;
+
+	queue<DeformOp>		m_deformQueue;
 
 	// textures	
 	queue<TexData>		m_texQueue;

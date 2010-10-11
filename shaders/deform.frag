@@ -4,7 +4,8 @@
 uniform sampler2D in_heightmap;
 uniform sampler2D stamp;
 uniform vec2 thingy;
-uniform float scale;
+uniform float height_scale;
+uniform float falloff;
 
 in vec2 in_texCoord;
 in vec2 stamp_texCoord;
@@ -20,8 +21,7 @@ void main(){
 
 	dist = distance(fract(thingy), in_texCoord);
 
-	in_height += exp(-dist*dist*5000)*.3 * scale;
-	in_height += .5 * scale;
+	in_height += exp(-dist*dist*5000*falloff)*.3 * height_scale;
 
 	new_height = in_height;
 }

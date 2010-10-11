@@ -41,7 +41,8 @@ function build_table(){
 			table_string += "\t\t<td width=" + cellwidth + 	">"+
 					"<img width="+cellwidth+" id=img"+pad2(i)+pad2(j)+
 						" src='cache/tile"+pad2(i)+"_"+pad2(j)+".png?d="+randnum+"'"+
-						" alt='Tile ("+i+","+j+")' title='Tile ("+i+","+j+")'>"+
+						" alt='Tile ("+i+","+j+")' title='Tile ("+i+","+j+")'"+
+						" style='filter:flipH()'>"+
 				"</td>\n";
 		}
 		table_string += "\t</tr>\n";
@@ -60,7 +61,6 @@ function build_table(){
 </head>
 
 <body>
-
 Grid Size: 
 <input type="text" size=4 id="rows" value=6 /> rows 
 <input type="text" size=4 id="cols" value=6 /> columns

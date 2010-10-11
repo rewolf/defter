@@ -3,6 +3,7 @@
 LIB_SRC_files	= regl3.cpp re_timer.cpp re_input.cpp re_math.cpp re_shader.cpp 
 LIB_HDR_files	= regl3.h re_timer.h re_math.h re_input.h re_shader.h
 SRC_files		= main.cpp deform.cpp  util.cpp skybox.cpp clipmap.cpp caching.cpp
+HDR_files		= main.h deform.h util.h skybox.h clipmap.h caching.h
 
 # The compiled object filenames
 LIB_OBJ_files	= $(LIB_SRC_files:.cpp=.o)
@@ -21,6 +22,7 @@ LIB_SRC		= $(addprefix $(LIB_SRCDIR),$(LIB_SRC_files))
 LIB_HDR		= $(addprefix $(LIB_SRCDIR),$(LIB_HDR_files))
 LIB_OBJ		= $(addprefix $(LIB_BINDIR),$(LIB_OBJ_files))
 SRC			= $(addprefix $(SRCDIR),$(SRC_files))
+HDR			= $(addprefix $(SRCDIR),$(HDR_files))
 OBJ			= $(addprefix $(BINDIR),$(OBJ_files))
 
 # Ouput library name
@@ -33,7 +35,7 @@ LDFLAGS 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL -lGL -lGLU -lfreeima
 
 
 # default makes prototype, but depends on regl3 not having changed
-test: $(SRC) $(LIB_OBJ) $(OBJ) $(OUTFILE)
+test: $(SRC) $(HDR) $(LIB_OBJ) $(OBJ) $(OUTFILE)
 
 
 # Link all object files and the needed libraries

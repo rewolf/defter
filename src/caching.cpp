@@ -26,7 +26,7 @@ using namespace reMath;
 #define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
 #define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
 
-#define DEBUG_ON		(1)
+#define DEBUG_ON		(0)
 #if DEBUG_ON
 	#define DEBUG(x)		printf(x)
 	#define DEBUG2(x,y)		printf(x,y)
@@ -106,6 +106,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	delete[] zeroData;
+	m_pDeform->create_normalmap(m_zeroTex, false);
 
 	// Create the block of 9 texture IDs
 	glGenTextures(9, m_cacheHeightmapTex);
@@ -298,18 +299,54 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 	// Get the tile index into the array
 	// X = Column : Y = Row
 	vector2 tileIndex	= ((vector2(m_CoarseOffset) + clickPos) / m_TileSize).Floor();
+	
+	// Give the clickPos within the tile
+	clickPos.x = (fmodf((m_CoarseOffset + clickPos.x), m_TileSize));
+	clickPos.y = (fmodf((m_CoarseOffset + clickPos.y), m_TileSize));
 
+	// Grab the tile struct
 	int index = (int)OFFSET(WRAP(tileIndex.x, m_GridSize), WRAP(tileIndex.y, m_GridSize), m_GridSize);
+	Tile& tile = m_Grid[index];
 
-	Tile tile = m_Grid[index];
-	printf(" click tile %d %d => %d\n", int(tileIndex.x), int(tileIndex.y), index);
-
-	if (m_Grid[index].m_texID != -1)
-	{
+	// If it is in the drawable region
+	if (m_Grid[index].m_texID != -1)	{
 		m_Grid[index].m_modified = true;
-		m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 1.0f, true);
+		GLuint mapID = tile.m_texdata.heightmap;
 
-		DrawRadar();
+		// If the tile already has a texture ID
+		if (mapID != 0 && mapID != m_zeroTex.heightmap){
+			// Displace it here and now
+			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false);
+
+			DrawRadar();
+		}
+		// If it's only using the Zero texture
+		else if (mapID == m_zeroTex.heightmap){
+			// Need a new texture that can be rendered into for this tile
+			if (m_texQueue.size()){
+				TexData newID = m_texQueue.front();
+				m_texQueue.pop();
+				tile.m_texdata = newID;
+
+				// Displace it now
+				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false,
+						m_zeroTex.heightmap);
+				m_pDeform->create_normalmap(tile.m_texdata, false);
+
+				DrawRadar();
+			}
+			else{
+				// Push this deform operation onto a queue that waits for a texture ID
+				float YOU_MUST_STILL_HANDLE_THIS1 = 0;
+				assert(YOU_MUST_STILL_HANDLE_THIS1!=0);
+			}
+		}
+		// If it's still waiting for it's ID whilst loading
+		else{
+			// Push this deform operation onto a queue that waits for it's texture ID to be set
+			float YOU_MUST_STILL_HANDLE_THIS2 = 0;
+			assert(YOU_MUST_STILL_HANDLE_THIS2!=0);
+		}
 	}
 	else
 		printf("High Def out of bounds");
@@ -591,7 +628,7 @@ Caching::UpdatePBOs(){
 			if (unload.tile->m_texdata.heightmap==0){
 				unload.m_waitCount++;
 				skip.push_back(unload);
-				assert(unload.m_waitCount < 4);
+				assert(unload.m_waitCount < 8);
 				continue;
 			}
 
@@ -662,6 +699,10 @@ Caching::UpdatePBOs(){
 		// NB. if another request tries to remap this buffer, it will wait for our
 		// transfer to finish -> don't worry that it's pushed onto the pool early
 		m_pboUnpackPool.push(load.pbo);
+
+		// Generate normals for this texture
+		if (!load.useZero)
+			m_pDeform->create_normalmap(load.tile->m_texdata, false);
 	}
 
 	// UNLOADING : Final step of releasing PBO and TEXTURES
@@ -780,6 +821,7 @@ Caching::LoadTextureData(CacheRequest load){
 		return false;
 	}
 
+	FreeImage_FlipVertical(image);
 	bits = (BYTE*) FreeImage_GetBits(image);
 
 	memcpy(load.ptr, bits, sizeof(GLubyte) * m_highDim * m_highDim);
@@ -802,6 +844,8 @@ Caching::SaveTextureData(CacheRequest unload){
 
 	bits = (BYTE*) FreeImage_GetBits(image);
 	memcpy(bits, unload.ptr, m_highDim * m_highDim);
+
+	FreeImage_FlipVertical(image);
 
 	// Release the PBO and texture ID
 	LOCK(m_doneUnloadQueueMutex);

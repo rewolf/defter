@@ -305,7 +305,7 @@ DefTer::Init()
 
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
-	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex);
+	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex, 1.0f/(HIGH_DIM * HIGH_RES));
 	if (!m_pDeform->m_no_error)
 	{
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
@@ -335,7 +335,7 @@ DefTer::Init()
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
 	m_pDeform->create_normalmap(m_coarsemap, true);
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), .0f, true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
 	printf("Done\n");
@@ -536,7 +536,7 @@ DefTer::ProcessInput(float dt)
 		if (m_is_hd_stamp)
 			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .1f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, .1f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .1f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;
