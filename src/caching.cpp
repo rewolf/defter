@@ -260,6 +260,13 @@ Caching::~Caching(){
 
 //--------------------------------------------------------
 void
+Caching::SetCoarsemap		(GLuint coarsemapTex, GLuint coarsemapColorTex){
+	m_coarsemapTex 		= coarsemapTex;
+	m_coarsemapColorTex = coarsemapColorTex;
+}
+
+//--------------------------------------------------------
+void
 Caching::Update (vector2 worldPos){
 	CheckError("Before Caching Update");
 	UpdatePBOs();
@@ -427,9 +434,16 @@ Caching::Render(void)
 	// Do first pass to color in background and highlight current region
 	glUseProgram(m_shRadar->m_programID);
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "colormap"), 1);
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "heightmap"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemapTex);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemapColorTex);
+	glActiveTexture(GL_TEXTURE0);
 
 	// Set the color for the current cell
-	cellColor = vector4(0.0, 1.0, 0.0, 1.0);
+	cellColor = vector4(0.0, 1.0, 0.0, 0.4);
 	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
 
 	// Send through the current cells infor to the shader
@@ -455,9 +469,9 @@ Caching::Render(void)
 		{
 			// Use a different colour for tiles that are (in)active
 			if (m_Grid[i].m_texID == -1)
-				cellColor = vector4(1.0, 0.0, 0.0, 1.0);
+				cellColor = vector4(1.0, 0.0, 0.0, 0.4);
 			else
-				cellColor = vector4(1.0, 1.0, 1.0, 1.0);
+				cellColor = vector4(1.0, 1.0, 1.0, 0.4);
 
 			// Send the shader the current colour to use
 			glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
@@ -703,7 +717,7 @@ Caching::UpdatePBOs(){
 			if (unload.tile->m_texdata.heightmap==0){
 				unload.m_waitCount++;
 				skip.push_back(unload);
-				assert(unload.m_waitCount < 8);
+				assert(unload.m_waitCount < 80);
 				continue;
 			}
 

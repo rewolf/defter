@@ -327,6 +327,7 @@ DefTer::Init()
 	// Create Caching System
 	printf("Creating caching system...\t");
 	m_pCaching = new Caching(m_pDeform, CACHING_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
+	m_pCaching->SetCoarsemap(m_coarsemap.heightmap, m_colormap_tex);
 	printf("Done\n");
 
 	// Shader uniforms
@@ -537,7 +538,7 @@ DefTer::ProcessInput(float dt)
 		if (m_is_hd_stamp)
 			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .1f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .1f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .5f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;

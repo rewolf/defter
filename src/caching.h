@@ -38,6 +38,7 @@ class Caching{
 public:
 	Caching					(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
+	void SetCoarsemap		(GLuint coarsemapTex, GLuint coarsemapColorTex);
 	void Update				(vector2 worldPos);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
 	void Render				(void);
@@ -63,6 +64,8 @@ private:
 	float				m_cellSize;
 	float				m_lineWidth;
 	vector2				m_radar_pos;
+	GLuint				m_coarsemapTex;
+	GLuint				m_coarsemapColorTex;
 
 	Deform*				m_pDeform;
 	int					m_coarseDim;
