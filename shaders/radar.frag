@@ -14,6 +14,10 @@ uniform vec2 linePos;
 uniform vec4 tileBounds;
 uniform vec4 cellColor;
 
+// Variables to draw the current position as a dot
+uniform vec2 currentPos;
+uniform float dotRadius;
+
 in vec2 frag_texCoord;
 out vec4 frag_Color;
 
@@ -23,13 +27,16 @@ void main()
 {
 	vec4 color;
 	vec4 height;
+	vec2 dist;
+	float r;
 
 	switch (pass)
 	{
 		case 0:
+			// Read the colour and height values and set it
 			color = texture(colormap, frag_texCoord); 
 			height= texture(heightmap, frag_texCoord).rrrr * .9 + .1;
-			color = /*color +*/ height * const_list.xxxy + vec4(.0, .0, .0, 1.0);
+			color = color + height * const_list.xxxy + vec4(0.0, 0.0, 0.0, 1.0);
 
 		case 1:
 			// Draw a quad on the screen
@@ -41,6 +48,15 @@ void main()
 		break;
 
 		case 2:
+			// Draw the dot on the image
+			dist = frag_texCoord - currentPos;
+			r = dot(dist, dist);
+			if (r < dotRadius)
+				color = vec4(0.0, 0.0, 1.0, 1.0);
+
+		break;
+
+		case 3:
 			// Draw verticle line
 			if (frag_texCoord.x >= linePos.x && frag_texCoord.x <= linePos.y)
 				color = vec4(.0, .0, .0, .4);

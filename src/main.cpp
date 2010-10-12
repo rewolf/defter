@@ -696,7 +696,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
-	m_pCaching->Render();
+	m_pCaching->Render(vector2(m_cam_translate.x, m_cam_translate.z));
 
 	SDL_GL_SwapWindow(m_pWindow);
 }

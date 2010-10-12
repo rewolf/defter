@@ -41,7 +41,7 @@ public:
 	void SetCoarsemap		(GLuint coarsemapTex, GLuint coarsemapColorTex);
 	void Update				(vector2 worldPos);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
-	void Render				(void);
+	void Render				(vector2 worldPos);
 
 	friend int hdd_cacher 	(void* data);
 
@@ -64,6 +64,7 @@ private:
 	float				m_cellSize;
 	float				m_lineWidth;
 	vector2				m_radar_pos;
+	vector2				m_radar2_pos;
 	GLuint				m_coarsemapTex;
 	GLuint				m_coarsemapColorTex;
 
@@ -76,6 +77,7 @@ private:
 	float				m_BandWidth;
 	float				m_BandPercent;
 	float				m_CoarseOffset;
+	float				m_metre_to_tex;
 	int					m_RegionCurrent;
 	int					m_RegionPrevious;
 	vector2				m_TileIndexCurrent;
