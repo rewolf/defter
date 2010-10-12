@@ -695,5 +695,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
+	m_pCaching->Render();
+
 	SDL_GL_SwapWindow(m_pWindow);
 }

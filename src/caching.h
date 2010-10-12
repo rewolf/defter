@@ -40,6 +40,7 @@ public:
 	~Caching				(void);
 	void Update				(vector2 worldPos);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
+	void Render				(void);
 
 	friend int hdd_cacher 	(void* data);
 
@@ -49,13 +50,19 @@ private:
 	void UpdateTiles		(bool newStatus, int region, vector2 TileIndex);
 	void SetLoadStatus		(bool newStatus, vector2 TileIndex, vector2 size);
 	void SetActiveStatus	(bool newStatus, vector2 TileIndex, vector2 size);
-	void DrawRadar			(void);
 
 	void Load				(Tile* tile);
 	void Unload				(Tile* tile);
 	bool LoadTextureData	(CacheRequest load);
 	bool SaveTextureData	(CacheRequest unload);
 	void UpdatePBOs			();
+
+	ShaderProg*			m_shRadar;
+	GLuint				m_vbo[3];
+	GLuint				m_vao;
+	float				m_cellSize;
+	float				m_lineWidth;
+	vector2				m_radar_pos;
 
 	Deform*				m_pDeform;
 	int					m_coarseDim;

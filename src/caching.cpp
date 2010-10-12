@@ -22,9 +22,16 @@ using namespace reMath;
 
 #define INITOFFSET		(0)
 
+extern const int SCREEN_W;
+extern const int SCREEN_H;
+
 #define READS_PER_FRAME	(3)
 #define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
 #define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
+
+#define RADAR_OFFSET	(20.0f)
+#define RADAR_SIZE		(200.0f)
+#define RADAR_LINE_W	(1.0f / RADAR_SIZE)
 
 #define DEBUG_ON		(0)
 #if DEBUG_ON
@@ -80,6 +87,50 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	sstr << "Band %:\t\t\t\t"	<< (m_BandPercent * 100) << "%\n";
 	m_caching_stats += sstr.str();
 
+	//--------------------------------------------------------
+	// Radar Setup
+	//--------------------------------------------------------
+	// Setup shader
+	m_shRadar = new ShaderProg("shaders/radar.vert", "", "shaders/radar.frag");
+	glBindAttribLocation(m_shRadar->m_programID, 0, "quad_Position");
+	glBindAttribLocation(m_shRadar->m_programID, 1, "vert_texCoord");
+	m_shRadar->CompileAndLink();
+
+	m_cellSize			= 1.0f / m_GridSize;
+	m_radar_pos			= vector2(SCREEN_W, SCREEN_H) - vector2(RADAR_OFFSET + RADAR_SIZE);
+
+	GLfloat square[]	= { -1.0f, -1.0f,
+							 1.0f, -1.0f,
+							 1.0f,  1.0f,
+							-1.0f,  1.0f };
+	// Texcoords are upside-down to mimic the systems coordinates
+	GLfloat texcoords[]	= { 0.0f, 1.0f,
+							1.0f, 1.0f,
+							1.0f, 0.0f,
+							0.0f, 0.0f };
+	GLuint indices[]	= { 3, 0, 2, 1 };
+
+	// Create the vertex array
+	glGenVertexArrays(1, &m_vao);
+	glBindVertexArray(m_vao);
+
+	// Generate three VBOs for vertices, texture coordinates and indices
+	glGenBuffers(3, m_vbo);
+
+	// Setup the vertex buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+	//--------------------------------------------------------
 
 	// Create the default Zero-texture
 	GLubyte* zeroData = new GLubyte[highDim * highDim];
@@ -184,6 +235,9 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 
 //--------------------------------------------------------
 Caching::~Caching(){
+	delete m_shRadar;
+	glDeleteBuffers(3, m_vbo);
+	glDeleteVertexArrays(1, &m_vao);
 	m_threadRunning = false;
 	SDL_WaitThread(m_cacheThread, NULL);
 	SDL_DestroyMutex(m_doneLoadQueueMutex);
@@ -210,15 +264,11 @@ Caching::Update (vector2 worldPos){
 	CheckError("Before Caching Update");
 	UpdatePBOs();
 
-	bool updateRadar	= false;
 	worldPos		   += vector2(m_CoarseOffset);
 	vector2 tilePos		= (worldPos/m_TileSize);
 	// Get the tile index into the array
 	// X = Column : Y = Row
 	m_TileIndexCurrent	= tilePos.Floor();
-
-	if (m_TileIndexCurrent != m_TileIndexPrevious)
-		updateRadar = true;
 
 	// Sift out just the fractional part to find location within the tile and offset to centre
 	// so that positive -> right of centre or below centre and negative left or above
@@ -264,7 +314,6 @@ Caching::Update (vector2 worldPos){
 	if (m_RegionCurrent != m_RegionPrevious){
 		UpdateTiles(false, m_RegionPrevious, m_TileIndexPrevious);
 		UpdateTiles(true,  m_RegionCurrent,  m_TileIndexCurrent);
-		updateRadar = true;
 
 		// Check all tiles for loading/unloading
 		for (int i = 0; i < m_GridSize * m_GridSize; i++){
@@ -294,9 +343,6 @@ Caching::Update (vector2 worldPos){
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-	if (updateRadar)
-		DrawRadar();
 }
 
 //--------------------------------------------------------
@@ -324,8 +370,6 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 		if (mapID != 0 && mapID != m_zeroTex.heightmap){
 			// Displace it here and now
 			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false);
-
-			DrawRadar();
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap){
@@ -339,8 +383,6 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false,
 						m_zeroTex.heightmap);
 				m_pDeform->create_normalmap(tile.m_texdata, false);
-
-				DrawRadar();
 			}
 			else{
 				// Push this deform operation onto a queue that waits for a texture ID
@@ -358,6 +400,100 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 	else
 		printf("High Def out of bounds");
 }
+
+//--------------------------------------------------------
+// Renders the radar into a small viewport on the screen
+void
+Caching::Render(void)
+{
+	// Variables
+	vector4 tileBounds, cellColor;
+
+	// Store the current viewort
+	int viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
+	// Change to the new viewport
+	glViewport(m_radar_pos.x, m_radar_pos.y, RADAR_SIZE, RADAR_SIZE);
+
+	// Set GL settings
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Bind the vertex array
+	glBindVertexArray(m_vao);
+
+	// Do first pass to color in background and highlight current region
+	glUseProgram(m_shRadar->m_programID);
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
+
+	// Set the color for the current cell
+	cellColor = vector4(0.0, 1.0, 0.0, 1.0);
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
+
+	// Send through the current cells infor to the shader
+	tileBounds = vector4(m_TileIndexCurrent.x * m_cellSize, m_TileIndexCurrent.y * m_cellSize, 0.0f, 0.0f);
+	tileBounds.z = tileBounds.x + m_cellSize;
+	tileBounds.w = tileBounds.y + m_cellSize;
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, tileBounds.v);
+
+	// Execute the first shader pass
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+
+	int curIndex = m_TileIndexCurrent.y * m_GridSize + m_TileIndexCurrent.x;
+	// Fill in all loaded texture cells
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 1);
+	for (int i = 0; i < m_GridSize * m_GridSize; i++)
+	{
+		// Skip the current tile to prevent overwriting
+		if (i == curIndex)
+			continue;
+		// Only draw tiles currently loaded onto the GPU
+		if (m_Grid[i].m_LoadedCurrent)
+		{
+			// Use a different colour for tiles that are (in)active
+			if (m_Grid[i].m_texID == -1)
+				cellColor = vector4(1.0, 0.0, 0.0, 1.0);
+			else
+				cellColor = vector4(1.0, 1.0, 1.0, 1.0);
+
+			// Send the shader the current colour to use
+			glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
+
+			// Send the offsets for the cell to the shader
+			tileBounds = vector4(m_Grid[i].m_col * m_cellSize, m_Grid[i].m_row * m_cellSize, 0.0f, 0.0f);
+			tileBounds.z = tileBounds.x + m_cellSize;
+			tileBounds.w = tileBounds.y + m_cellSize;
+			glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, tileBounds.v);
+
+			// Execute a shader pass
+			glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+		}
+	}
+
+
+	// Set the shader to run the line drawing pass
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
+	// Loop over all the divisions and draw the lines
+	for (int i = 0; i <= m_GridSize; i++)
+	{
+		vector2 linePos = vector2(m_cellSize) * i;
+		linePos.x -= RADAR_LINE_W;
+		linePos.y += RADAR_LINE_W;
+		glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
+		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+	}
+
+	// Reset the GL settings
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+
+	// Reset the viewport
+	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+}
+
 //--------------------------------------------------------
 void
 Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
@@ -456,74 +592,6 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 			m_Grid[offset].m_texID	= (newStatus ? curVal++ : -1);
 		}
 	}
-}
-
-//--------------------------------------------------------
-void
-Caching::DrawRadar(void){
-	char *radar = new char[m_GridSize * m_GridSize];
-	memset(radar, '.', m_GridSize * m_GridSize);
-	
-	int index = (int)m_TileIndexCurrent.y * (m_GridSize) + (int)m_TileIndexCurrent.x;
-	radar[index] = 'X';
-
-	for (int i = 0; i < m_GridSize * m_GridSize; i++)
-	{
-
-		printf("%2d", (int)m_Grid[i].m_texdata.heightmap);
-		if ((i % m_GridSize) != (m_GridSize - 1))
-			printf(" ");
-		else
-			printf("\n");
-	}
-
-	printf ("---###---\n");
-
-
-	for (int i = 0; i < m_GridSize * m_GridSize; i++)
-	{
-		if (m_Grid[i].m_modified)
-		{
-			if (i == index)
-				printf("Y");
-			else
-				printf("M");
-		}
-		else
-			printf("%c", radar[i]);
-
-		if ((i % m_GridSize) != (m_GridSize - 1))
-			printf(" ");
-		else
-			printf("\n");
-	}
-	printf("-----\n");
-	printf("--%d--\n", m_RegionCurrent);
-	printf("-----\n");
-
-	memset(radar, '.', m_GridSize * m_GridSize);
-	for (int i = 0; i < m_GridSize * m_GridSize; i++)
-	{
-		if (m_Grid[i].m_LoadedCurrent)
-			radar[i] = 'L';
-		else
-			radar[i] = 'U';
-
-		if (m_Grid[i].m_texID != -1)
-			radar[i] = 'A';
-	}
-	
-	for (int i = 0; i < m_GridSize * m_GridSize; i++)
-	{
-		printf("%c", radar[i]);
-		if ((i % m_GridSize) != (m_GridSize - 1))
-			printf(" ");
-		else
-			printf("\n");
-	}
-	printf("-----\n");
-	printf("-----\n");
-	delete[] radar;
 }
 
 //--------------------------------------------------------
