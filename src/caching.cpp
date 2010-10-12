@@ -465,7 +465,7 @@ Caching::Render(void)
 	printf("%.2f %.2f %.2f\n", coneGrad1, coneGrad2, m_cam_rotation_y);
 
 	// Variables
-	vector2 linePos;
+	vector2 linePos, offset;
 	vector4 tileBounds, cellColor;
 
 	// Store the current viewort
@@ -494,9 +494,10 @@ Caching::Render(void)
 	glViewport(m_radar_pos.x, m_radar_pos.y, RADAR_SIZE, RADAR_SIZE);
 
 	// Set initial uniforms
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "offset"), 1, offset.v);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "scale"), 1.0f);
 	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
-
 
 	// Do first pass to color in background
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
@@ -568,8 +569,11 @@ Caching::Render(void)
 	glViewport(m_radar2_pos.x, m_radar2_pos.y, RADAR2_SIZE, RADAR2_SIZE);
 
 	// Set initial uniforms
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
-	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
+	offset = m_TileIndexCurrent * m_cellSize;
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "offset"), 1, offset.v);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "scale"), m_cellSize);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR2_DOT_R);
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, tilePos.v);
 
 
 	// Do first pass to color in background

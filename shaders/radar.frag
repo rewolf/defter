@@ -4,6 +4,10 @@
 uniform sampler2D heightmap;
 uniform sampler2D colormap;
 
+// Values to offset the texture lookups
+uniform vec2 offset;
+uniform float scale;
+
 // Variable to decide what is been drawn currently
 uniform int pass;
 
@@ -29,18 +33,20 @@ const vec2 const_list = vec2(1.0, .0);
 
 void main()
 {
+	vec2 dist, texCoord;
 	vec4 color;
 	vec4 height;
-	vec2 dist;
 	float r;
 
+	// Run a specified pass to complete different tasks
 	switch (pass)
 	{
 		case 0:
 			// Read the colour and height values and set it
-			color = texture(colormap, frag_texCoord); 
-			height= texture(heightmap, frag_texCoord).rrrr * .9 + .1;
-			color = color + height * const_list.xxxy + vec4(0.0, 0.0, 0.0, 1.0);
+			texCoord	= offset + (frag_texCoord * scale);
+			color		= texture(colormap, texCoord);
+			height		= texture(heightmap, texCoord).rrrr * .9 + .1;
+			color		= color + height * const_list.xxxy + vec4(0.0, 0.0, 0.0, 1.0);
 		break;
 
 		case 1:
