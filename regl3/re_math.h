@@ -58,6 +58,7 @@ namespace reMath{
 		float&		operator[]		(int idx) ;
 		string		str				(void);
 
+		void		set				(float xy);
 		void		set				(float x, float y);
 
 		float		Mag				(void) const;
@@ -117,6 +118,7 @@ namespace reMath{
 		float&		operator[]		(int idx) ;
 		string		str				(void);
 
+		void		set				(float xyz);
 		void		set				(float x, float y, float z);
 
 		float		Mag				(void) const;
@@ -171,6 +173,9 @@ namespace reMath{
 
 		float&		operator[]		(int idx) ;
 		string		str				(void);
+
+		void		set				(float xyzw);
+		void		set				(float x, float y, float z, float w);
 
 
 	public:

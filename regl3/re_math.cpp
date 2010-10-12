@@ -231,6 +231,13 @@ namespace reMath{
 	}
 
 	//-------------------------------------------------------------------------
+	// SET sets the components of the vector to a single passed value
+	void
+	vector2::set(float xy){
+		x=xy; y=xy;
+	}
+
+	//-------------------------------------------------------------------------
 	// SET sets the components of the vector to those given
 	void
 	vector2::set(float _x, float _y){
@@ -532,6 +539,13 @@ namespace reMath{
 	}
 
 	//-------------------------------------------------------------------------
+	// SET sets the components of the vector to a single passed value
+	void
+	vector3::set(float xyz){
+		x=xyz; y=xyz; z=xyz;
+	}
+
+	//-------------------------------------------------------------------------
 	// SET sets the components of the vector to those given
 	void
 	vector3::set(float _x, float _y, float _z){
@@ -770,6 +784,20 @@ namespace reMath{
 		char out[64];
 		sprintf(out,"[%.2f, %.2f, %.2f, %.2f]",x,y,z,w);
 		return string(out);
+	}
+
+	//-------------------------------------------------------------------------
+	// SET sets the components of the vector to a single passed value
+	void
+	vector4::set(float xyzw){
+		x=xyzw; y=xyzw; z=xyzw; w=xyzw;
+	}
+
+	//-------------------------------------------------------------------------
+	// SET sets the components of the vector to those given
+	void
+	vector4::set(float _x, float _y, float _z, float _w){
+		x=_x; y=_y; z=_z; w=_w;
 	}
 
 

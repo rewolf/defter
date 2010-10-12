@@ -63,6 +63,7 @@ private:
 	float				m_cellSize;
 	float				m_lineWidth;
 	vector2				m_radar_pos;
+	vector2				m_radar2_pos;
 
 	Deform*				m_pDeform;
 	int					m_coarseDim;
