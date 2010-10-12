@@ -666,7 +666,7 @@ void
 DefTer::Logic(float dt)
 {
 	//Update the caching system
-	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), m_cam_rotate.y);
+	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
 	// Update position
 	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;

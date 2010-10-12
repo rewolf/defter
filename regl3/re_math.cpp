@@ -803,6 +803,220 @@ namespace reMath{
 
 
 	/**************************************************************************
+	 * matrix2 
+	 **************************************************************************/
+
+	//-------------------------------------------------------------------------
+	// Constructs an identity matrix
+	matrix2::matrix2(){
+		SetIdentity();
+	}
+
+	//-------------------------------------------------------------------------
+	// Constructs a copy of the given matrix
+	matrix2::matrix2(const matrix2& copy){
+		memcpy((void*)m, (void*)copy.m, sizeof(m));
+	}
+
+	//-------------------------------------------------------------------------
+	// Constructs a matrix with the given elements
+	matrix2::matrix2(const float elems[4]){
+		memcpy((void*)m, (void*)elems, sizeof(m));
+	}
+
+	//-------------------------------------------------------------------------
+	// STR returns a formatted string representation of the matrix
+	string 
+	matrix2::str( void ){
+		char out[256];
+		// column-major
+		sprintf(out,"\n|%.2f\t%.2f|\n|%.2f\t%.2f|\n",
+			m[0],m[2],m[1],m[3]);
+		return string(out);
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR+ performs matrix addition
+	matrix2 
+	matrix2::operator +(const matrix2 &mat)const{
+		matrix2 out;
+		for (int i = 0; i < 4; i++)
+			out[i] = m[i]+mat.m[i];
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR- performs matrix subtraction
+	matrix2 
+	matrix2::operator -(const matrix2 &mat)const{
+		matrix2 out;
+		for (int i = 0; i < 4; i++)
+			out[i] = m[i]-mat.m[i];
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR* performs matrix-scalar multiplication
+	matrix2 
+	matrix2::operator *(float scalar)const{
+		matrix2 out;
+		for (int i = 0; i < 4; i++)
+			out[i] = m[i] * scalar;
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR* performs matrix multiplication
+	matrix2 
+	matrix2::operator *(const matrix2 &mat)const{
+		matrix2 out;
+
+		int col;
+		for (int i = 0; i < 2; i++){
+			col=0;
+			for (int j = 0; j < 2; j++){
+				out.m[i+col] = 	m[i] 		* 	mat.m[col] 		+
+								m[i+2]		*	mat.m[col+1];
+
+				col+=2;
+			}
+		}
+		return out;
+	}
+	
+	//-------------------------------------------------------------------------
+	// OPERATOR*= performs (inplace) matrix multiplications
+	void 
+	matrix2::operator *=(const matrix2 &mat){
+		float temp[4];
+
+		int col;
+		for (int i = 0; i < 2; i++){
+			col=0;
+			for (int j = 0; j < 2; j++){
+				temp[i+col] = 	m[i] 		* 	mat.m[col]	 	+
+								m[i+2]		*	mat.m[col+1];
+				col+=2;
+			}
+		}
+		memcpy(this->m, temp, sizeof(float)*4);
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR* performs matrix-vector2 multiplication
+	vector2
+	matrix2::operator *(const vector2& vec)const {
+		vector2 product;
+		product.x = m[0]*vec.x+m[2]*vec.y;
+		product.y = m[1]*vec.x+m[3]*vec.y;
+		return product;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR* performs scalar-matrix multiplication
+	matrix2 
+	operator*(float scalar, const matrix2& mat){
+		matrix2 out;
+		for (int i = 0; i < 4; i++)
+			out[i] = mat.m[i] * scalar;
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR+= performs (in-place) matrix addition
+	matrix2& 
+	matrix2::operator +=(const matrix2 &mat){
+		for (int i = 0; i < 4; i++)
+			m[i]+=mat.m[i];
+		return *this;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR-= performs (in-place) matrix subtraction
+	matrix2& 
+	matrix2::operator -=(const matrix2 &mat){
+		for (int i = 0; i < 4; i++)
+			m[i]-=mat.m[i];
+		return *this;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR== performs a per-element equality test
+	bool 
+	matrix2::operator ==(const matrix2 &mat)const{
+		for (int i = 0; i < 4; i++)
+			if (m[i]!=mat.m[i])
+				return false;
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR!= performs a per-element equality test, return true if any fail
+	bool 
+	matrix2::operator !=(const matrix2 &mat)const{
+		for (int i = 0; i < 4; i++)
+			if (m[i]!=mat.m[i])
+				return true;
+		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	// OPERATOR[] returns a reference to the element at the given index.
+	float& 
+	matrix2::operator[](int idx){
+		return m[idx];
+	}
+
+	//-------------------------------------------------------------------------
+	// SETIDENTITY Resets the matrix to an identity matrix
+	void 
+	matrix2::SetIdentity(){
+		memset((void*)m, 0, sizeof(m));
+		m[0] = m[3] = 1.0f;
+	}
+
+	//-------------------------------------------------------------------------
+	// INVERSE Returns the inverse of the matrix.
+	matrix2
+	matrix2::Inverse(){
+		matrix2 out;
+		float det = Determinant();
+
+		if (close_enough(det, 0.0f)){
+			out.SetIdentity();
+		} else{
+			det = 1.0f / det;
+
+			out.m[0] = det * m[3];
+			out.m[1] = det * -m[1];
+
+			out.m[2] = det * -m[2];
+			out.m[3] = det * m[0];
+		}
+
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// TRANSPOSE Returns the transpose of the matrix.
+	matrix2 
+	matrix2::Transpose(){
+		matrix2 out = m;
+		out[1] = m[2];
+		out[2] = m[1];
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
+	// DETERMINANT Returns the determinant of the matrix.
+	float 
+	matrix2::Determinant(){
+		return (m[0] * m[3] - m[1] * m[2]);
+	}
+
+
+
+	/**************************************************************************
 	 * matrix3 
 	 **************************************************************************/
 
@@ -985,7 +1199,7 @@ namespace reMath{
 	void 
 	matrix3::SetIdentity(){
 		memset((void*)m, 0, sizeof(m));
-		m[0] = m[5]= m[8] = 1.0f;
+		m[0] = m[4]= m[8] = 1.0f;
 	}
 
 	//-------------------------------------------------------------------------

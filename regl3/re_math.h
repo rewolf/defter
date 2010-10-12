@@ -16,6 +16,7 @@ namespace reMath{
 	class vector2;
 	class vector3;
 	class vector4;
+	class matrix2;
 	class matrix3;
 	class matrix4;
 
@@ -187,6 +188,44 @@ namespace reMath{
 	vector4 operator*	(float scalar, const vector4& pt);
 
 	/******************************************************************************
+	 * matrix2
+	 * A class to represent 2x2 matrices that are often used in vector
+	 * transformations. Note column-major indices
+	 ******************************************************************************/
+	class matrix2{
+	public:
+		matrix2();
+		matrix2(const matrix2& copy);
+		matrix2(const float elems[4]);
+
+		matrix2		operator+		(const matrix2& mat) const;
+		matrix2		operator-		(const matrix2& mat) const;
+		matrix2		operator*		(float scalar) const;
+		friend matrix2 operator*	(float scalar, const matrix2& mat);
+		matrix2		operator*		(const matrix2& mat) const;
+		vector2		operator*		(const vector2& vec) const;
+		void		operator*=		(const matrix2& mat);
+		matrix2&	operator+=		(const matrix2& mat);
+		matrix2&	operator-=		(const matrix2& mat);
+
+		bool		operator==		(const matrix2& mat) const;
+		bool		operator!=		(const matrix2& mat) const;
+
+		float&		operator[]		(int idx);
+
+		string		str				(void);
+		
+		void		SetIdentity		(void);
+		matrix2		Inverse			(void);
+		matrix2		Transpose		(void);
+		float		Determinant		(void);
+
+	public:
+		float	m[4];
+	};
+	matrix2 operator*	(float scalar, const matrix2&);
+
+	/******************************************************************************
 	 * matrix3
 	 * A class to represent 3x3 matrices that are often used in vector
 	 * transformations. Note column-major indices
@@ -223,7 +262,7 @@ namespace reMath{
 	public:
 		float	m[9];
 	};
-	matrix4 operator*	(float scalar, const matrix4&);
+	matrix3 operator*	(float scalar, const matrix3&);
 
 	/******************************************************************************
 	 * matrix4
