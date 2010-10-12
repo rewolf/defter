@@ -113,6 +113,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pDeform = NULL;
 	m_pClipmap= NULL;
 	m_pCaching= NULL;
+	m_pSkybox = NULL;
 }
 
 //--------------------------------------------------------
