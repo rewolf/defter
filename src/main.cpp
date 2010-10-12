@@ -506,6 +506,13 @@ DefTer::ProcessInput(float dt)
 		m_cam_rotate.x += dt*move.y*PI*.1f;
 		// Yaw
 		m_cam_rotate.y += dt*move.x*PI*.1f;
+
+		//Clamp the camera to prevent the user flipping
+		//upside down messing up everything
+		if (m_cam_rotate.x < -M_PI * 0.5f)
+			m_cam_rotate.x = -M_PI * 0.5f;
+		if (m_cam_rotate.x > M_PI * 0.5f)
+			m_cam_rotate.x = M_PI * 0.5f;
 	}
 
 	// Change the selected deformation location
