@@ -34,6 +34,8 @@ extern const int SCREEN_H;
 #define RADAR2_SIZE		(RADAR_SIZE / 2.0f)
 #define RADAR_LINE_W	(1.0f / RADAR_SIZE)
 #define RADAR2_LINE_W	(1.0f / RADAR2_SIZE)
+#define RADAR_DOT_R		(16.0f / (RADAR_SIZE * RADAR_SIZE))
+#define RADAR2_DOT_R	(16.0f / (RADAR2_SIZE * RADAR2_SIZE))
 
 #define DEBUG_ON		(0)
 #if DEBUG_ON
@@ -75,6 +77,8 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 
 	//Calculate the offset value for the coarsemap to allow determining of tile index
 	m_CoarseOffset	= coarseDim * clipRes * 0.5f;
+
+	m_metre_to_tex	= 1.0f / (coarseDim * clipRes);
 
 	//Set default values
 	m_RegionPrevious	= 0;
@@ -263,22 +267,28 @@ Caching::~Caching(){
 
 //--------------------------------------------------------
 void
-Caching::Update (vector2 worldPos)
-{
+Caching::SetCoarsemap(GLuint coarsemapTex, GLuint coarsemapColorTex){
+	m_coarsemapTex 		= coarsemapTex;
+	m_coarsemapColorTex = coarsemapColorTex;
+}
+
+//--------------------------------------------------------
+void
+Caching::Update(vector2 worldPos){
 	CheckError("Before Caching Update");
 	UpdatePBOs();
 
 	worldPos		   += vector2(m_CoarseOffset);
-	vector2 tilePos		= (worldPos/m_TileSize);
+	vector2 tilePos		= (worldPos / m_TileSize);
 	// Get the tile index into the array
 	// X = Column : Y = Row
 	m_TileIndexCurrent	= tilePos.Floor();
 
 	// Sift out just the fractional part to find location within the tile and offset to centre
-	// so that positive -> right of centre or below centre and negative left or above
+	// So that positive -> right of centre or below centre and negative left or above
 	tilePos -= (m_TileIndexCurrent + vector2(.5f));
 
-	// do this so we can check absolute distance from centre
+	// Do this so we can check absolute distance from centre
 	vector2 absTilePos = tilePos.Abs();
 
 	// Center block
@@ -420,8 +430,12 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 //--------------------------------------------------------
 // Renders the radar into a small viewport on the screen
 void
-Caching::Render(void)
+Caching::Render(vector2 worldPos)
 {
+	worldPos		   += vector2(m_CoarseOffset);
+	vector2 tilePos		= (worldPos / m_TileSize) - m_TileIndexCurrent;
+	worldPos		   *= m_metre_to_tex;
+
 	// Variables
 	vector2 linePos;
 	vector4 tileBounds, cellColor;
@@ -438,11 +452,20 @@ Caching::Render(void)
 	// Bind the vertex array
 	glBindVertexArray(m_vao);
 
+	// Set the textures
+	glUseProgram(m_shRadar->m_programID);
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "colormap"), 1);
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "heightmap"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemapTex);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemapColorTex);
+	glActiveTexture(GL_TEXTURE0);
+
 	// Change to the new viewport
 	glViewport(m_radar_pos.x, m_radar_pos.y, RADAR_SIZE, RADAR_SIZE);
 
 	// Do first pass to color in background and highlight current region
-	glUseProgram(m_shRadar->m_programID);
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
 
 	// Set the color for the current cell
@@ -491,8 +514,15 @@ Caching::Render(void)
 	}
 
 
-	// Set the shader to run the line drawing pass
+	// Draw the current position as a dot
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+
+	// Set the shader to run the line drawing pass
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 3);
 	// Loop over all the divisions and draw the lines
 	for (int i = 0; i <= m_GridSize; i++)
 	{
@@ -508,19 +538,31 @@ Caching::Render(void)
 	// Draw the second radar image
 	glViewport(m_radar2_pos.x, m_radar2_pos.y, RADAR2_SIZE, RADAR2_SIZE);
 
-	// Do first pass to color in background
+	// Do first pass to color in background and highlight current region
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
 
-	// Disable highlighting of current region so send in alpha = 0, and 0 size quad
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, vector4(0.0f).v);
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, vector4(0.0f).v);
+	// Set the color for the current cell
+	cellColor.set(0.0, 1.0, 0.0, 1.0);
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
+
+	// Send through the current cells infor to the shader
+	tileBounds.set(0.0f);//m_TileIndexCurrent.x * m_cellSize, m_TileIndexCurrent.y * m_cellSize, 0.0f, 0.0f);
+	tileBounds.z = tileBounds.x + m_cellSize;
+	tileBounds.w = tileBounds.y + m_cellSize;
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, tileBounds.v);
 
 	// Execute the first shader pass
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
-	// Set the shader to run the line drawing pass
+	// Draw the current position as a dot
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, tilePos.v);
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+	// Set the shader to run the line drawing pass
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 3);
 
 	// Draw the top & left boundary
 	linePos.set(0.0f);
@@ -767,7 +809,7 @@ Caching::UpdatePBOs(){
 			if (unload.tile->m_texdata.heightmap==0){
 				unload.m_waitCount++;
 				skip.push_back(unload);
-				assert(unload.m_waitCount < 8);
+				assert(unload.m_waitCount < 80);
 				continue;
 			}
 
