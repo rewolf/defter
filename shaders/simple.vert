@@ -68,7 +68,7 @@ void main()
 	pos = view * pos;
 
 	// Calculate the view vector
-	geom_View = -(pos.xyz / pos.w);
+	geom_View = -pos.xyz * (1.0 / pos.w);
 	
 	// Save out the gl_Position
 	gl_Position = projection * pos;

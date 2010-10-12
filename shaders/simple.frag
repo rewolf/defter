@@ -1,4 +1,5 @@
 #version 150 core
+#pragma optionNV inline all
 
 uniform sampler2D colormap;
 uniform sampler2D normalmap;
@@ -6,7 +7,7 @@ uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;
 uniform vec4 cam_and_shift;
-uniform float hd_aura;
+uniform float hd_aura_sq;
 uniform float is_hd_stamp;
 
 in vec3 frag_View;
@@ -19,8 +20,7 @@ out vec4 frag_Color;
 //--------
 const vec4 light		= normalize(vec4(.0, 4.0, -10.0, 0.0));
 const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
-const float log2		= 1.442695;
-const float fog_density	= 0.01;
+const float log2_fog_density	= -0.0001442695;
 
 vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
@@ -30,7 +30,9 @@ vec4 light_Specular	= vec4(0.9, 0.9, 0.9, 1.0);
 void main()
 {
 	// Draw in the clicked position
-	if (distance(click_pos, frag_TexCoord)< .5 * scales.y)
+	vec2 dist 		= click_pos - frag_TexCoord;
+	float scale_sq 	= scales.y*scales.y;
+	if (dot(dist,dist) < .25 * scale_sq)
 	{
 		frag_Color = vec4(1.0, 0.0, 0.0, 1.0);
 		return;
@@ -59,7 +61,7 @@ void main()
 	specular = light_Specular;
 
 	// Calculate the reflec vector
-	reflec = normalize(-reflect(lightDir, normal));
+	reflec = -reflect(lightDir, normal);
 
 	// Calculate the diffuse intensity
 	diffuseIntensity = max(0.0, dot(normal, lightDir));
@@ -75,14 +77,16 @@ void main()
 	frag_Color = (ambient + diffuse + specular) * color;
 
 	// Add in an overlay for an aura that allows the HD defs in
-	if (distance((cam_and_shift.xy + 0.5), frag_TexCoord) < hd_aura * scales.y)
+	dist = cam_and_shift.xy + 0.5 - frag_TexCoord;
+	if (dot(dist, dist) < hd_aura_sq)
 		frag_Color += 2.0 * is_hd_stamp * (color * vec4(0.0, 0.0, 1.0, 1.0));
 
 	// Fog controls
-	fogZ		= gl_FragCoord.z / gl_FragCoord.w;
-	fogFactor	= exp2(-fog_density * fog_density * fogZ * fogZ * log2);
+	fogZ		= gl_FragCoord.z * (1.0/gl_FragCoord.w);
+	fogFactor	= exp2(log2_fog_density * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
 
 	// Mix to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }
+

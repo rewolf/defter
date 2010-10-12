@@ -74,6 +74,7 @@ extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
 #define HIGH_DIM			(1024 * CACHING_LEVEL)
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
+#define HD_AURA_SQ			(HD_AURA * HD_AURA)
 
 float timeCount = .0f;
 long frameCount=0;
@@ -231,7 +232,6 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"), 1);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "hd_aura"), HD_AURA);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
@@ -352,20 +352,11 @@ DefTer::Init()
 	}
 	printf("Done\n");
 
-// Ouput normalmap
-	/*/
-	GLubyte *data  = new GLubyte[m_coarsemap_dim * m_coarsemap_dim * 3];
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-	SavePNG("coarsenormal.png", data, 8, 3, m_coarsemap_dim, m_coarsemap_dim);
-	delete [] data;
-// Output tangentmap
-	data  = new GLubyte[m_coarsemap_dim * m_coarsemap_dim * 3];
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-	SavePNG("coarsetangent.png", data, 8, 3, m_coarsemap_dim, m_coarsemap_dim);
-	delete [] data;
-	/*/
+	// Assign some more to shader uniforms
+	glUseProgram(m_shMain->m_programID);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "hd_aura_sq"), 
+			float(HD_AURA_SQ) / (CLIPMAP_RES*m_coarsemap_dim * CLIPMAP_RES*m_coarsemap_dim));
+
 	return true;
 }
 
