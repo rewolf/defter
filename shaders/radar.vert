@@ -1,7 +1,5 @@
 #version 150 core
 
-uniform int pass;
-
 in vec2 quad_Position;
 in vec2 vert_texCoord;
 

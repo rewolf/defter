@@ -47,7 +47,7 @@ void main()
 	normal = normalize(mat3(view) * (texture2D(normalmap, frag_TexCoord).rbg * 2.0 - 1.0));
 
 	// Calculate the light in view space and normalize
-	lightDir = normalize((view * light).xyz);
+	lightDir = (view * light).xyz;
 
 	//Normalize the incomming view vector
 	viewVec = normalize(frag_View);
