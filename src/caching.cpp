@@ -24,6 +24,7 @@ using namespace reMath;
 
 extern const int SCREEN_W;
 extern const int SCREEN_H;
+extern const float ASPRAT;
 
 #define READS_PER_FRAME	(3)
 #define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
@@ -463,11 +464,12 @@ Caching::Render(void)
 	float coneMat[4];
 	coneMat[0] = cosf(m_cam_rotation_y);
 	coneMat[1] = -sinf(m_cam_rotation_y);
-	coneMat[2] = cosf(m_cam_rotation_y);
-	coneMat[3] = -sinf(m_cam_rotation_y);
+	coneMat[2] = sinf(m_cam_rotation_y);
+	coneMat[3] = cosf(m_cam_rotation_y);
 
-	printf("%.2f %.2f %.2f %.2f\n", coneMat[0], coneMat[1], coneMat[2], coneMat[3]);
-
+	glUseProgram(m_shRadar->m_programID);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "aspectRatio"), ASPRAT);
+	glUniformMatrix2fv(glGetUniformLocation(m_shRadar->m_programID, "viewRotation"), 1,	GL_FALSE, coneMat);
 	// Variables
 	vector2 linePos, offset;
 	vector4 tileBounds, cellColor;
@@ -485,7 +487,6 @@ Caching::Render(void)
 	glBindVertexArray(m_vao);
 
 	// Set the textures
-	glUseProgram(m_shRadar->m_programID);
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "colormap"), 1);
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "heightmap"), 0);
 	glActiveTexture(GL_TEXTURE0);
@@ -545,7 +546,6 @@ Caching::Render(void)
 
 	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniformMatrix2fv(glGetUniformLocation(m_shRadar->m_programID, "viewRotation"), 1,	GL_FALSE,coneMat);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
@@ -586,8 +586,6 @@ Caching::Render(void)
 
 	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	//glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
-	//glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 

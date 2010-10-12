@@ -7,6 +7,7 @@ uniform sampler2D colormap;
 // Values to offset the texture lookups
 uniform vec2 offset;
 uniform float scale;
+uniform float aspectRatio;
 
 // Variable to decide what is been drawn currently
 uniform int pass;
@@ -20,8 +21,6 @@ uniform vec4 tileBounds;
 uniform vec4 cellColor;
 
 // Variables for gradient of vision cone
-uniform float coneGrad1;
-uniform float coneGrad2;
 uniform mat2 viewRotation;
 
 // Variable to draw a line at this position
@@ -60,10 +59,10 @@ void main()
 		break;
 
 		case 2:
-			//
+			// Draw the vision cone
 			dist = frag_texCoord - currentPos;
 			dist = viewRotation * dist;
-			if ( -dist.t > abs(dist.s) )
+			if (-dist.t * aspectRatio > abs(dist.s))
 			{
 				color = vec4(1.0, 0.0, 1.0, 0.3);
 			}

@@ -62,6 +62,7 @@ using namespace reMath;
 
 extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
+extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
 
 #define COARSEMAP_FILENAME	("images/hmap02.png")
 #define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
