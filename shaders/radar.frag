@@ -52,18 +52,18 @@ void main()
 			dist = frag_texCoord - currentPos;
 			r = dot(dist, dist);
 			if (r < dotRadius)
-				color = vec4(0.0, 0.0, 1.0, 1.0);
+				color = vec4(0.0, 1.0, 1.0, 1.0);
 
 		break;
 
 		case 3:
 			// Draw verticle line
 			if (frag_texCoord.x >= linePos.x && frag_texCoord.x <= linePos.y)
-				color = vec4(.0, .0, .0, .4);
+				color = vec4(0.0, 0.0, 0.0, 0.4);
 
 			// Draw horizontal line
 			if (frag_texCoord.y >= linePos.x && frag_texCoord.y <= linePos.y)
-				color = vec4(.0, .0, .0, .4);
+				color = vec4(0.0, 0.0, 0.0, 0.4);
 		break;
 	}
 

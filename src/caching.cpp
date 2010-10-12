@@ -538,18 +538,12 @@ Caching::Render(vector2 worldPos)
 	// Draw the second radar image
 	glViewport(m_radar2_pos.x, m_radar2_pos.y, RADAR2_SIZE, RADAR2_SIZE);
 
-	// Do first pass to color in background and highlight current region
+	// Do first pass to color in background
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
 
-	// Set the color for the current cell
-	cellColor.set(0.0, 1.0, 0.0, 1.0);
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
-
-	// Send through the current cells infor to the shader
-	tileBounds.set(0.0f);//m_TileIndexCurrent.x * m_cellSize, m_TileIndexCurrent.y * m_cellSize, 0.0f, 0.0f);
-	tileBounds.z = tileBounds.x + m_cellSize;
-	tileBounds.w = tileBounds.y + m_cellSize;
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, tileBounds.v);
+	// Set the color and position of the quad to be 0 such that it is not drawn
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, vector4(0.0f).v);
+	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, vector4(0.0f).v);
 
 	// Execute the first shader pass
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
@@ -557,7 +551,7 @@ Caching::Render(vector2 worldPos)
 
 	// Draw the current position as a dot
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR2_DOT_R);
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, tilePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
