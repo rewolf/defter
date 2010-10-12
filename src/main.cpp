@@ -75,6 +75,8 @@ extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 
+float timeCount = .0f;
+long frameCount=0;
 
 /******************************************************************************
  * Main 
@@ -86,7 +88,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -101,6 +103,8 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
 	Sleep(sleepTime);
 #endif
+
+	printf("Average render time: %.3fms\n", timeCount/frameCount);
 
 	return 0;
 }
@@ -705,7 +709,13 @@ DefTer::Render(float dt)
 
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(viewproj, m_clipmap_shift);
+	glFinish();
+	static reTimer timer;
+	timer.start();
 	m_pClipmap->render();
+	glFinish();
+	timeCount += timer.getElapsed()*1000;
+	frameCount++;
 	
 	m_pSkybox->render(viewproj);
 
