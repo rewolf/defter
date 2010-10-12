@@ -186,7 +186,7 @@ DefTer::InitGL()
 
 	printf("Setting up GL...");
 	glEnable(GL_CULL_FACE);
-	glClearColor(.4f, .4f,1.0f, 1.0f);
+	glClearColor(0.4f, 0.4f, 1.0f, 1.0f);
 	if (!CheckError(""))
 		return false;
 	printf("\t\tDone\n");
@@ -230,8 +230,10 @@ DefTer::InitGL()
 		return false;
 	printf("\t\tDone\n");
 
+	// Initialise the program
 	if (!Init())
 		return false;
+	printf("\nProgram Loaded Successfully\t=D\n");
 	
 	//Print out some cool stats about the various components
 	printf("\n");
@@ -304,6 +306,10 @@ DefTer::Init()
 	m_pClipmap->init();
 	printf("Done\n");
 
+	// Shader uniforms (Clipmap data)
+	glUseProgram(m_shMain->m_programID);
+	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
+
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex, 1.0f/(HIGH_DIM * HIGH_RES));
@@ -314,14 +320,12 @@ DefTer::Init()
 	}
 	printf("Done\n");
 
-	// Create the skybox object
-	printf("Creating skybox...\t\t");
-	m_pSkybox = new Skybox();
-	if (!m_pSkybox->m_no_error)
-	{
-		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
+	// Generate the normal map and run a zero deform to init shaders
+	printf("Creating initial deform...\t");
+	m_pDeform->create_normalmap(m_coarsemap, true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
+	if (!CheckError("Creating initial deform"))
 		return false;
-	}
 	printf("Done\n");
 
 	// Create Caching System
@@ -330,16 +334,14 @@ DefTer::Init()
 	m_pCaching->SetCoarsemap(m_coarsemap.heightmap, m_colormap_tex);
 	printf("Done\n");
 
-	// Shader uniforms
-	glUseProgram(m_shMain->m_programID);
-	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
-	
-	// Generate the normal map and run a zero deform to init shaders
-	printf("Creating initial deform...\t");
-	m_pDeform->create_normalmap(m_coarsemap, true);
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
-	if (!CheckError("Creating initial deform"))
+	// Create the skybox object
+	printf("Creating skybox...\t\t");
+	m_pSkybox = new Skybox();
+	if (!m_pSkybox->m_no_error)
+	{
+		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
 		return false;
+	}
 	printf("Done\n");
 
 // Ouput normalmap
@@ -653,7 +655,7 @@ void
 DefTer::Logic(float dt)
 {
 	//Update the caching system
-	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z));
+	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), m_cam_rotate.y);
 
 	// Update position
 	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
@@ -696,7 +698,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
-	m_pCaching->Render(vector2(m_cam_translate.x, m_cam_translate.z));
+	m_pCaching->Render();
 
 	SDL_GL_SwapWindow(m_pWindow);
 }

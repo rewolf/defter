@@ -39,9 +39,9 @@ public:
 	Caching					(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
 	void SetCoarsemap		(GLuint coarsemapTex, GLuint coarsemapColorTex);
-	void Update				(vector2 worldPos);
+	void Update				(vector2 worldPos, float cam_rotation_y);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
-	void Render				(vector2 worldPos);
+	void Render				(void);
 
 	friend int hdd_cacher 	(void* data);
 
@@ -78,6 +78,8 @@ private:
 	float				m_BandPercent;
 	float				m_CoarseOffset;
 	float				m_metre_to_tex;
+	vector2				m_worldPos;
+	float				m_cam_rotation_y;
 	int					m_RegionCurrent;
 	int					m_RegionPrevious;
 	vector2				m_TileIndexCurrent;

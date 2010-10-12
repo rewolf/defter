@@ -49,19 +49,23 @@ extern const int SCREEN_H;
 #endif
 
 //--------------------------------------------------------
-Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes){
+Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes)
+{
+	// Variables
 	m_coarseDim		= coarseDim;
 	m_highDim		= highDim;
 	m_pDeform		= pDeform;
-	//Calculate the tile size and grid dimensions
+
+	// Calculate the tile size and grid dimensions
 	m_TileSize		= highDim * highRes;
 	float temp		= ((coarseDim * clipRes) / m_TileSize);
 	m_GridSize		= (int)temp;
 
-	//Create the grid
+	// Create the grid
 	m_Grid			= new Tile[m_GridSize*m_GridSize];
 
-	for (int i = 0; i < m_GridSize * m_GridSize; i++){
+	for (int i = 0; i < m_GridSize * m_GridSize; i++)
+	{
 		m_Grid[i].m_texID			= -1;
 		m_Grid[i].m_modified		= false;
 		m_Grid[i].m_LoadedPrevious	= false;
@@ -71,23 +75,24 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		memset(&m_Grid[i].m_texdata, 0, sizeof(TexData));
 	}
 
-	//Calculate the band values
+	// Calculate the band values
 	m_BandWidth		= (m_TileSize - (clipDim * clipRes)) * 0.9f;
 	m_BandPercent	= m_BandWidth / m_TileSize;
 
-	//Calculate the offset value for the coarsemap to allow determining of tile index
+	// Calculate the offset value for the coarsemap to allow determining of tile index
 	m_CoarseOffset	= coarseDim * clipRes * 0.5f;
 
+	// 
 	m_metre_to_tex	= 1.0f / (coarseDim * clipRes);
 
-	//Set default values
+	// Set default values
 	m_RegionPrevious	= 0;
 	m_TileIndexPrevious	= vector2(.0f);
 	m_caching_stats = "";
 
+	// Save out some cool stats about the caching system
 	stringstream sstr;
 	sstr << "Grid Size:\t\t\t"	<< m_GridSize << "\n";
-	sstr << "Clipmap Size:\t\t"	<< clipDim * clipRes << "\n";
 	sstr << "Tile Size:\t\t\t"	<< m_TileSize << "m\n";
 	sstr << "Band Width:\t\t\t"	<< m_BandWidth << "m\n";
 	sstr << "Band %:\t\t\t\t"	<< (m_BandPercent * 100) << "%\n";
@@ -173,7 +178,8 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glGenTextures(9, m_cacheHeightmapTex);
 	glGenTextures(9, m_cacheNormalTex);
 	glGenTextures(9, m_cacheTangentTex);
-	for (int i = 0; i < 9; i++){
+	for (int i = 0; i < 9; i++)
+	{
 		glBindTexture(GL_TEXTURE_2D, m_cacheHeightmapTex[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -216,7 +222,8 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	// Initialise PBO pool
 	int texSize = sizeof(GLbyte) * highDim * highDim;
 	glGenBuffers(PBO_POOL*2, m_pbos);
-	for (int i = 0 ; i < PBO_POOL; i++){
+	for (int i = 0 ; i < PBO_POOL; i++)
+	{
 		GLuint pbo;
 
 		// Pack
@@ -236,12 +243,13 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	
-	// create and launch cache thread
+	// Create and launch cache thread
 	m_cacheThread 		= SDL_CreateThread(hdd_cacher, (void*)this);
 }
 
 //--------------------------------------------------------
-Caching::~Caching(){
+Caching::~Caching()
+{
 	delete m_shRadar;
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
@@ -267,26 +275,33 @@ Caching::~Caching(){
 
 //--------------------------------------------------------
 void
-Caching::SetCoarsemap(GLuint coarsemapTex, GLuint coarsemapColorTex){
+Caching::SetCoarsemap(GLuint coarsemapTex, GLuint coarsemapColorTex)
+{
 	m_coarsemapTex 		= coarsemapTex;
 	m_coarsemapColorTex = coarsemapColorTex;
 }
 
 //--------------------------------------------------------
 void
-Caching::Update(vector2 worldPos){
+Caching::Update(vector2 worldPos, float cam_rotation_y)
+{
+	// Check for any initial errors and update the PBO's
 	CheckError("Before Caching Update");
 	UpdatePBOs();
 
-	worldPos		   += vector2(m_CoarseOffset);
-	vector2 tilePos		= (worldPos / m_TileSize);
+	// Store the camera rotation
+	m_cam_rotation_y	= cam_rotation_y;
+
+	// Get the world position and calculate the tile position
+	m_worldPos			= worldPos + vector2(m_CoarseOffset);
+	vector2 tilePos		= (m_worldPos / m_TileSize);
 	// Get the tile index into the array
 	// X = Column : Y = Row
 	m_TileIndexCurrent	= tilePos.Floor();
 
 	// Sift out just the fractional part to find location within the tile and offset to centre
 	// So that positive -> right of centre or below centre and negative left or above
-	tilePos -= (m_TileIndexCurrent + vector2(.5f));
+	tilePos -= (m_TileIndexCurrent + vector2(0.5f));
 
 	// Do this so we can check absolute distance from centre
 	vector2 absTilePos = tilePos.Abs();
@@ -315,16 +330,16 @@ Caching::Update(vector2 worldPos){
 	// Quads
 	else 
 	{
-		if (tilePos.x < .0f)
+		if (tilePos.x < 0.0f)
 		{
-			if (tilePos.y < .0f)
+			if (tilePos.y < 0.0f)
 				m_RegionCurrent = 0;
 			else
 				m_RegionCurrent = 6;
 		}
 		else
 		{
-			if (tilePos.y < .0f)
+			if (tilePos.y < 0.0f)
 				m_RegionCurrent = 2;
 			else
 				m_RegionCurrent = 8;
@@ -367,6 +382,7 @@ Caching::Update(vector2 worldPos){
 	m_RegionPrevious 	= m_RegionCurrent;
 	m_TileIndexPrevious	= m_TileIndexCurrent;
 
+	// Unbind the buffers
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
@@ -388,19 +404,23 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 	Tile& tile = m_Grid[index];
 
 	// If it is in the drawable region
-	if (m_Grid[index].m_texID != -1)	{
+	if (m_Grid[index].m_texID != -1)	
+	{
 		m_Grid[index].m_modified = true;
 		GLuint mapID = tile.m_texdata.heightmap;
 
 		// If the tile already has a texture ID
-		if (mapID != 0 && mapID != m_zeroTex.heightmap){
+		if (mapID != 0 && mapID != m_zeroTex.heightmap)
+		{
 			// Displace it here and now
 			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false);
 		}
 		// If it's only using the Zero texture
-		else if (mapID == m_zeroTex.heightmap){
+		else if (mapID == m_zeroTex.heightmap)
+		{
 			// Need a new texture that can be rendered into for this tile
-			if (m_texQueue.size()){
+			if (m_texQueue.size())
+			{
 				TexData newID = m_texQueue.front();
 				m_texQueue.pop();
 				tile.m_texdata = newID;
@@ -410,14 +430,16 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 						m_zeroTex.heightmap);
 				m_pDeform->create_normalmap(tile.m_texdata, false);
 			}
-			else{
+			else
+			{
 				// Push this deform operation onto a queue that waits for a texture ID
 				float YOU_MUST_STILL_HANDLE_THIS1 = 0;
 				assert(YOU_MUST_STILL_HANDLE_THIS1!=0);
 			}
 		}
 		// If it's still waiting for it's ID whilst loading
-		else{
+		else
+		{
 			// Push this deform operation onto a queue that waits for it's texture ID to be set
 			float YOU_MUST_STILL_HANDLE_THIS2 = 0;
 			assert(YOU_MUST_STILL_HANDLE_THIS2!=0);
@@ -430,11 +452,17 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 //--------------------------------------------------------
 // Renders the radar into a small viewport on the screen
 void
-Caching::Render(vector2 worldPos)
+Caching::Render(void)
 {
-	worldPos		   += vector2(m_CoarseOffset);
-	vector2 tilePos		= (worldPos / m_TileSize) - m_TileIndexCurrent;
+	// Variables for position
+	vector2 worldPos	= m_worldPos;
+	vector2 tilePos		= (m_worldPos / m_TileSize) - m_TileIndexCurrent;
 	worldPos		   *= m_metre_to_tex;
+
+	// Calculate the vision cone values
+	float coneGrad1		= tanf( m_cam_rotation_y - M_PI * 0.25f);
+	float coneGrad2		= tanf( m_cam_rotation_y - M_PI * 0.75f);
+	printf("%.2f %.2f %.2f\n", coneGrad1, coneGrad2, m_cam_rotation_y);
 
 	// Variables
 	vector2 linePos;
@@ -465,39 +493,35 @@ Caching::Render(vector2 worldPos)
 	// Change to the new viewport
 	glViewport(m_radar_pos.x, m_radar_pos.y, RADAR_SIZE, RADAR_SIZE);
 
-	// Do first pass to color in background and highlight current region
+	// Set initial uniforms
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
+
+
+	// Do first pass to color in background
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
-
-	// Set the color for the current cell
-	cellColor.set(0.0, 1.0, 0.0, 1.0);
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
-
-	// Send through the current cells infor to the shader
-	tileBounds.set(m_TileIndexCurrent.x * m_cellSize, m_TileIndexCurrent.y * m_cellSize, 0.0f, 0.0f);
-	tileBounds.z = tileBounds.x + m_cellSize;
-	tileBounds.w = tileBounds.y + m_cellSize;
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, tileBounds.v);
-
-	// Execute the first shader pass
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
-	int curIndex = m_TileIndexCurrent.y * m_GridSize + m_TileIndexCurrent.x;
-	// Fill in all loaded texture cells
+	// Fill in all loaded texture cells, skipping the current active one
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 1);
+	int curIndex = m_TileIndexCurrent.y * m_GridSize + m_TileIndexCurrent.x;
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
 	{
-		// Skip the current tile to prevent overwriting
-		if (i == curIndex)
-			continue;
 		// Only draw tiles currently loaded onto the GPU
 		if (m_Grid[i].m_LoadedCurrent)
 		{
 			// Use a different colour for tiles that are (in)active
 			if (m_Grid[i].m_texID == -1)
-				cellColor.set(1.0, 0.0, 0.0, 1.0);
+				cellColor.set(1.0, 0.0, 0.0, 0.5);
 			else
-				cellColor.set(1.0, 1.0, 1.0, 1.0);
+			{
+				// Draw the current cell in a different color
+				if (i == curIndex)
+					cellColor.set(0.0, 1.0, 0.0, 0.5);
+				else
+					cellColor.set(1.0, 1.0, 1.0, 0.5);
+			}
 
 			// Send the shader the current colour to use
 			glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, cellColor.v);
@@ -514,10 +538,10 @@ Caching::Render(vector2 worldPos)
 	}
 
 
-	// Draw the current position as a dot
+	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
-	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
@@ -534,57 +558,65 @@ Caching::Render(vector2 worldPos)
 	}
 
 
+	// Draw the current position as a dot
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 4);
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+
 
 	// Draw the second radar image
 	glViewport(m_radar2_pos.x, m_radar2_pos.y, RADAR2_SIZE, RADAR2_SIZE);
 
+	// Set initial uniforms
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR_DOT_R);
+	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, worldPos.v);
+
+
 	// Do first pass to color in background
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 0);
-
-	// Set the color and position of the quad to be 0 such that it is not drawn
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "cellColor"), 1, vector4(0.0f).v);
-	glUniform4fv(glGetUniformLocation(m_shRadar->m_programID, "tileBounds"), 1, vector4(0.0f).v);
-
-	// Execute the first shader pass
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
-	// Draw the current position as a dot
+	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "dotRadius"), RADAR2_DOT_R);
-	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "currentPos"), 1, tilePos.v);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
+	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
 
 	// Set the shader to run the line drawing pass
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 3);
-
 	// Draw the top & left boundary
 	linePos.set(0.0f);
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
-
 	// Draw the first band line
 	linePos.set(0.5f - (m_BandPercent * 0.5f));
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
-
 	// Draw the second band line
 	linePos.set(0.5f + (m_BandPercent * 0.5f));
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
-
 	// Draw the bottom & right boundary
 	linePos.set(1.0f);
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+
+	// Draw the current position as a dot
+	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 4);
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+
 
 	// Reset the GL settings
 	glDisable(GL_BLEND);
@@ -697,7 +729,8 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 //--------------------------------------------------------
 // Called by the GL thread.  Puts the tile on the queue for loading
 void
-Caching::Load(Tile* tile){
+Caching::Load(Tile* tile)
+{
 	// Create struct
 	CacheRequest load;
 	load.type = LOAD;
@@ -705,7 +738,8 @@ Caching::Load(Tile* tile){
 	DEBUG3("LOAD %d %d\n", tile->m_row, tile->m_col);
 
 	// Check for existing requests for this tile that negate this request and remove all
-	/*for (list<CacheRequest>::iterator i = m_readyQueue.begin(); i != m_readyQueue.end(); i++){
+	/*for (list<CacheRequest>::iterator i = m_readyQueue.begin(); i != m_readyQueue.end(); i++)
+	{
 		if (i->tile == tile){
 			i = m_readyQueue.erase(i);
 			i--;
@@ -718,7 +752,8 @@ Caching::Load(Tile* tile){
 //--------------------------------------------------------
 // Called by the GL thread.  Puts the tile on the queue for unloading
 void
-Caching::Unload(Tile* tile){
+Caching::Unload(Tile* tile)
+{
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
@@ -733,12 +768,14 @@ Caching::Unload(Tile* tile){
 // also.. retrieves data readied by CPU (done queue)
 // This is the only function that alters the PBO pools
 void
-Caching::UpdatePBOs(){
+Caching::UpdatePBOs()
+{
 	CacheRequest load;
 	CacheRequest unload;
 
 	// UNLOADING : Middle phase - Mapping the buffer to system memory to be written to disk
-	for (int i = 0; i < 2 && m_busyUnloadQueue.size() ; i++){
+	for (int i = 0; i < 2 && m_busyUnloadQueue.size() ; i++)
+	{
 		unload = m_busyUnloadQueue.front();
 		m_busyUnloadQueue.pop_front();
 
@@ -747,7 +784,8 @@ Caching::UpdatePBOs(){
 		unload.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 		CheckError("Mapping unload/pack buffer");
 		// if this failed, worry
-		if (!unload.ptr){
+		if (!unload.ptr)
+		{
 			fprintf(stderr, "BAD ERROR: Could not map unload PBO pointer!!!!!\n");
 			m_busyUnloadQueue.push_front(unload);
 			break;
@@ -760,8 +798,10 @@ Caching::UpdatePBOs(){
 	}
 
 	// LOADING : First phase - Acquire PBOs for loading from sys mem
-	while (m_pboUnpackPool.size()){
-		if (m_readyLoadQueue.size()){
+	while (m_pboUnpackPool.size())
+	{
+		if (m_readyLoadQueue.size())
+		{
 			// pop request off queue
 			load = m_readyLoadQueue.front();
 			m_readyLoadQueue.pop_front();
@@ -775,7 +815,8 @@ Caching::UpdatePBOs(){
 			load.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
 			CheckError("Mapping load/unpack buffer");
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-			if (!load.ptr){
+			if (!load.ptr)
+			{
 				fprintf(stderr, "BAD ERROR: Could not map PBO pointer!!!!!\n");
 				m_readyLoadQueue.push_front(load);
 				m_pboUnpackPool.push(load.pbo);
@@ -787,20 +828,24 @@ Caching::UpdatePBOs(){
 			m_loadQueue.push_back(load);
 			UNLOCK(m_loadQueueMutex);
 		}
-		else{
+		else
+		{
 			break;
 		}
 	}
 
 	// UNLOADING : First phase - Acquire a PBO for the request
 	list<CacheRequest> skip;
-	while (m_pboPackPool.size()){
-		if (m_readyUnloadQueue.size()){
+	while (m_pboPackPool.size())
+	{
+		if (m_readyUnloadQueue.size())
+		{
 			// pop request off queue
 			unload = m_readyUnloadQueue.front();
 			m_readyUnloadQueue.pop_front();
 			// It's possible that it hasn't fully loaded before it needs to be unloaded
-			if (unload.tile->m_texdata.heightmap==0){
+			if (unload.tile->m_texdata.heightmap==0)
+			{
 				unload.m_waitCount++;
 				skip.push_back(unload);
 				assert(unload.m_waitCount < 80);
@@ -830,13 +875,16 @@ Caching::UpdatePBOs(){
 	m_readyUnloadQueue.insert(m_readyUnloadQueue.begin(), skip.begin(), skip.end());
 
 	// LOADING : Final phase - Texture memory transfer commences
-	for (int i = 0; i < READS_PER_FRAME; i++){
+	for (int i = 0; i < READS_PER_FRAME; i++)
+	{
 		// Get a load-ready struct
 		LOCK(m_doneLoadQueueMutex);
-		if (m_doneLoadQueue.size()){
+		if (m_doneLoadQueue.size())
+		{
 			load = m_doneLoadQueue.front();
 			// before popping off the queue, check if there is an available tex ID
-			if (!load.useZero && m_texQueue.size()==0){
+			if (!load.useZero && m_texQueue.size() == 0)
+			{
 				DEBUG ("---No available texture ID\n");
 				UNLOCK(m_doneLoadQueueMutex);
 				break;
@@ -845,7 +893,8 @@ Caching::UpdatePBOs(){
 			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
 			UNLOCK(m_doneLoadQueueMutex);
 		}
-		else{
+		else
+		{
 			UNLOCK(m_doneLoadQueueMutex);
 			break;
 		}
@@ -856,11 +905,13 @@ Caching::UpdatePBOs(){
 
 		CheckError("Unmapping unpack buffer");
 		// Begin transfer
-		if (load.useZero){
+		if (load.useZero)
+		{
 			DEBUG3("Using Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
 			load.tile->m_texdata = m_zeroTex;
 		}
-		else{
+		else
+		{
 			// Get a texture ID
 			load.tile->m_texdata = m_texQueue.front();
 			m_texQueue.pop();
@@ -883,7 +934,8 @@ Caching::UpdatePBOs(){
 	}
 
 	// UNLOADING : Final step of releasing PBO and TEXTURES
-	for (int i = 0; i < READS_PER_FRAME; i++){
+	for (int i = 0; i < READS_PER_FRAME; i++)
+	{
 		TexData texID;
 		// Get a finished unload struct
 		LOCK(m_doneUnloadQueueMutex);
@@ -893,14 +945,16 @@ Caching::UpdatePBOs(){
 			texID = unload.tile->m_texdata;
 			assert(texID.heightmap!=0);
 		}
-		else{
+		else
+		{
 			UNLOCK(m_doneUnloadQueueMutex);
 			break;
 		}
 		UNLOCK(m_doneUnloadQueueMutex);
 
 		// if it isn't the shared Zero texture, release it into pool
-		if (texID.heightmap != m_zeroTex.heightmap){
+		if (texID.heightmap != m_zeroTex.heightmap)
+		{
 			DEBUG3("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.normalmap));
 			m_texQueue.push(texID);
 		}
@@ -921,15 +975,18 @@ Caching::UpdatePBOs(){
 // A global function that represents the execution of the caching thread whose
 // job it is to load and save data from and to files on the hdd.
 int
-hdd_cacher(void* data){
+hdd_cacher(void* data)
+{
 	Caching* pCaching = (Caching*)data;
 	CacheRequest load, unload;
 	bool gotRequest;
-	while (pCaching->m_threadRunning){
+	while (pCaching->m_threadRunning)
+	{
 		// pop a load request
 		gotRequest = false;
 		LOCK(pCaching->m_loadQueueMutex);
-		if (pCaching->m_loadQueue.size()){
+		if (pCaching->m_loadQueue.size())
+		{
 			gotRequest = true;
 			load = pCaching->m_loadQueue.front();
 			pCaching->m_loadQueue.pop_front();
@@ -937,13 +994,17 @@ hdd_cacher(void* data){
 		UNLOCK(pCaching->m_loadQueueMutex);
 
 		// Actually read the image file from disk
-		if (gotRequest){
+		if (gotRequest)
+		{
 			// load image to sys memory mapped by PBO
 			DEBUG3("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
-			if (!pCaching->LoadTextureData(load)){
+			if (!pCaching->LoadTextureData(load))
+			{
 				// if this failed, we notify GL thread to use Zero Texture
 				load.useZero = true;
-			}else{
+			}
+			else
+			{
 				load.useZero = false;
 			}
 
@@ -951,7 +1012,9 @@ hdd_cacher(void* data){
 			LOCK(pCaching->m_doneLoadQueueMutex);
 			pCaching->m_doneLoadQueue.push_back(load);
 			UNLOCK(pCaching->m_doneLoadQueueMutex);
-		}else{
+		}
+		else
+		{
 			SDL_Delay(5);
 		}
 
@@ -960,7 +1023,8 @@ hdd_cacher(void* data){
 		// pop a write request
 		gotRequest = false;
 		LOCK(pCaching->m_unloadQueueMutex);
-		if (pCaching->m_unloadQueue.size()){
+		if (pCaching->m_unloadQueue.size())
+		{
 			gotRequest = true;
 			unload = pCaching->m_unloadQueue.front();
 			pCaching->m_unloadQueue.pop_front();
@@ -968,12 +1032,15 @@ hdd_cacher(void* data){
 		UNLOCK(pCaching->m_unloadQueueMutex);
 
 		// Write the data to disk
-		if (gotRequest){
+		if (gotRequest)
+		{
 			DEBUG3("Writing tile %d %d to image file\n", unload.tile->m_row, unload.tile->m_col);
 			// Save the texture data to disk (and release PBO and texture ID)
 			if (!pCaching->SaveTextureData(unload))
 				fprintf(stderr," ERROR: :could not write the tile !!!\n");
-		}else{
+		}
+		else
+		{
 			SDL_Delay(5);
 		}
 	}
@@ -982,7 +1049,8 @@ hdd_cacher(void* data){
 
 //--------------------------------------------------------
 inline bool
-Caching::LoadTextureData(CacheRequest load){
+Caching::LoadTextureData(CacheRequest load)
+{
 	FIBITMAP*		image;
 	BYTE*			bits;
 	int				width;
@@ -994,7 +1062,8 @@ Caching::LoadTextureData(CacheRequest load){
 
 	image = FreeImage_Load(FIF_PNG, filename, 0);
 
-	if (!image){
+	if (!image)
+	{
 		return false;
 	}
 
@@ -1009,7 +1078,8 @@ Caching::LoadTextureData(CacheRequest load){
 
 //--------------------------------------------------------
 inline bool
-Caching::SaveTextureData(CacheRequest unload){
+Caching::SaveTextureData(CacheRequest unload)
+{
 	FIBITMAP* 		image;
 	BYTE*			bits;
 	char			filename[256];
@@ -1029,7 +1099,8 @@ Caching::SaveTextureData(CacheRequest unload){
 	m_doneUnloadQueue.push_back(unload);
 	UNLOCK(m_doneUnloadQueueMutex);
 
-	if (!FreeImage_Save(FIF_PNG, image, filename, PNG_Z_BEST_SPEED)){
+	if (!FreeImage_Save(FIF_PNG, image, filename, PNG_Z_BEST_SPEED))
+	{
 		FreeImage_Unload(image);
 		return false;
 	}
@@ -1038,4 +1109,3 @@ Caching::SaveTextureData(CacheRequest unload){
 		
 	return true;
 }
-
