@@ -18,6 +18,7 @@ uniform vec4 cellColor;
 // Variables for gradient of vision cone
 uniform float coneGrad1;
 uniform float coneGrad2;
+uniform mat2 viewRotation;
 
 // Variable to draw a line at this position
 uniform vec2 linePos;
@@ -55,7 +56,8 @@ void main()
 		case 2:
 			//
 			dist = frag_texCoord - currentPos;
-			if ( (dist.t/dist.s < coneGrad1 ^^ dist.s/dist.t < -coneGrad1) )
+			dist = viewRotation * dist;
+			if ( -dist.t > abs(dist.s) )
 			{
 				color = vec4(1.0, 0.0, 1.0, 0.3);
 			}

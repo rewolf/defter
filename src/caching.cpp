@@ -460,9 +460,13 @@ Caching::Render(void)
 	worldPos		   *= m_metre_to_tex;
 
 	// Calculate the vision cone values
-	float coneGrad1		= tanf( m_cam_rotation_y - M_PI * 0.25f);
-	float coneGrad2		= tanf( m_cam_rotation_y - M_PI * 0.75f);
-	printf("%.2f %.2f %.2f\n", coneGrad1, coneGrad2, m_cam_rotation_y);
+	float coneMat[4];
+	coneMat[0] = cosf(m_cam_rotation_y);
+	coneMat[1] = -sinf(m_cam_rotation_y);
+	coneMat[2] = cosf(m_cam_rotation_y);
+	coneMat[3] = -sinf(m_cam_rotation_y);
+
+	printf("%.2f %.2f %.2f %.2f\n", coneMat[0], coneMat[1], coneMat[2], coneMat[3]);
 
 	// Variables
 	vector2 linePos;
@@ -540,8 +544,7 @@ Caching::Render(void)
 
 	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
+	glUniformMatrix2fv(glGetUniformLocation(m_shRadar->m_programID, "viewRotation"), 1,	GL_FALSE,coneMat);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
@@ -579,8 +582,8 @@ Caching::Render(void)
 
 	// Draw the vision cone
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 2);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
-	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
+	//glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad1"), coneGrad1);
+	//glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "coneGrad2"), coneGrad2);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 
 
