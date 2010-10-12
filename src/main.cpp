@@ -60,8 +60,8 @@ using namespace reMath;
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
 
-#define SCREEN_W			(1024)
-#define SCREEN_H			(768)
+extern const int SCREEN_W	= 1024;
+extern const int SCREEN_H	=  768;
 
 #define COARSEMAP_FILENAME	("images/hmap02.png")
 #define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
@@ -81,13 +81,13 @@ using namespace reMath;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync = false;
-	conf.gl_major = 3;
-	conf.gl_minor = 2;
-	conf.fsaa=0;
-	conf.sleepTime = .0f;
-	conf.winWidth = SCREEN_W;
-	conf.winHeight= SCREEN_H;
+	conf.VSync		= false;
+	conf.gl_major	= 3;
+	conf.gl_minor	= 2;
+	conf.fsaa		= 0;
+	conf.sleepTime	= 0.0f;
+	conf.winWidth	= SCREEN_W;
+	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
 
 	int sleepTime = 1000;
