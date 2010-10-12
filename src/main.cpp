@@ -140,7 +140,6 @@ DefTer::InitGL()
 	char* shVersion;
 	int nVertTexUnits, nGeomTexUnits, nTexUnits, nTexUnitsCombined, nColorAttachments, nTexSize,
 		nTexLayers, nVertAttribs, nGeomVerts, nGeomComponents;
-	float aspect;
 
 	if (!reGL3App::InitGL())
 		return false;
@@ -193,8 +192,11 @@ DefTer::InitGL()
 	printf("\t\tDone\n");
 
 	// Init projection matrix
-	aspect			= float(m_config.winWidth) / float(m_config.winHeight);
-	m_proj_mat		= perspective_proj(PI*.5f, aspect, NEAR_PLANE, FAR_PLANE);
+	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
+
+	// Init the cameras position such that it is in the middle of a tile
+	float halfTile = HIGH_DIM * HIGH_RES * 0.5f;
+	m_cam_translate.set(-halfTile, 0.0f, -halfTile);
 
 	// Set the initial stamp mode and clicked state
 	m_is_hd_stamp	= false;
