@@ -61,7 +61,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 	GLuint	backupTex;
 
-	printf("tex click %s\n", tex_coord.str().c_str());
 
 	// check if doing a high detail deform
 	if (!isCoarse || !m_initialised){
@@ -102,7 +101,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	else
 		backupTex = m_coarseBackup;
 
-	printf("backup: %d, heightmap: %d, copy: %d\n", backupTex, texdata.heightmap, copySrcTex);
+	//printf("backup: %d, heightmap: %d, copy: %d\n", backupTex, texdata.heightmap, copySrcTex);
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -142,15 +141,17 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+	// Reset viewport and framebuffer as it was
+	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	
+	glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	// Reset viewport and framebuffer as it was
-	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	
+	glGenerateMipmap(GL_TEXTURE_2D);
 	if (isCoarse){
 		// Setup textures to copy heightmap changes to the other map
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
@@ -178,10 +179,9 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
 
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
-	glGenerateMipmap(GL_TEXTURE_2D);
 
 	//Delete the created memory if need be
 	if (!isCoarse && copySrcTex==0)
