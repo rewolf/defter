@@ -720,6 +720,7 @@ Caching::UpdatePBOs(){
 				assert(unload.m_waitCount < 80);
 				continue;
 			}
+			printf("waited: %d\n", unload.m_waitCount);
 
 			// pop PBO
 			unload.pbo = m_pboPackPool.front();
