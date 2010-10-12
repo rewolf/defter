@@ -284,14 +284,14 @@ Caching::SetCoarsemap(GLuint coarsemapTex, GLuint coarsemapColorTex)
 
 //--------------------------------------------------------
 void
-Caching::Update(vector2 worldPos, float cam_rotation_y)
+Caching::Update(vector2 worldPos, vector2 cam_rotation)
 {
 	// Check for any initial errors and update the PBO's
 	CheckError("Before Caching Update");
 	UpdatePBOs();
 
 	// Store the camera rotation
-	m_cam_rotation_y	= cam_rotation_y;
+	m_cam_rotation		= cam_rotation;
 
 	// Get the world position and calculate the tile position
 	m_worldPos			= worldPos + vector2(m_CoarseOffset);
@@ -461,15 +461,15 @@ Caching::Render(void)
 	worldPos		   *= m_metre_to_tex;
 
 	// Calculate the vision cone values
-	float coneMat[4];
-	coneMat[0] = cosf(m_cam_rotation_y);
-	coneMat[1] = -sinf(m_cam_rotation_y);
-	coneMat[2] = sinf(m_cam_rotation_y);
-	coneMat[3] = cosf(m_cam_rotation_y);
+	matrix2 coneMat;
+	coneMat[0] = cosf(m_cam_rotation.y);
+	coneMat[1] = -sinf(m_cam_rotation.y);
+	coneMat[2] = sinf(m_cam_rotation.y);
+	coneMat[3] = cosf(m_cam_rotation.y);
 
 	glUseProgram(m_shRadar->m_programID);
 	glUniform1f(glGetUniformLocation(m_shRadar->m_programID, "aspectRatio"), ASPRAT);
-	glUniformMatrix2fv(glGetUniformLocation(m_shRadar->m_programID, "viewRotation"), 1,	GL_FALSE, coneMat);
+	glUniformMatrix2fv(glGetUniformLocation(m_shRadar->m_programID, "viewRotation"), 1,	GL_FALSE, coneMat.m);
 	// Variables
 	vector2 linePos, offset;
 	vector4 tileBounds, cellColor;
