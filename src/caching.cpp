@@ -93,18 +93,21 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	memset(zeroData, 0, highDim*highDim);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.normalmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.tangentmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	delete[] zeroData;
 	m_pDeform->create_normalmap(m_zeroTex, false);
 
@@ -119,6 +122,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, m_cacheNormalTex[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -126,6 +130,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, m_cacheTangentTex[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -133,6 +138,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 		TexData texID = { 
 			m_cacheHeightmapTex[i],
@@ -201,6 +207,7 @@ Caching::~Caching(){
 //--------------------------------------------------------
 void
 Caching::Update (vector2 worldPos){
+	CheckError("Before Caching Update");
 	UpdatePBOs();
 
 	bool updateRadar	= false;
@@ -692,6 +699,7 @@ Caching::UpdatePBOs(){
 					load.tile->m_texdata.heightmap, load.tile->m_texdata.normalmap);
 			glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.heightmap);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_BYTE, 0);
+			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 

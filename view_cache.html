@@ -78,6 +78,7 @@ function img_error(evt){
 }
 
 function draw(){
+	ctx.clearRect(0,0,winH,winH);
 	var imgDim = parseInt(winH/h);
 	var imgPad = imgDim+1;
 	for (var i = 0; i < h; i++){
