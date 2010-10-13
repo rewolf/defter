@@ -685,6 +685,21 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
 }
 
 //--------------------------------------------------------
+// Returns the index of the the top-left active tile
+void
+Caching::GetFirstActiveTile(int* row, int* col){
+	for (int i = 0; i < m_GridSize; i ++){
+		for (int j = 0; j < m_GridSize; j++){
+			if (m_Grid[i * m_GridSize + j].m_texID != -1){
+				*row = i;
+				*col = j;
+				return;
+			}
+		}
+	}
+}
+
+//--------------------------------------------------------
 //Sets the status for the tiles around the given one
 //Starts at TileIndex and iterates based on the value stored in size
 void

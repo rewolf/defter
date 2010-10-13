@@ -52,8 +52,8 @@ void main()
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= texture(heightmap, vert_TexCoord).r;
-	camera_height = -texture(heightmap, 0.5 + camera_tex).r * HEIGHT - 2.5;
+	height 	= texture(heightmap, texCoord).r;
+	camera_height = -20.0;//-texture(heightmap, 0.5 + camera_tex).r * HEIGHT - 2.5;
 
 	// Set vertex position and height from heightmap
 	vec4 pos = vec4(vert_Position.x, height * HEIGHT, vert_Position.y, 1.0);
@@ -74,5 +74,5 @@ void main()
 	gl_Position = projection * pos;
 	
 	// Save out the texCoord
-	geom_TexCoord = vert_TexCoord;
+	geom_TexCoord = texCoord;
 }

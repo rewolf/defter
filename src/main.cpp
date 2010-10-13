@@ -64,7 +64,7 @@ extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 
-#define COARSEMAP_FILENAME	("images/hmap04.png")
+#define COARSEMAP_FILENAME	("images/hmap02.png")
 #define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
 #define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
@@ -381,6 +381,8 @@ DefTer::Init()
 	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "hd_aura_sq"), 
 			float(HD_AURA_SQ) / (CLIPMAP_RES*m_coarsemap_dim * CLIPMAP_RES*m_coarsemap_dim));
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "inv_tile_size"), 
+				1.0f/ (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex));
 
 	return true;
 }
@@ -746,6 +748,10 @@ DefTer::Logic(float dt)
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
+	int firstTile[2];
+	m_pCaching->GetFirstActiveTile(firstTile, firstTile+1);
+	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
+			firstTile[0]);
 }
 
 //--------------------------------------------------------

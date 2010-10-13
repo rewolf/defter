@@ -9,6 +9,8 @@ uniform mat4 view;
 uniform vec4 cam_and_shift;
 uniform float hd_aura_sq;
 uniform float is_hd_stamp;
+uniform float inv_tile_size;
+uniform ivec2 tileOffset;
 
 in vec3 frag_View;
 in vec2 frag_TexCoord;
@@ -91,5 +93,24 @@ void main()
 
 	// Mix to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
+
+	
+
+	ivec2 tile = ivec2((frag_TexCoord )* inv_tile_size) - tileOffset;
+	int t = tile.x + tile.y*6;
+	switch(t){
+		case 0:
+			frag_Color=  vec4(.0, .0, 1.0, 1.0);
+			break;
+		case 1:
+			frag_Color=  vec4(.0, 1.0, .0, 1.0);
+			break;
+		case 6:
+			frag_Color=  vec4(.0, 1.0, 1.0, 1.0);
+			break;
+		case 7:
+			frag_Color=  vec4(1.0, .0, .0, 1.0);
+			break;
+	};
 }
 

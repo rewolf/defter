@@ -42,6 +42,7 @@ public:
 	void Update				(vector2 worldPos, vector2 cam_rotation);
 	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
 	void Render				(void);
+	void GetFirstActiveTile (int* row, int* col);
 
 	friend int hdd_cacher 	(void* data);
 
