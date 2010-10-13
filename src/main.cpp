@@ -386,14 +386,7 @@ DefTer::LoadCoarseMap(string filename)
 	bits 			= (BYTE*) FreeImage_GetBits(image);
 
 	FreeImage_FlipVertical(image);
-
-	if (bitdepth!=8)
-	{
-		fprintf(stderr, "Error\n\tCannot load files with more than 1 component: %s\n",
-				filename.c_str());
-		return false;
-	}
-
+	
 	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &m_coarsemap.heightmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
@@ -408,7 +401,17 @@ DefTer::LoadCoarseMap(string filename)
 		return false;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
+
+	if (bitdepth==8){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
+	}else if (bitdepth==16){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_SHORT, bits);
+	}else{
+		fprintf(stderr, "Error\n\tCannot load files with bitdepths other than 8- or 16-bit: %s\n",
+				filename.c_str());
+		return false;
+	}
+
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
