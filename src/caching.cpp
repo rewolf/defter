@@ -104,8 +104,8 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	//--------------------------------------------------------
 	// Setup shader
 	m_shRadar = new ShaderProg("shaders/radar.vert", "", "shaders/radar.frag");
-	glBindAttribLocation(m_shRadar->m_programID, 0, "quad_Position");
-	glBindAttribLocation(m_shRadar->m_programID, 1, "vert_texCoord");
+	glBindAttribLocation(m_shRadar->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shRadar->m_programID, 1, "vert_TexCoord");
 	m_shRadar->CompileAndLink();
 
 	m_cellSize			= 1.0f / m_GridSize;

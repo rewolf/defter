@@ -62,7 +62,7 @@ using namespace reMath;
 
 extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
-extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
+extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 
 #define COARSEMAP_FILENAME	("images/hmap04.png")
 #define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
@@ -201,6 +201,9 @@ DefTer::InitGL()
 	if (!CheckError(""))
 		return false;
 	printf("Done\n");
+	
+	//Initialise FreeImage
+	FreeImage_Initialise();
 
 	// Init the splash screen info
 	printf("Initialising Splash screen...\t");
@@ -236,8 +239,8 @@ DefTer::InitGL()
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
-	glBindAttribLocation(m_shMain->m_programID, 0, "in_Position");
-	glBindAttribLocation(m_shMain->m_programID, 1, "in_TexCoord");
+	glBindAttribLocation(m_shMain->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shMain->m_programID, 1, "vert_TexCoord");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
@@ -259,9 +262,6 @@ DefTer::InitGL()
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
 	printf("Done\n");
-
-	//Initialise FreeImage
-	FreeImage_Initialise();
 
 	// Initialise the program
 	if (!Init())
@@ -399,7 +399,7 @@ DefTer::InitSplash(void)
 		return false;
 
 	// Load the splash map
-	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE))
+	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE, false, true))
 		return false;
 
 	// Set uniforms
