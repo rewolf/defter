@@ -165,7 +165,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, highDim, highDim, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	delete[] zeroData;
-	m_pDeform->create_normalmap(m_zeroTex, false);
+	m_pDeform->create_pdmap(m_zeroTex, false);
 
 	// Create the block of 9 texture IDs
 	glGenTextures(9, m_cacheHeightmapTex);
@@ -409,7 +409,7 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 				// Displace it now
 				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false,
 						m_zeroTex.heightmap);
-				m_pDeform->create_normalmap(tile.m_texdata, false);
+				m_pDeform->create_pdmap(tile.m_texdata, false);
 			}
 			else
 			{
@@ -836,7 +836,6 @@ Caching::UpdatePBOs()
 				assert(unload.m_waitCount < 80);
 				continue;
 			}
-			printf("waited: %d\n", unload.m_waitCount);
 
 			// pop PBO
 			unload.pbo = m_pboPackPool.front();
@@ -915,7 +914,7 @@ Caching::UpdatePBOs()
 
 		// Generate normals for this texture
 		if (!load.useZero)
-			m_pDeform->create_normalmap(load.tile->m_texdata, false);
+			m_pDeform->create_pdmap(load.tile->m_texdata, false);
 	}
 
 	// UNLOADING : Final step of releasing PBO and TEXTURES

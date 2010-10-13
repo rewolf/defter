@@ -86,7 +86,7 @@ long frameCount = 0;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= true;
+	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
@@ -229,7 +229,7 @@ DefTer::InitGL()
 	// Assign samplers to texture units
 	glUseProgram(m_shMain->m_programID);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"), 0);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"), 1);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "pdmap"), 1);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
@@ -330,7 +330,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->create_normalmap(m_coarsemap, true);
+	m_pDeform->create_pdmap(m_coarsemap, true);
 	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
 	if (!CheckError("Creating initial deform"))
 		return false;

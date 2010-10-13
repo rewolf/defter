@@ -2,7 +2,7 @@
 #pragma optionNV inline all
 
 uniform sampler2D colormap;
-uniform sampler2D normalmap;
+uniform sampler2D pdmap;
 uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;
@@ -44,7 +44,7 @@ void main()
 	vec4 color, ambient, diffuse, specular;
 	float diffuseIntensity, specularIntensity, fogZ, fogFactor;
 
-	pdn = vec3(texture(normalmap, frag_TexCoord).xy * 2 - 1, 1.0).rbg;
+	pdn = vec3(texture(pdmap, frag_TexCoord).xy * 2 - 1, 1.0).rbg;
 
 	// Read in the noaml from the normal map and calculate in view space
 	normal = normalize(mat3(view) * pdn);
