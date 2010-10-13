@@ -75,6 +75,10 @@ extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
+/*
+float timeCount = 0;
+long frameCount = 0;
+*/
 
 /******************************************************************************
  * Main 
@@ -101,6 +105,8 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
 	Sleep(sleepTime);
 #endif
+
+	//printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
 
 	return 0;
 }
@@ -410,7 +416,7 @@ DefTer::LoadCoarseMap(string filename)
 	glGenTextures(1, &m_coarsemap.normalmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -420,7 +426,7 @@ DefTer::LoadCoarseMap(string filename)
 	glGenTextures(1, &m_coarsemap.tangentmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -695,11 +701,21 @@ DefTer::Render(float dt)
 
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(viewproj, m_clipmap_shift);
+
+/*
+	static reTimer timer;
+	glFinish();
+	timer.start();
+*/
 	m_pClipmap->render();
 	
 	m_pSkybox->render(viewproj);
 
 	m_pCaching->Render();
-
+/*
+	glFinish();
+	timeCount += timer.getElapsed();
+	frameCount ++;
+*/
 	SDL_GL_SwapWindow(m_pWindow);
 }
