@@ -15,11 +15,18 @@ private:
 	bool		Init			(void);
 	bool		InitGL			(void);
 
+	bool		InitSplash		(void);
+	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
 	void		UpdateStamp		(int stampID);
 	void		UpdateClickPos	(void);
 
 public:
+	ShaderProg*			m_shSplash;
+	GLuint				m_vbo[3];
+	GLuint				m_vao;
+	GLuint				m_splashmap;
+
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
