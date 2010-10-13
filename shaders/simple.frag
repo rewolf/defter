@@ -40,11 +40,14 @@ void main()
 
 	// Variables
 	vec3 normal, lightDir, viewVec, reflec;
+	vec3 pdn;
 	vec4 color, ambient, diffuse, specular;
 	float diffuseIntensity, specularIntensity, fogZ, fogFactor;
 
+	pdn = vec3(texture(normalmap, frag_TexCoord).xy * 2 - 1, 1.0).rbg;
+
 	// Read in the noaml from the normal map and calculate in view space
-	normal = normalize(mat3(view) * (texture2D(normalmap, frag_TexCoord).rbg * 2.0 - 1.0));
+	normal = normalize(mat3(view) * pdn);
 
 	// Calculate the light in view space and normalize
 	lightDir = (view * light).xyz;

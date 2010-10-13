@@ -134,8 +134,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pCaching);
 	glDeleteBuffers(2, m_pbo);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
-	glDeleteTextures(1, &m_coarsemap.normalmap);
-	glDeleteTextures(1, &m_coarsemap.tangentmap);
+	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 }
 
@@ -411,25 +410,15 @@ DefTer::LoadCoarseMap(string filename)
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	// Allocate GPU Texture space for normalmap
+	// Allocate GPU Texture space for partial derivative map
 	glActiveTexture(GL_TEXTURE1);
-	glGenTextures(1, &m_coarsemap.normalmap);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glGenTextures(1, &m_coarsemap.pdmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.pdmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	// Allocate GPU Texture space for tangentmap
-	glGenTextures(1, &m_coarsemap.tangentmap);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -691,7 +680,7 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.pdmap);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
 	

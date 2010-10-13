@@ -148,8 +148,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	// Create the default Zero-texture
 	GLubyte* zeroData = new GLubyte[highDim * highDim];
 	glGenTextures(1, &m_zeroTex.heightmap);
-	glGenTextures(1, &m_zeroTex.normalmap);
-	glGenTextures(1, &m_zeroTex.tangentmap);
+	glGenTextures(1, &m_zeroTex.pdmap);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.heightmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
@@ -158,27 +157,19 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	memset(zeroData, 0, highDim*highDim);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, m_zeroTex.normalmap);
+	glBindTexture(GL_TEXTURE_2D, m_zeroTex.pdmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, m_zeroTex.tangentmap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, highDim, highDim, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	delete[] zeroData;
 	m_pDeform->create_normalmap(m_zeroTex, false);
 
 	// Create the block of 9 texture IDs
 	glGenTextures(9, m_cacheHeightmapTex);
-	glGenTextures(9, m_cacheNormalTex);
-	glGenTextures(9, m_cacheTangentTex);
+	glGenTextures(9, m_cachePDTex);
 	for (int i = 0; i < 9; i++)
 	{
 		glBindTexture(GL_TEXTURE_2D, m_cacheHeightmapTex[i]);
@@ -189,26 +180,17 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		glBindTexture(GL_TEXTURE_2D, m_cacheNormalTex[i]);
+		glBindTexture(GL_TEXTURE_2D, m_cachePDTex[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-		glBindTexture(GL_TEXTURE_2D, m_cacheTangentTex[i]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, highDim, highDim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, highDim, highDim, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		TexData texID = { 
 			m_cacheHeightmapTex[i],
-			m_cacheNormalTex[i],
-			m_cacheTangentTex[i]
+			m_cachePDTex[i],
 		};
 		m_texQueue.push(texID);
 	}
@@ -261,8 +243,7 @@ Caching::~Caching()
 	SDL_DestroyMutex(m_loadQueueMutex);
 	SDL_DestroyMutex(m_unloadQueueMutex);
 	glDeleteTextures(1, &m_zeroTex.heightmap);
-	glDeleteTextures(1, &m_zeroTex.normalmap);
-	glDeleteTextures(1, &m_zeroTex.tangentmap);
+	glDeleteTextures(1, &m_zeroTex.pdmap);
 	delete[] m_Grid;
 
 	// delete PBO pool
@@ -270,8 +251,7 @@ Caching::~Caching()
 
 	// delete texture ID pool
 	glDeleteTextures(9, m_cacheHeightmapTex);
-	glDeleteTextures(9, m_cacheNormalTex);
-	glDeleteTextures(9, m_cacheTangentTex);
+	glDeleteTextures(9, m_cachePDTex);
 }
 
 //--------------------------------------------------------

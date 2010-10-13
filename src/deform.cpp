@@ -223,18 +223,10 @@ Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			texdata.normalmap, 0);
-	if (isCoarse)
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
-				texdata.tangentmap, 0);
+			texdata.pdmap, 0);
 
 	// Set the draw buffer
-	if (isCoarse){
-		GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-		glDrawBuffers(2, buffers);
-	}else{
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	}
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	
 	// Bind the VAO
 	glBindVertexArray(m_vao);
@@ -252,12 +244,8 @@ Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	// Generate Mipmaps
-	glBindTexture(GL_TEXTURE_2D, texdata.normalmap);
+	glBindTexture(GL_TEXTURE_2D, texdata.pdmap);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	if (isCoarse){
-		glBindTexture(GL_TEXTURE_2D, texdata.tangentmap);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
 }
 
 //--------------------------------------------------------
