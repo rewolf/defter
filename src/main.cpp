@@ -238,6 +238,9 @@ DefTer::InitGL()
 		return false;
 	printf("\t\tDone\n");
 
+	//Initialise FreeImage
+	FreeImage_Initialise();
+
 	// Initialise the program
 	if (!Init())
 		return false;
@@ -277,9 +280,6 @@ DefTer::InitGL()
 	"Esc\t"		"= Quit\n"
 	);
 
-	//Initialise FreeImage
-	FreeImage_Initialise();
-
 	return true;
 }
 
@@ -287,6 +287,7 @@ DefTer::InitGL()
 bool
 DefTer::Init()
 {
+	// Init the PBO buffers
 	glGenBuffers(2, m_pbo);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
@@ -306,7 +307,7 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
-	// Create the clipmap
+	// Create & initialise the clipmap
 	printf("Creating clipmap...\t\t");
 	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
 	printf("Done\n");
@@ -336,10 +337,12 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
-	// Create Caching System
+	// Create & initialise the caching system
 	printf("Creating caching system...\t");
 	m_pCaching = new Caching(m_pDeform, CACHING_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
-	m_pCaching->SetCoarsemap(m_coarsemap.heightmap, m_colormap_tex);
+	printf("Done\n");
+	printf("Initialising caching system...\t");
+	m_pCaching->Init(m_coarsemap.heightmap, m_colormap_tex, vector2(m_cam_translate.x, m_cam_translate.z));
 	printf("Done\n");
 
 	// Create the skybox object

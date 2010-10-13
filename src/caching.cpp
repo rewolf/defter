@@ -256,20 +256,24 @@ Caching::~Caching()
 
 //--------------------------------------------------------
 void
-Caching::SetCoarsemap(GLuint coarsemapTex, GLuint coarsemapColorTex)
+Caching::Init(GLuint coarsemapTex, GLuint coarsemapColorTex, vector2 worldPos)
 {
 	m_coarsemapTex 		= coarsemapTex;
 	m_coarsemapColorTex = coarsemapColorTex;
+
+	// Call a preliminary update to initialise all the constructs
+	// Repeat this until all cache files have been loaded
+	do
+	{
+		Update(worldPos, vector2(0.0f));
+		SDL_Delay(10);
+	} while(m_readyLoadQueue.size() > 0);
 }
 
 //--------------------------------------------------------
 void
 Caching::Update(vector2 worldPos, vector2 cam_rotation)
 {
-	// Check for any initial errors and update the PBO's
-	CheckError("Before Caching Update");
-	UpdatePBOs();
-
 	// Store the camera rotation
 	m_cam_rotation		= cam_rotation;
 
@@ -362,6 +366,9 @@ Caching::Update(vector2 worldPos, vector2 cam_rotation)
 	// Identify the new tile region
 	m_RegionPrevious 	= m_RegionCurrent;
 	m_TileIndexPrevious	= m_TileIndexCurrent;
+
+	// Update the PBO's
+	UpdatePBOs();
 
 	// Unbind the buffers
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -739,6 +746,17 @@ Caching::Load(Tile* tile)
 void
 Caching::Unload(Tile* tile)
 {
+	// Only unload tiles that have been modified
+	if (!tile->m_modified)
+	{
+		// Releases texdata if not the zero map
+		if (tile->m_texdata.heightmap != m_zeroTex.heightmap)
+			m_texQueue.push(tile->m_texdata);
+
+		// Return to skip saving to disk
+		return;
+	}
+
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
