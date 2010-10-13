@@ -287,6 +287,7 @@ DefTer::InitGL()
 bool
 DefTer::Init()
 {
+	// Init the PBO buffers
 	glGenBuffers(2, m_pbo);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);

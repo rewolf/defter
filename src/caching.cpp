@@ -746,6 +746,17 @@ Caching::Load(Tile* tile)
 void
 Caching::Unload(Tile* tile)
 {
+	// Only unload tiles that have been modified
+	if (!tile->m_modified)
+	{
+		// Releases texdata if not the zero map
+		if (tile->m_texdata.heightmap != m_zeroTex.heightmap)
+			m_texQueue.push(tile->m_texdata);
+
+		// Return to skip saving to disk
+		return;
+	}
+
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
