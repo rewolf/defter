@@ -52,8 +52,12 @@ $(BINDIR)%.o : $(SRCDIR)%.cpp
 	mkdir -p $(BINDIR)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-
 clean:
+	rm -f $(OUTFILE)
+	rm -rf $(BINDIR)
+	rm -f *.o
+
+cleanall:
 	rm -f $(OUTFILE)
 	rm -rf $(BINDIR)
 	rm -rf $(LIB_BINDIR)
