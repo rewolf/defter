@@ -16,8 +16,8 @@ uniform mat4 view;
 
 // VARYINGS
 //---------
-in vec3 in_Position;
-in vec2 in_TexCoord;
+in vec3 vert_Position;
+in vec2 vert_TexCoord;
 
 out vec3 geom_View;
 out vec2 geom_TexCoord;
@@ -48,15 +48,15 @@ void main()
 	camera_world = camera_tex * texToMetre;
 
 	// Compute texture coordinates for vertex and lookup height
-	texCoord = in_TexCoord + camera_tex + shift * metreToTex;
+	texCoord = vert_TexCoord + camera_tex + shift * metreToTex;
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= texture(heightmap, texCoord).r;
+	height 	= texture(heightmap, vert_TexCoord).r;
 	camera_height = -texture(heightmap, 0.5 + camera_tex).r * HEIGHT - 2.5;
 
 	// Set vertex position and height from heightmap
-	vec4 pos = vec4(in_Position.x, height*HEIGHT, in_Position.y, 1.0);
+	vec4 pos = vec4(vert_Position.x, height * HEIGHT, vert_Position.y, 1.0);
 
 	// Shift the roaming mesh so that vertices maintain same heights
 	// The following MAD instruction shifts the x and z coordinates by s and t
@@ -74,5 +74,5 @@ void main()
 	gl_Position = projection * pos;
 	
 	// Save out the texCoord
-	geom_TexCoord = texCoord;
+	geom_TexCoord = vert_TexCoord;
 }

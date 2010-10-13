@@ -3,6 +3,10 @@
 #include "util.h"
 #include "FreeImage.h"
 
+extern const int SCREEN_W;
+extern const int SCREEN_H;
+extern const float ASPRAT;
+
 //--------------------------------------------------------
 bool
 SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip){
@@ -55,7 +59,7 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 
 //--------------------------------------------------------
 bool 
-LoadPNG(GLuint* tex, string filename, bool flip){
+LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 	FIBITMAP*		image;
 	BYTE*			bits;
 	int				width;
@@ -84,10 +88,46 @@ LoadPNG(GLuint* tex, string filename, bool flip){
 	if (flip)
 		FreeImage_FlipVertical(image);
 
-	bits 	= (BYTE*) FreeImage_GetBits(image);
 	width	= FreeImage_GetWidth(image);
 	height	= FreeImage_GetHeight(image);
+
+	// Scale the image if told to do so
+	if (scale)
+	{
+		// Scaling variables
+		float targetScale, newW, newH;
+		int offsetw, offseth;
+
+		// Work out which way the image needs to be scales
+		if (width > height)
+			targetScale	= float(SCREEN_H) / height;
+		else
+			targetScale	= float(SCREEN_W) / width;
+
+		// Calculate the new width & height based on the scale
+		newW		= float(width) * targetScale;
+		newH		= float(height) * targetScale;
+		
+		// Rescale the image to the new size
+		image = FreeImage_Rescale(image, newW, newH, FILTER_CATMULLROM);
+
+		// Calculate the offsets and set the new width & height
+		offsetw		= (newW - SCREEN_W) / 2;
+		offseth		= (newH - SCREEN_H) / 2;
+		newW		= SCREEN_W;
+		newH		= SCREEN_H;
+
+		// Copy the subimage to crop the image
+		image = FreeImage_Copy(image, offsetw, offseth, offsetw + newW, offseth + newH);
+
+		// Retrieve the actual image width & height to prevent any errors
+		width		= FreeImage_GetWidth(image);
+		height		= FreeImage_GetHeight(image);
+	}
+
+	bits 	= (BYTE*) FreeImage_GetBits(image);
 	bitdepth= FreeImage_GetBPP(image);
+
 
 	switch(bitdepth){
 		case 32:
