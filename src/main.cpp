@@ -64,8 +64,9 @@ extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	=  float(SCREEN_W) / SCREEN_H;
 
-#define COARSEMAP_FILENAME	("images/hmap02.png")
+#define COARSEMAP_FILENAME	("images/hmap04.png")
 #define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
+#define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
 #define CLIPMAP_LEVELS		(5)
@@ -125,8 +126,11 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 //--------------------------------------------------------
 DefTer::~DefTer()
 {
+	glDeleteBuffers(3, m_vbo);
+	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
 	glUseProgram(0);
+	RE_DELETE(m_shSplash);
 	RE_DELETE(m_shMain);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
@@ -136,6 +140,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
+	glDeleteTextures(1, &m_splashmap);
 }
 
 //--------------------------------------------------------
@@ -190,12 +195,29 @@ DefTer::InitGL()
 	printf("------------Program Launching------------\n");
 	printf("-----------------------------------------\n");
 
-	printf("Setting up GL...");
+	printf("Setting up GL...\t\t");
 	glEnable(GL_CULL_FACE);
 	glClearColor(0.4f, 0.4f, 1.0f, 1.0f);
 	if (!CheckError(""))
 		return false;
-	printf("\t\tDone\n");
+	printf("Done\n");
+
+	// Init the splash screen info
+	printf("Initialising Splash screen...\t");
+	if (!InitSplash())
+	{
+		printf("Error\n\tSplash screen initialisation error\n");
+		return false;
+	}
+	printf("Done\n");
+
+	// Render the splash screen
+	printf("Rendering splash screen...\t");
+	RenderSplash();
+	if (!CheckError("Splash rendering"))
+		return false;
+	printf("Done\n");
+
 
 	// Init projection matrix
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
@@ -218,11 +240,11 @@ DefTer::InitGL()
 	glBindAttribLocation(m_shMain->m_programID, 1, "in_TexCoord");
 
 	// NB. must be done after binding attributes
-	printf("Compiling shaders...");
+	printf("Compiling shaders...\t\t");
 	res = m_shMain->CompileAndLink();
 	if (!res)
 	{
-		printf("\t\tError\n\tWill not continue without working shaders\n");
+		printf("Error\n\tWill not continue without working shaders\n");
 		return false;
 	}
 
@@ -236,7 +258,7 @@ DefTer::InitGL()
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
-	printf("\t\tDone\n");
+	printf("Done\n");
 
 	//Initialise FreeImage
 	FreeImage_Initialise();
@@ -364,6 +386,86 @@ DefTer::Init()
 }
 
 //--------------------------------------------------------
+// Setup the splash screen
+//--------------------------------------------------------
+bool
+DefTer::InitSplash(void)
+{
+	// Setup shader
+	m_shSplash = new ShaderProg("shaders/splash.vert", "", "shaders/splash.frag");
+	glBindAttribLocation(m_shSplash->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shSplash->m_programID, 1, "vert_texCoord");
+	if (!m_shSplash->CompileAndLink())
+		return false;
+
+	// Load the splash map
+	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE))
+		return false;
+
+	// Set uniforms
+	glUseProgram(m_shSplash->m_programID);
+	glUniform1i(glGetUniformLocation(m_shSplash->m_programID, "splashmap"), 0);
+
+	// Vertex positions
+	GLfloat square[]	= { -1.0f, -1.0f,
+							 1.0f, -1.0f,
+							 1.0f,  1.0f,
+							-1.0f,  1.0f };
+	// Texcoords are upside-down to mimic the systems coordinates
+	GLfloat texcoords[]	= { 0.0f, 0.0f,
+							1.0f, 0.0f,
+							1.0f, 1.0f,
+							0.0f, 1.0f };
+	GLuint indices[]	= { 3, 0, 2, 1 };
+
+	// Create the vertex array
+	glGenVertexArrays(1, &m_vao);
+	glBindVertexArray(m_vao);
+
+	// Generate three VBOs for vertices, texture coordinates and indices
+	glGenBuffers(3, m_vbo);
+
+	// Setup the vertex buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+	
+	return true;
+}
+
+//--------------------------------------------------------
+// Render the splash screen
+//--------------------------------------------------------
+void
+DefTer::RenderSplash(void)
+{
+	// Clear the screen
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+	// Bind the vertex array
+	glBindVertexArray(m_vao);
+
+	// Set the textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_splashmap);
+
+	// Draw the screen
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+	// Swap windows to show screen
+	SDL_GL_SwapWindow(m_pWindow);
+}
+
+//--------------------------------------------------------
 // LOADCOARSEMAP loads a heightmap from a png file for the coarse map.
 // It also allocates memory for the normal and tangent maps.
 bool
@@ -386,7 +488,7 @@ DefTer::LoadCoarseMap(string filename)
 	bits 			= (BYTE*) FreeImage_GetBits(image);
 
 	FreeImage_FlipVertical(image);
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &m_coarsemap.heightmap);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
@@ -401,7 +503,6 @@ DefTer::LoadCoarseMap(string filename)
 		return false;
 	}
 
-
 	if (bitdepth==8){
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
 	}else if (bitdepth==16){
@@ -411,7 +512,6 @@ DefTer::LoadCoarseMap(string filename)
 				filename.c_str());
 		return false;
 	}
-
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);

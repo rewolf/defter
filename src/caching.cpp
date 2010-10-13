@@ -112,6 +112,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	m_radar_pos			= vector2(SCREEN_W, SCREEN_H) - vector2(RADAR_OFFSET + RADAR_SIZE);
 	m_radar2_pos		= m_radar_pos + vector2(RADAR2_SIZE / 2.0f, -(RADAR2_SIZE + RADAR_OFFSET));
 
+	// Vertex positions
 	GLfloat square[]	= { -1.0f, -1.0f,
 							 1.0f, -1.0f,
 							 1.0f,  1.0f,
@@ -233,7 +234,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 //--------------------------------------------------------
 Caching::~Caching()
 {
-	delete m_shRadar;
+	RE_DELETE(m_shRadar);
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	m_threadRunning = false;
