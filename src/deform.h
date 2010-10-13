@@ -9,15 +9,15 @@ public:
 
 	void displace_heightmap	(TexData texdata, vector2 clickPos, float falloff,
 		   					float scale, bool isCoarse, GLuint copySrcTex=0);
-	void create_normalmap	(TexData texdata, bool isCoarse);
+	void create_pdmap		(TexData texdata, bool isCoarse);
 
 	bool			m_no_error;
 
 private:
-	void calculate_normals	(TexData texdata, vector2 tex_coord, vector2 scale, bool isCoarse);
+	void calculate_pdmap	(TexData texdata, vector2 tex_coord, vector2 scale, bool isCoarse);
 	
 	ShaderProg*		m_shDeform;
-	ShaderProg*		m_shNormal;
+	ShaderProg*		m_shPDMapper;
 
 	// FBOs
 	GLuint			m_fbo_heightmap;

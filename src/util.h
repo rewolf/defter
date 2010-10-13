@@ -4,8 +4,7 @@
 
 struct TexData{
 	GLuint 	heightmap;
-	GLuint	normalmap;
-	GLuint	tangentmap;
+	GLuint	pdmap;
 };
 
 

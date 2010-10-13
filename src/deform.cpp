@@ -21,12 +21,12 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glGenFramebuffers(1, &m_fbo_heightmap);
 	// Setup shader
 	m_shDeform = new ShaderProg("shaders/deform.vert", "", "shaders/deform.frag");
-	m_shNormal = new ShaderProg("shaders/calc_normal.vert", "", "shaders/calc_normal.frag");
+	m_shPDMapper = new ShaderProg("shaders/calc_normal.vert", "", "shaders/calc_normal.frag");
 	glBindAttribLocation(m_shDeform->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shDeform->m_programID, 0, "vert_in_texCoord");
-	glBindAttribLocation(m_shNormal->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shNormal->m_programID, 0, "vert_in_texCoord");
-	m_no_error &= m_shDeform->CompileAndLink() && m_shNormal->CompileAndLink();
+	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_in_texCoord");
+	m_no_error &= m_shDeform->CompileAndLink() && m_shPDMapper->CompileAndLink();
 
 	// Create VAO and VBO
 	glGenVertexArrays(1, &m_vao);
@@ -47,7 +47,7 @@ Deform::~Deform(){
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteBuffers(1, &m_vbo);
 	delete m_shDeform;
-	delete m_shNormal;
+	delete m_shPDMapper;
 }
 
 //--------------------------------------------------------
@@ -188,12 +188,12 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 		glDeleteTextures(1, &backupTex);
 
 	// Regenerate normals and tangent
-	calculate_normals(texdata, tex_coord, dimScale, isCoarse);
+	calculate_pdmap(texdata, tex_coord, dimScale, isCoarse);
 }
 
 //--------------------------------------------------------
 void
-Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, bool isCoarse){
+Deform::calculate_pdmap(TexData texdata, vector2 tex_coord, vector2 dimScale, bool isCoarse){
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 
@@ -203,7 +203,7 @@ Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, 
 	// Prepare viewport for texture render
 	glViewport(0, 0, dim, dim);
 	// Enable the shader
-	glUseProgram(m_shNormal->m_programID);
+	glUseProgram(m_shPDMapper->m_programID);
 
 	// Bind the textures
 	glActiveTexture(GL_TEXTURE0);
@@ -214,27 +214,19 @@ Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	// Set the Shader sampler
-	glUniform1i(glGetUniformLocation(m_shNormal->m_programID, "in_heightmap"), 0);
-	glUniform1f(glGetUniformLocation(m_shNormal->m_programID, "tc_delta"), 1.0f/dim);
-	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "thingy"), tex_coord.x, tex_coord.y);
-	glUniform2f(glGetUniformLocation(m_shNormal->m_programID, "stamp_size_scale"), dimScale.x,
+	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
+	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f/dim);
+	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "thingy"), tex_coord.x, tex_coord.y);
+	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_size_scale"), dimScale.x,
 			dimScale.y);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			texdata.normalmap, 0);
-	if (isCoarse)
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
-				texdata.tangentmap, 0);
+			texdata.pdmap, 0);
 
 	// Set the draw buffer
-	if (isCoarse){
-		GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-		glDrawBuffers(2, buffers);
-	}else{
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	}
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	
 	// Bind the VAO
 	glBindVertexArray(m_vao);
@@ -252,17 +244,13 @@ Deform::calculate_normals(TexData texdata, vector2 tex_coord, vector2 dimScale, 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	// Generate Mipmaps
-	glBindTexture(GL_TEXTURE_2D, texdata.normalmap);
+	glBindTexture(GL_TEXTURE_2D, texdata.pdmap);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	if (isCoarse){
-		glBindTexture(GL_TEXTURE_2D, texdata.tangentmap);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
 }
 
 //--------------------------------------------------------
 void
-Deform::create_normalmap(TexData texdata, bool isCoarse)
+Deform::create_pdmap(TexData texdata, bool isCoarse)
 {
-	calculate_normals(texdata, vector2(0.5f), vector2(1.0f), isCoarse);
+	calculate_pdmap(texdata, vector2(0.5f), vector2(1.0f), isCoarse);
 }

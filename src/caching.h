@@ -91,8 +91,7 @@ private:
 	queue<TexData>		m_texQueue;
 	TexData				m_zeroTex;
 	GLuint				m_cacheHeightmapTex[9];
-	GLuint				m_cacheNormalTex[9];
-	GLuint				m_cacheTangentTex[9];
+	GLuint				m_cachePDTex[9];
 
 	// threading
 	SDL_Thread*			m_cacheThread;

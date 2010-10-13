@@ -86,7 +86,7 @@ long frameCount = 0;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= true;
+	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
@@ -134,8 +134,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pCaching);
 	glDeleteBuffers(2, m_pbo);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
-	glDeleteTextures(1, &m_coarsemap.normalmap);
-	glDeleteTextures(1, &m_coarsemap.tangentmap);
+	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 }
 
@@ -230,7 +229,7 @@ DefTer::InitGL()
 	// Assign samplers to texture units
 	glUseProgram(m_shMain->m_programID);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"), 0);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "normalmap"), 1);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "pdmap"), 1);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
@@ -331,7 +330,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->create_normalmap(m_coarsemap, true);
+	m_pDeform->create_pdmap(m_coarsemap, true);
 	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -413,25 +412,15 @@ DefTer::LoadCoarseMap(string filename)
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	// Allocate GPU Texture space for normalmap
+	// Allocate GPU Texture space for partial derivative map
 	glActiveTexture(GL_TEXTURE1);
-	glGenTextures(1, &m_coarsemap.normalmap);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glGenTextures(1, &m_coarsemap.pdmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.pdmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	// Allocate GPU Texture space for tangentmap
-	glGenTextures(1, &m_coarsemap.tangentmap);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.tangentmap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -693,7 +682,7 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.normalmap);
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.pdmap);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
 	
