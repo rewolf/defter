@@ -551,44 +551,21 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Take screenshot
-	static bool transferring  = false;
-	static int index     = 0;
-	static int nextIndex = 1;
-	if (m_input.WasKeyPressed(SDLK_F12))
-	{
-		glReadBuffer(GL_FRONT);
-
-		// Start reading into the PBO
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[index]);
-		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, 0);
-		transferring = true;
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-		glReadBuffer(0);	
-	}
-	else if (transferring)
-	{
-		static int lastScreenshot = 1;
+	static int lastScreenshot = 1;
+	if (m_input.WasKeyPressed(SDLK_F12)){
 		char filename[256];
-		GLubyte* framebuffer;
+		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
+		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
 
-		// Read from the other PBO into the array
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[index]);
-		framebuffer = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+		mkdir("screenshots");
+		sprintf(filename, "screenshots/screenshot%05d.png", lastScreenshot++);
+		if (SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false)){
+			printf("Wrote screenshot to %s\n", filename);
+		}else{
+			fprintf(stderr, "Failed to write screenshot\n");
+		}
 
-		if (framebuffer)
-		{
-			mkdir("ScreenShots");
-			sprintf(filename, "ScreenShots/screenshot%05d.png", lastScreenshot++);
-			SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false);
-			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-		}
-		else
-		{
-			printf("Screenshot Failed\n");
-		}
-		transferring = false;
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-		glReadBuffer(0);	
+		delete[] framebuffer;		
 	}
 
 	// Switch stamps
