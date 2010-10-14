@@ -40,6 +40,7 @@ public:
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
 	vector2			m_clickPos;
+	vector2			m_clickPosPrev;
 
 	GLuint			m_pbo[2];
 

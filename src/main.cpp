@@ -76,6 +76,7 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
+#define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 
 //float timeCount = 0;
 //long frameCount = 0;
@@ -559,6 +560,7 @@ void
 DefTer::UpdateClickPos(void)
 {
 	vector2 temp(2.0f);
+	// If a there is a click check this here
 	if (m_clicked)
 	{
 		// Check that the dot is not further than the max 'allowable distance' if in HD stamp mode
@@ -577,14 +579,22 @@ DefTer::UpdateClickPos(void)
 			m_clickPos += camPos;
 		}
 
-		// Create a temporary vector and convert clickPos into tex space
 		temp  = m_clickPos * m_pClipmap->m_metre_to_tex;
 		temp += vector2(0.5f);
 	}
+	else
+	{
+		m_clickPos = temp;
+	}
 
-	// Pass to shader
-	glUseProgram(m_shMain->m_programID);
-	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), temp.x, temp.y);
+	// Pass to shader if value has changed
+	if (m_clickPosPrev != m_clickPos)
+	{
+		m_clickPosPrev = m_clickPos;
+
+		glUseProgram(m_shMain->m_programID);
+		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), temp.x, temp.y);
+	}
 }
 
 //--------------------------------------------------------
@@ -616,23 +626,29 @@ DefTer::ProcessInput(float dt)
 	{
 		MousePos pos = m_input.GetMousePos();
 		float val;
-		float w = (float)m_config.winWidth;
-		float h = (float)m_config.winHeight;
-		float aspect = w / h;
+
 		// Get value in z-buffer
-		glReadPixels((GLint)pos.x, (GLint)(m_config.winHeight- pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
+		glReadPixels((GLint)pos.x, (GLint)(SCREEN_H - pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
 
 		vector3 frag(pos.x, pos.y, val);
 		// Derive inverse of view transform (could just use transpose of view matrix
 		matrix4 inverse = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 
 		// Request unprojected coordinate
-		vector3 p = perspective_unproj_world(frag, w, h, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
-		// Factor in the camera translation
-		p += m_cam_translate;
+		vector3 p = perspective_unproj_world(frag, SCREEN_W, SCREEN_H, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
-		m_clickPos	= vector2(p.x, p.z);
-		m_clicked	= true;
+		// Check that the position is in valid range when using coarse stamping
+		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
+		{
+			m_clicked = false;
+		}
+		else
+		{
+			// Factor in the camera translation
+			p += m_cam_translate;
+			m_clickPos	= vector2(p.x, p.z);
+			m_clicked	= true;
+		}
 
 		//Update the clicked position in shaders, etc...
 		UpdateClickPos();
