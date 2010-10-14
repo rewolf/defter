@@ -43,10 +43,10 @@ void main()
 	{
 		case 0:
 			// Read the colour and height values and set it
-			texCoord	= offset + (frag_TexCoord * scale);
+			texCoord	= (frag_TexCoord * scale) + offset;
 			color		= texture(colormap, texCoord);
 			height		= texture(heightmap, texCoord).rrrr * .9 + .1;
-			color		= color + height * const_list.xxxy + vec4(0.0, 0.0, 0.0, 1.0);
+			color		= color + height * const_list.xxxy + const_list.yyyx;
 		break;
 
 		case 1:

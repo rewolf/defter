@@ -14,7 +14,6 @@ uniform ivec2 tileOffset;
 
 in vec3 frag_View;
 in vec2 frag_TexCoord;
-in vec3 position;
 
 out vec4 frag_Color;
 
@@ -23,6 +22,7 @@ out vec4 frag_Color;
 const vec4 light		= normalize(vec4(.0, 4.0, -10.0, 0.0));
 const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
 const float log2_fog_density	= -0.0001442695;
+const vec4 cc			= vec4(1.0, .0, -1.0, 2.0);
 
 vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
@@ -46,7 +46,8 @@ void main()
 	vec4 color, ambient, diffuse, specular;
 	float diffuseIntensity, specularIntensity, fogZ, fogFactor;
 
-	pdn = vec3(texture(pdmap, frag_TexCoord).xy * 2 - 1, 1.0).rbg;
+	// creates the vector  <dhdu, 1.0, dhdv> in range [-1,1]
+	pdn = texture(pdmap, frag_TexCoord).rrg * cc.wyw + cc.zxz;
 
 	// Read in the noaml from the normal map and calculate in view space
 	normal = normalize(mat3(view) * pdn);

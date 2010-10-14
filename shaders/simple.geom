@@ -15,7 +15,6 @@ in vec3 geom_Normal[3];
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
-out vec3 position;
 
 //--------------------------------------------------------
 void main(){
@@ -27,8 +26,6 @@ void main(){
 	vertex[0] = gl_in[0].gl_Position;
 	vertex[1] = gl_in[1].gl_Position;
 	vertex[2] = gl_in[2].gl_Position;
-
-
 
 	// gather components for frustum culling below
 	x = abs(vec3(vertex[0].x, vertex[1].x, vertex[2].x));
@@ -45,19 +42,16 @@ void main(){
 		return;
 
 	gl_Position = vertex[0];
-	position = vertex[0].xyz;
 	frag_View = geom_View[0];
 	frag_TexCoord = geom_TexCoord[0];
 	EmitVertex();
 
 	gl_Position = vertex[1];
-	position = vertex[1].xyz;
 	frag_View = geom_View[1];
 	frag_TexCoord = geom_TexCoord[1];
 	EmitVertex();
 
 	gl_Position = vertex[2];
-	position = vertex[2].xyz;
 	frag_View = geom_View[2];
 	frag_TexCoord = geom_TexCoord[2];
 	EmitVertex();

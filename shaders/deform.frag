@@ -7,7 +7,7 @@ uniform vec2 thingy;
 uniform float height_scale;
 uniform float falloff;
 
-in vec2 in_texCoord;
+in vec2 frag_texCoord;
 in vec2 stamp_texCoord;
 
 out float new_height;
@@ -15,14 +15,12 @@ out float new_height;
 void main(){
 	vec2 dist;
 	float in_height, stamp_height;
-	float left, right, top, bottom;
-	vec3 binormal, tangent;
 	
-	in_height = texture(in_heightmap, in_texCoord).r;
+	in_height = texture(in_heightmap, frag_texCoord).r;
 
-	dist = fract(thingy) - in_texCoord;
+	dist = fract(thingy) - frag_texCoord;
 
-	in_height += exp(dot(dist, dist)*-5000*falloff)*.3 * height_scale;
+	in_height += exp( - dot(dist, dist) * falloff) * height_scale;
 
 	new_height = in_height;
 }

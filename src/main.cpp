@@ -78,8 +78,8 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 
-//float timeCount = 0;
-//long frameCount = 0;
+float timeCount = 0;
+long frameCount = 0;
 
 
 /******************************************************************************
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 	Sleep(sleepTime);
 #endif
 
-	//printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
+	printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
 
 	return 0;
 }
@@ -796,20 +796,20 @@ DefTer::Render(float dt)
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(viewproj, m_clipmap_shift);
 
-/*
+
 	static reTimer timer;
 	glFinish();
 	timer.start();
-*/
+
 	m_pClipmap->render();
 	
 	m_pSkybox->render(viewproj);
 
 	m_pCaching->Render();
-/*
+
 	glFinish();
 	timeCount += timer.getElapsed();
 	frameCount ++;
-*/
+
 	SDL_GL_SwapWindow(m_pWindow);
 }

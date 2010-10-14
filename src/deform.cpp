@@ -123,10 +123,10 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/dim);
 	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "thingy"), tex_coord.x, tex_coord.y);
-	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "stamp_size_scale"), dimScale.x,
-			dimScale.y);
-	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "height_scale"), scale);
-	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "falloff"), falloff);
+	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "size_scale"), dimScale.x *
+			.5f, dimScale.y * .5f);
+	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "height_scale"), scale * .3);
+	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "falloff"), falloff * 5000);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -217,7 +217,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 tex_coord, vector2 dimScale, bo
 	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f/dim);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "thingy"), tex_coord.x, tex_coord.y);
-	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_size_scale"), dimScale.x,
+	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "size_scale"), dimScale.x,
 			dimScale.y);
 
 	// Bind the Framebuffer and set it's color attachment

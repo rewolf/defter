@@ -21,18 +21,18 @@ Skybox::Skybox(){
 
 	// make the box
 	const float boxverts[12 * 3] = {
-		-.5f,	.7f,	-.5f, // top
-		 .5f,	.7f,	-.5f,
-		 .5f,	.7f,	 .5f,
-		-.5f,	.7f,	 .5f,
-		-.5f,	-.3f,	-.5f, // far flap
-		 .5f,	-.3f,	-.5f,
-		 .5f,	-.3f,	-.5f, // right flap
-		 .5f,	-.3f,	 .5f,
-		 .5f,	-.3f,	 .5f, // near flap
-		-.5f,	-.3f,	 .5f,
-		-.5f,	-.3f,	 .5f, // left flap
-		-.5f,	-.3f,	-.5f
+		-500.0f,	700.0f,		-500.0f, // top
+		 500.0f,	700.0f,		-500.0f,
+		 500.0f,	700.0f,		 500.0f,
+		-500.0f,	700.0f,		 500.0f,
+		-500.0f,	-300.0f,	-500.0f, // far flap
+		 500.0f,	-300.0f,	-500.0f,
+		 500.0f,	-300.0f,	-500.0f, // right flap
+		 500.0f,	-300.0f,	 500.0f,
+		 500.0f,	-300.0f,	 500.0f, // near flap
+		-500.0f,	-300.0f,	 500.0f,
+		-500.0f,	-300.0f,	 500.0f, // left flap
+		-500.0f,	-300.0f,	-500.0f
 	};
 
 	const float boxtex[12 * 2] = {
