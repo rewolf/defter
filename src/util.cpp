@@ -88,6 +88,7 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 	if (flip)
 		FreeImage_FlipVertical(image);
 
+	// Get the width & height of the image
 	width	= FreeImage_GetWidth(image);
 	height	= FreeImage_GetHeight(image);
 
@@ -98,11 +99,7 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 		float targetScale, newW, newH;
 		int offsetw, offseth;
 
-		// Work out which way the image needs to be scales
-		if (width > height)
-			targetScale	= float(SCREEN_H) / height;
-		else
-			targetScale	= float(SCREEN_W) / width;
+		targetScale = max(float(SCREEN_W) / width, float(SCREEN_H) / height);
 
 		// Calculate the new width & height based on the scale
 		newW		= float(width) * targetScale;
@@ -125,10 +122,11 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 		height		= FreeImage_GetHeight(image);
 	}
 
+	// Get the bit depth and retrieve the pixel data
 	bits 	= (BYTE*) FreeImage_GetBits(image);
 	bitdepth= FreeImage_GetBPP(image);
 
-
+	// Choose based on bit depth
 	switch(bitdepth){
 		case 32:
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, bits);
