@@ -95,7 +95,7 @@ void main()
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 
 	
-
+/*
 	ivec2 tile = ivec2((frag_TexCoord )* inv_tile_size) - tileOffset;
 	int t = tile.x + tile.y*6;
 	switch(t){
@@ -111,6 +111,6 @@ void main()
 		case 7:
 			frag_Color=  vec4(1.0, .0, .0, 1.0);
 			break;
-	};
+	};*/
 }
 

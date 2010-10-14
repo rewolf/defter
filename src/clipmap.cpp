@@ -468,7 +468,6 @@ Clipmap::init(){
 	sstr << "Furthest point:\t\t\t" << -ffar*quad_size << "m\n";
 	sstr << "Vertex count:\t\t\t" << (int)vertices.size() << "\n";
 	sstr << "Index count:\t\t\t" << (int)indices.size() << "\n";
-	sstr << "Primitive count:\t\t" << (int)indices.size()/3 << "\n";
 	sstr << "Clipmap Memory:\t\t\t" << (texcoords.size()*2 + vertices.size()*3 + indices.size())*4 /1024.0f/1024.0f << "MiB\n";
 	m_clipmap_stats += sstr.str();
 
@@ -507,11 +506,12 @@ Clipmap::create_block(int vertstart, int width, int height,
 
 	idx 				= indices.size();	
 	block.start_index	= indices.size() * sizeof(GLuint);	// offset into indexbuffer
-	block.count			= (width-1)*(height-1) * 6; 		// number of indices
+	block.count			= indices.size();//(width-1)*(height-1) * 6; 		// number of indices
 
 	// Form the triangles and push them onto the index list
 	for (int y = 0; y < height-1; y++){
 		for (int x = 0; x < width-1; x++){
+	/*		
 			indices.push_back((y + 0) * width + (x + 0)  + vertstart);
 			indices.push_back((y + 1) * width + (x + 0)  + vertstart);
 			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
@@ -519,12 +519,27 @@ Clipmap::create_block(int vertstart, int width, int height,
 			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
 			indices.push_back((y + 1) * width + (x + 0)  + vertstart);
 			indices.push_back((y + 1) * width + (x + 1)  + vertstart);
+			*/
+			if (x == 0){
+				indices.push_back((y + 0) * width + (x + 0)  + vertstart);
+				indices.push_back((y + 1) * width + (x + 0)  + vertstart);
+			}
+			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
+			indices.push_back((y + 1) * width + (x + 1)  + vertstart);
+		}
+		// degens to start new row
+		if (y < height - 2){
+			indices.push_back((y + 1) * width + (width-1)  + vertstart);
+			indices.push_back((y + 1) * width + (0) 	 + vertstart);
 		}
 	}
+	block.count = indices.size() - block.count;
 
+
+	int row = (width-1) * 2 + 2;
 	block.bound[0] = vertices[indices[idx]];
-	block.bound[1] = vertices[indices[idx + (width-1)*6 - 3]];
-	block.bound[2] = vertices[indices[idx + block.count + 1 - (width-1)*6]];
+	block.bound[1] = vertices[indices[idx + row - 2]];
+	block.bound[2] = vertices[indices[idx + block.count+1-row]];
 	block.bound[3] = vertices[indices[idx + block.count-1]];
 
 
@@ -569,6 +584,7 @@ Clipmap::cull(matrix4& mvp, vector2 shift){
 void
 Clipmap::render(){
 	glBindVertexArray(m_vao);
-	for (int i = 0; i < m_primcount; i++)
-		glDrawElements(GL_TRIANGLES, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
+	glDrawElements(GL_TRIANGLES, m_draw_count[0], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[0]));
+	for (int i = 1; i < m_primcount; i++)
+		glDrawElements(GL_TRIANGLE_STRIP, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
 }
