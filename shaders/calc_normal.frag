@@ -8,24 +8,27 @@ in vec2 in_texCoord;
 
 out vec2 pdmap;
 
+const vec2 factor = vec2(-8 * 10 / 1.2, -10/1.2);
+
 void main(){
-	float left, right, top, bottom;
-	float ll, rr, tt, bb;
-	float dhdu, dhdv;
-	
-	left 	= texture(in_heightmap, vec2(in_texCoord.s - tc_delta, in_texCoord.t)).r;
-	right 	= texture(in_heightmap, vec2(in_texCoord.s + tc_delta, in_texCoord.t)).r;
-	top 	= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t - tc_delta)).r;
-	bottom 	= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t + tc_delta)).r;
+	vec2 dhd;
 
-	ll 		= texture(in_heightmap, vec2(in_texCoord.s - 2 * tc_delta, in_texCoord.t)).r;
-	rr	 	= texture(in_heightmap, vec2(in_texCoord.s + 2 * tc_delta, in_texCoord.t)).r;
-	tt		= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t - 2 * tc_delta)).r;
-	bb	 	= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t + 2 * tc_delta)).r;
+	vec2 dst1, dst2, dst;
 
-	dhdv = clamp(- ( 8 * (bottom - top)  - (bb - tt)) / (12 * 0.1) * 10, -1.0, 1.0);
-	dhdu = clamp(- ( 8 * (right  - left) - (rr - ll)) / (12 * 0.1) * 10 , -1.0, 1.0);
+	// horiz
+	dst1.s 	=  texture(in_heightmap, vec2(in_texCoord.s + tc_delta, in_texCoord.t)).r;	//right
+	dst1.s 	-= texture(in_heightmap, vec2(in_texCoord.s - tc_delta, in_texCoord.t)).r;	//left
+	// vert
+	dst1.t 	=  texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t + tc_delta)).r;	//bot
+	dst1.t 	-= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t - tc_delta)).r;	//top
 
-	//pdmap = (normalize(vec3(dhdu, dhdv, 1.0)) + 1.0) * .5;
-	pdmap = vec2(dhdu, dhdv) * .5 + .5;
+	// horiz
+	dst2.s	=  texture(in_heightmap, vec2(in_texCoord.s - 2 * tc_delta, in_texCoord.t)).r;
+	dst2.s	-= texture(in_heightmap, vec2(in_texCoord.s + 2 * tc_delta, in_texCoord.t)).r;
+	// vert
+	dst2.t	=  texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t - 2 * tc_delta)).r;
+	dst2.t	-= texture(in_heightmap, vec2(in_texCoord.s, in_texCoord.t + 2 * tc_delta)).r;
+
+	dhd = clamp( factor.x * dst1.st + factor.y*dst2.st , -1.0, 1.0);
+	pdmap = dhd * .5 + .5;
 }

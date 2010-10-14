@@ -13,15 +13,16 @@ in vec2 stamp_texCoord;
 out float new_height;
 
 void main(){
-	float in_height, stamp_height, dist;
+	vec2 dist;
+	float in_height, stamp_height;
 	float left, right, top, bottom;
 	vec3 binormal, tangent;
 	
 	in_height = texture(in_heightmap, in_texCoord).r;
 
-	dist = distance(fract(thingy), in_texCoord);
+	dist = fract(thingy) - in_texCoord;
 
-	in_height += exp(-dist*dist*5000*falloff)*.3 * height_scale;
+	in_height += exp(dot(dist, dist)*-5000*falloff)*.3 * height_scale;
 
 	new_height = in_height;
 }

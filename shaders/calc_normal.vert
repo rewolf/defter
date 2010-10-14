@@ -12,6 +12,7 @@ out vec2 in_texCoord;
 
 void main(){
 	vec2 dif = vec2(0.5, 0.5) - fract(thingy);
-	gl_Position = vec4(vert_Position * stamp_size_scale - 2 * dif,1.0f,1.0f);
-	in_texCoord = (vert_Position * stamp_size_scale + 1.0f ) * .5f - dif;
+	vec2 posScaled 	= vert_Position * stamp_size_scale;
+	gl_Position = vec4(posScaled - 2 * dif,1.0f,1.0f);
+	in_texCoord = (posScaled + 1.0f ) * .5f - dif;
 }
