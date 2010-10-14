@@ -17,8 +17,8 @@ using namespace reMath;
 #	define  mkdir(x)	mkdir(x, S_IRWXU)
 #endif
 
-#define WRAP(val, dim) ((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
-#define OFFSET(x, y, dim) (y * dim + x)
+#define WRAP(val, dim) 		((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
+#define OFFSET(x, y, dim) 	((y) * dim + (x))
 
 #define INITOFFSET		(0)
 
@@ -402,7 +402,7 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 		if (mapID != 0 && mapID != m_zeroTex.heightmap)
 		{
 			// Displace it here and now
-			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false);
+			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false);
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap)
@@ -415,7 +415,7 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 				tile.m_texdata = newID;
 
 				// Displace it now
-				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, .1f, .1, false,
+				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false,
 						m_zeroTex.heightmap);
 				m_pDeform->create_pdmap(tile.m_texdata, false);
 			}
@@ -687,12 +687,25 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
 //--------------------------------------------------------
 // Returns the index of the the top-left active tile
 void
-Caching::GetFirstActiveTile(int* row, int* col){
+Caching::GetActiveTiles(Tile** activeTiles){
+	/*
 	for (int i = 0; i < m_GridSize; i ++){
 		for (int j = 0; j < m_GridSize; j++){
-			if (m_Grid[i * m_GridSize + j].m_texID != -1){
-				*row = i;
-				*col = j;
+			if (m_Grid[i*m_GridSize + j].m_texID!=-1)
+				printf(" *%2d* ", m_Grid[i*m_GridSize + j].m_texdata.heightmap);
+			else
+				printf("  %2d  ", m_Grid[i*m_GridSize + j].m_texdata.heightmap);
+		}
+		printf("\n");
+	}
+	printf("---------------------------\n");*/
+	for (int i = 0; i < m_GridSize; i ++){
+		for (int j = 0; j < m_GridSize; j++){
+			if (m_Grid[OFFSET(j, i, m_GridSize)].m_texID != -1){
+				activeTiles[0] = &m_Grid[	OFFSET(	j	, 	i	, m_GridSize)	];
+				activeTiles[1] = &m_Grid[	OFFSET(	j+1	, 	i	, m_GridSize)	];
+				activeTiles[2] = &m_Grid[	OFFSET(	j	, 	i+1	, m_GridSize)	];
+				activeTiles[3] = &m_Grid[	OFFSET(	j+1	, 	i+1	, m_GridSize)	];
 				return;
 			}
 		}

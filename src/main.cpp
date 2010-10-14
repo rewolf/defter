@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.0f;
+	conf.sleepTime	= 0.00f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -257,6 +257,10 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"), 0);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "pdmap"), 1);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail0"),  3);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail1"),  4);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail2"),  5);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3"),  6);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
@@ -658,7 +662,7 @@ DefTer::ProcessInput(float dt)
 	if (m_clicked && wheel_ticks != 0)
 	{
 		if (m_is_hd_stamp)
-			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .1f * wheel_ticks);
+			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .4f * wheel_ticks);
 		else
 			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .5f * wheel_ticks, true);
 	}
@@ -763,11 +767,9 @@ DefTer::Logic(float dt)
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
+
+
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
-	int firstTile[2];
-	m_pCaching->GetFirstActiveTile(firstTile, firstTile+1);
-	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
-			firstTile[0]);
 }
 
 //--------------------------------------------------------
@@ -796,6 +798,26 @@ DefTer::Render(float dt)
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(viewproj, m_clipmap_shift);
 
+	// Block of four tiles where the 0th tile is the top left active tile
+	Tile* activeTiles[4];
+	m_pCaching->GetActiveTiles(activeTiles);
+	int firstTile[2] = {activeTiles[0]->m_row, activeTiles[0]->m_col};
+	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
+			firstTile[0]);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[0]->m_texdata.heightmap);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[1]->m_texdata.heightmap);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[2]->m_texdata.heightmap);
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[3]->m_texdata.heightmap);
+	/*printf("%d %d %d %d\n",
+			activeTiles[0]->m_texdata.heightmap,
+			activeTiles[1]->m_texdata.heightmap,
+			activeTiles[2]->m_texdata.heightmap,
+			activeTiles[3]->m_texdata.heightmap);*/
+	//--
 
 	static reTimer timer;
 	glFinish();

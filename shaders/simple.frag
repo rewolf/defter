@@ -3,6 +3,12 @@
 
 uniform sampler2D colormap;
 uniform sampler2D pdmap;
+
+uniform sampler2D detail0;
+uniform sampler2D detail1;
+uniform sampler2D detail2;
+uniform sampler2D detail3;
+
 uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;
@@ -11,6 +17,7 @@ uniform float hd_aura_sq;
 uniform float is_hd_stamp;
 uniform float inv_tile_size;
 uniform ivec2 tileOffset;
+
 
 in vec3 frag_View;
 in vec2 frag_TexCoord;
@@ -87,32 +94,38 @@ void main()
 	if (dot(dist, dist) < hd_aura_sq)
 		frag_Color += 2.0 * is_hd_stamp * (color * vec4(0.0, 0.0, 1.0, 1.0));
 
+
 	// Fog controls
 	fogZ		= gl_FragCoord.z * (1.0/gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_density * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
 
-	// Mix to get the final color
-	frag_Color = mix(fog_col, frag_Color, fogFactor);
-
-	/*
-
-	ivec2 tile = ivec2((frag_TexCoord )* inv_tile_size) - tileOffset;
-	int t = tile.x + tile.y*6;
+	// high-detail maps
+	vec2 tile = frag_TexCoord * inv_tile_size - tileOffset;
+	vec2 tc   = fract(tile);
+	int t = int(floor(tile.x) + floor(tile.y)*6);
+	float factor =clamp(.5+fogZ * .02, .0, 1.0);
 	switch(t){
 		case 0:
-			frag_Color=  vec4(.0, .0, 1.0, 1.0);
+			frag_Color=  mix(texture(detail0, tc).rrrr, frag_Color, factor)
+			   	* cc.xxxy + cc.yyyx;
 			break;
 		case 1:
-			frag_Color=  vec4(.0, 1.0, .0, 1.0);
+			frag_Color=  mix(texture(detail1, tc).rrrr, frag_Color, factor)
+			   	* cc.xxxy + cc.yyyx;
 			break;
 		case 6:
-			frag_Color=  vec4(.0, 1.0, 1.0, 1.0);
+			frag_Color=  mix(texture(detail2, tc).rrrr, frag_Color, factor)
+			   	* cc.xxxy + cc.yyyx;
 			break;
 		case 7:
-			frag_Color=  vec4(1.0, .0, .0, 1.0);
+			frag_Color=  mix(texture(detail3, tc).rrrr, frag_Color, factor)
+			   	* cc.xxxy + cc.yyyx;
 			break;
 	};
-	*/
+	
+	// Mix fog to get the final color
+	frag_Color = mix(fog_col, frag_Color, fogFactor);
+	
 }
 
