@@ -210,15 +210,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glBindTexture(GL_TEXTURE_2D, backupTex);
 
-		// Move the clicked texture coordinate back to between [0,1]
-		if (clickPos.x > 1.0f)
-			clickPos.x -= int(clickPos.x);
-		if (clickPos.y > 1.0f)
-			clickPos.y -= int(clickPos.y);
-		if (clickPos.x < .0f)
-			clickPos.x -= int(clickPos.x) - 1;
-		if (clickPos.y < .0f)
-			clickPos.y -= int(clickPos.y) - 1;
 		// Setup the regions for copying
 		int copyW = (int)ceil(2.0f * sir.x * dim) ;
 		int copyH = (int)ceil(2.0f * sir.x * dim);
@@ -229,7 +220,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
-		//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
 
