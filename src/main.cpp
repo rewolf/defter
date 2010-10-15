@@ -906,17 +906,15 @@ DefTer::ProcessInput(float dt)
 		printf("Stamp Scale: %.1f\n", m_stampScale);
 	}
 	// Change the intensity of the stamp
-	if (m_input.IsKeyPressed(SDLK_PLUS))
+	if (m_input.IsKeyPressed(SDLK_PLUS) || m_input.IsKeyPressed(SDLK_KP_PLUS))
 	{
-		float change = 0.01f * (m_is_super_speed ? 10.0f : 1.0f);
-		m_stampScale = min(m_stampIntensity + change, 1.0f);
-		printf("Stamp Intensity: %.2f\n", m_stampScale);
+		m_stampIntensity = min(m_stampIntensity + 0.01f, 1.0f);
+		printf("Stamp Intensity: %.2f\n", m_stampIntensity);
 	}
-	else if (m_input.IsKeyPressed(SDLK_MINUS))
+	else if (m_input.IsKeyPressed(SDLK_MINUS) || m_input.IsKeyPressed(SDLK_KP_MINUS))
 	{
-		float change = 0.01f * (m_is_super_speed ? 10.0f : 1.0f);
-		m_stampScale = max(m_stampIntensity - change, 0.01f);
-		printf("Stamp Intensity: %.2f\n", m_stampScale);
+		m_stampIntensity = max(m_stampIntensity - 0.01f, 0.01f);
+		printf("Stamp Intensity: %.2f\n", m_stampIntensity);
 	}
 
 	// Toggle gravity
