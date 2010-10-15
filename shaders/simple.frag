@@ -104,24 +104,22 @@ void main()
 	vec2 tc   = fract(tile);
 	int t = int(floor(tile.x) + floor(tile.y) * 6);
 	float factor =clamp(.5+fogZ * 0.02, 0.0, 1.0);
-	/*switch(t){
+	vec4 detail;
+	switch(t){
 		case 0:
-			frag_Color=  mix(texture(detail0, tc).rrrr, frag_Color, factor)
-			   	* cc.xxxy + cc.yyyx;
+			detail =  texture(detail0, tc).rrrr;
 			break;
 		case 1:
-			frag_Color=  mix(texture(detail1, tc).rrrr, frag_Color, factor)
-			   	* cc.xxxy + cc.yyyx;
+			detail =  texture(detail1, tc).rrrr;
 			break;
 		case 6:
-			frag_Color=  mix(texture(detail2, tc).rrrr, frag_Color, factor)
-			   	* cc.xxxy + cc.yyyx;
+			detail =  texture(detail2, tc).rrrr;
 			break;
 		case 7:
-			frag_Color=  mix(texture(detail3, tc).rrrr, frag_Color, factor)
-			   	* cc.xxxy + cc.yyyx;
+			detail =  texture(detail3, tc).rrrr;
 			break;
-	};*/
+	};
+	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
 	
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
