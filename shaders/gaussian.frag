@@ -23,4 +23,5 @@ void main()
 	dist = fract(clickPos) - frag_TexCoord;
 
 	height += exp( - dot(dist, dist) * 0.3 * 50) * intensity;
+	height = 1.0;
 }

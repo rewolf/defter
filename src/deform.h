@@ -41,8 +41,8 @@ public:
 	Deform					(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex);
 	~Deform();
 
-	void displace_heightmap	(TexData texdata, vector2 clickPos, string stampName, float scale,
-							float intensity, bool isCoarse, GLuint copySrcTex=0);
+	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName,
+							float scale, float intensity, bool isCoarse, GLuint copySrcTex=0);
 	void create_pdmap		(TexData texdata, bool isCoarse);
 
 	bool			m_no_error;

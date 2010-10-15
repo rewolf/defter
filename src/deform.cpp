@@ -68,7 +68,7 @@ Deform::~Deform()
 
 //--------------------------------------------------------
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, float scale,
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, float scale,
 	float intensity, bool isCoarse, GLuint copySrcTex)
 {
 	int 	viewport[4];
@@ -81,6 +81,11 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 
 
 	GLuint	backupTex;
+
+	//if (clickOffset.x != 0.0f)
+	//	clickPos.x = 1.0 - (clickOffset.x * clickPos.x);
+	clickPos += clickOffset;
+	
 
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
@@ -163,6 +168,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
 
 	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
+	printf("X: %.2f | Y: %.2f\n", clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), scale, scale);
 	if (stamp.m_isTexStamp)
 		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
@@ -224,7 +230,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
-		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+		//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
 

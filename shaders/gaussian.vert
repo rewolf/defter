@@ -13,7 +13,7 @@ out vec2 frag_TexCoord;
 
 void main()
 {
-	vec2 clickFract	= fract(clickPos);
+	vec2 clickFract	= (clickPos);
 	vec2 dif 		= 0.5 - clickFract;
 
 	vec2 texCoord 	= vert_Position * stamp_scale;
