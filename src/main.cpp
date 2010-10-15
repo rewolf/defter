@@ -133,6 +133,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 //--------------------------------------------------------
 DefTer::~DefTer()
 {
+	SaveCoarseMap("images/last_shit_coarsemap.png");
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
@@ -585,6 +586,22 @@ DefTer::LoadCoarseMap(string filename)
 	glActiveTexture(GL_TEXTURE0);
 
 	FreeImage_Unload(image);
+	return true;
+}
+
+//--------------------------------------------------------
+bool
+DefTer::SaveCoarseMap(string filename){
+	GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+
+	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, mapdata);
+
+	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, false))
+		return false;
+
+
+	delete[] mapdata;
 	return true;
 }
 

@@ -18,6 +18,7 @@ private:
 	bool		InitSplash		(void);
 	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
+	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
 	float		InterpHeight	(vector2 worldPos);
 
