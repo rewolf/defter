@@ -985,6 +985,7 @@ DefTer::ProcessInput(float dt)
 	   else
 	   {
 		   m_is_crouching = true;
+		   m_cam_translate.y -= 100.0f;
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
