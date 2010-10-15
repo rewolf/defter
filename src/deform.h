@@ -7,7 +7,7 @@ struct  Stamp {
 	GLuint			m_texture;
 	ShaderProg*		m_shader;
 
-	void(*initShader) (Stamp stamp);
+	void(*initShader) (Stamp stamp, vector2 clickPos, float scale, float intensity);
 
 	Stamp()
 	{
@@ -70,5 +70,7 @@ private:
 	map<string, Stamp> stampCollection;
 };
 
+// Functional Stamp setup callbacks
+void setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity);
 
 #endif
