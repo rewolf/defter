@@ -168,7 +168,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
 
 	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
-	printf("X: %.2f | Y: %.2f\n", clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), scale, scale);
 	if (stamp.m_isTexStamp)
 		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
@@ -239,9 +238,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	//Delete the created memory if need be
 	if (!isCoarse && copySrcTex == 0)
 		glDeleteTextures(1, &backupTex);
-
-	// Regenerate normals and tangent
-	calculate_pdmap(texdata, clickPos, scale, isCoarse);
 }
 
 //--------------------------------------------------------
@@ -249,6 +245,10 @@ void
 Deform::calculate_pdmap(TexData texdata, vector2 clickPos, float scale, bool isCoarse){
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
+	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
+	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f)
+								   : (clickPos * metre_scale);
+	scale				= 0.5f * scale * metre_scale;
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);

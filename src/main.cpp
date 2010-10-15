@@ -720,56 +720,93 @@ DefTer::ProcessInput(float dt)
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				printf("LT=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				printf("LC=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				printf("LB=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				printf("CT=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				printf("CB=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				printf("RT=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				printf("RC=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				printf("RB=");
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
 			}
 			
-			printf("Main=");
 			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+
+			// Left-Col
+			if (areaMin.x < 0.0 && areaMax.y > 1.0)
+			{
+				// Left-Top
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			if (areaMin.x < 0.0)
+			{
+				// Left-Centre
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			if (areaMin.x < 0.0 && areaMin.y < 0.0)
+			{
+				// Left-Bottom
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			// Centre-Col
+			if (areaMax.y > 1.0)
+			{
+				// Centre-Top
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			if (areaMin.y < 0.0)
+			{
+				// Centre-Bottom
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			// Right-Col
+			if (areaMax.x > 1.0 && areaMax.y > 1.0)
+			{
+				// Right-Top
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			if (areaMax.x > 1.0)
+			{
+				// Right-Centre
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			if (areaMax.x > 1.0 && areaMin.y < 0.0)
+			{
+				// Right-Bottom
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			}
+			
+			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
 		}
 	}
 
