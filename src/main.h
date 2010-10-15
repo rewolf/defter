@@ -18,7 +18,6 @@ private:
 	bool		InitSplash		(void);
 	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
-	void		UpdateStamp		(int stampID);
 	void		UpdateClickPos	(void);
 	float		InterpHeight	(vector2 worldPos);
 

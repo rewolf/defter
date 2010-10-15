@@ -126,6 +126,4 @@ void main()
 	
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
-	
 }
-

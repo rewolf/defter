@@ -379,7 +379,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, 0.0f, 0.0f, true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, vector3(0.0f, 0.0f, 0.0f), true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -531,11 +531,16 @@ DefTer::LoadCoarseMap(string filename)
 		return false;
 	}
 
-	if (bitdepth==8){
+	if (bitdepth==8)
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
-	}else if (bitdepth==16){
+	}
+	else if (bitdepth==16)
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_SHORT, bits);
-	}else{
+	}
+	else
+	{
 		fprintf(stderr, "Error\n\tCannot load files with bitdepths other than 8- or 16-bit: %s\n",
 				filename.c_str());
 		return false;
@@ -547,7 +552,8 @@ DefTer::LoadCoarseMap(string filename)
 	// Create elevationData for camera collisions
 	m_elevationData = new float[m_coarsemap_dim * m_coarsemap_dim];
 	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
-	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++)
+	{
 		m_elevationData[i] = bits[i] * scale;
 	}
 
@@ -615,7 +621,8 @@ DefTer::UpdateClickPos(void)
 //--------------------------------------------------------
 // Interpolates the height of the coarsemap at the given location in world space
 float
-DefTer::InterpHeight(vector2 worldPos){
+DefTer::InterpHeight(vector2 worldPos)
+{
 	worldPos = (worldPos*m_pClipmap->m_metre_to_tex + vector2(.5f)) * m_coarsemap_dim;
 	int x 	= int(worldPos.x);
 	int y 	= int(worldPos.y);
@@ -710,47 +717,47 @@ DefTer::ProcessInput(float dt)
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 			}
 			
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
 
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
