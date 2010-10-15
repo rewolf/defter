@@ -2,12 +2,15 @@
 #include "regl3.h"
 #include "re_math.h"
 using namespace reMath;
+#include <map>
+using namespace std;
 #include "re_shader.h"
 #include "util.h"
 #include "deform.h"
 
 //--------------------------------------------------------
-Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex){
+Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex)
+{
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
 		{1.0f, 1.0f}};
 
@@ -19,14 +22,16 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 
 	// Setup heightmap framebuffer
 	glGenFramebuffers(1, &m_fbo_heightmap);
+
 	// Setup shader
-	m_shDeform = new ShaderProg("shaders/deform.vert", "", "shaders/deform.frag");
+	m_shTexStamp = NULL;
+	//m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
 	m_shPDMapper = new ShaderProg("shaders/calc_pdmap.vert", "", "shaders/calc_pdmap.frag");
-	glBindAttribLocation(m_shDeform->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shDeform->m_programID, 0, "vert_in_texCoord");
+	//glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
+	//glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_TexCoord");
 	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_in_texCoord");
-	m_no_error &= m_shDeform->CompileAndLink() && m_shPDMapper->CompileAndLink();
+	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_TexCoord");
+	m_no_error &= /*m_shTexStamp->CompileAndLink() &*/ m_shPDMapper->CompileAndLink();
 
 	// Create VAO and VBO
 	glGenVertexArrays(1, &m_vao);
@@ -39,43 +44,62 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glEnableVertexAttribArray(0);
 
 	m_initialised = false;
+
+	// Add in the stamps
+	Stamp newStamp;
+	newStamp.SetupShader("shaders/gaussian.vert", "shaders/gaussian.frag");
+	stampCollection["Gaussian"] = newStamp;
+
+	newStamp = Stamp();
+	// Add other stamps...
 }
 
 //--------------------------------------------------------
-Deform::~Deform(){
+Deform::~Deform()
+{
 	glDeleteFramebuffers(1, &m_fbo_heightmap);
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteBuffers(1, &m_vbo);
-	delete m_shDeform;
-	delete m_shPDMapper;
+	RE_DELETE(m_shTexStamp);
+	RE_DELETE(m_shPDMapper);
 }
 
 //--------------------------------------------------------
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff, 
-		float scale, bool isCoarse, GLuint copySrcTex){
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, float scale,
+	float intensity, bool isCoarse, GLuint copySrcTex)
+{
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
-	vector2 tex_coord	= isCoarse ? (clickPos * m_metre_to_tex) + vector2(0.5f)
-								   : (clickPos * m_metre_to_detail_tex);
+	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
+	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f)
+								   : (clickPos * metre_scale);
+	scale				= 0.5f * scale * metre_scale;
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
+
+
 	GLuint	backupTex;
 
+	Stamp stamp			= stampCollection[stampName];
+	GLuint shaderID		= stamp.m_shader->m_programID;
 
 	// check if doing a high detail deform
-	if (!isCoarse || !m_initialised){
-
+	if (!isCoarse || !m_initialised)
+	{
 		// Copy original map into backup
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 		// if we're setting the tex to have a base of copySrcTex before deforming..
-		if (copySrcTex!=0){
+		if (copySrcTex!=0)
+		{
 			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 					copySrcTex, 0);
 			glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
 			backupTex = copySrcTex;
-		}else{
+		}
+		else
+		{
 			// Create the pingpong texture
 			glGenTextures(1, &backupTex);
 			glBindTexture(GL_TEXTURE_2D, backupTex);
@@ -88,12 +112,15 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 					texdata.heightmap, 0);
 			glBindTexture(GL_TEXTURE_2D, backupTex);
 		}
+
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0, 0, dim, dim, 0);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
+
 		// set that has been initialised
-		if (!m_initialised && isCoarse){
+		if (!m_initialised && isCoarse)
+		{
 			m_initialised = true;
 			m_coarseBackup = backupTex;
 		}
@@ -108,8 +135,9 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 
 	// Prepare viewport for texture render
 	glViewport(0, 0, dim, dim);
+
 	// Enable the shader
-	glUseProgram(m_shDeform->m_programID);
+	glUseProgram(shaderID);
 	// Bind the textures
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, backupTex);
@@ -117,16 +145,32 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	// Set the Shader sampler
-	vector2 dimScale(400.0f/dim);
 
-	glUniform1i(glGetUniformLocation(m_shDeform->m_programID, "in_heightmap"), 0);
-	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "tc_delta"), 1.0f/dim);
-	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "thingy"), tex_coord.x, tex_coord.y);
-	glUniform2f(glGetUniformLocation(m_shDeform->m_programID, "size_scale"), dimScale.x *
-			.5f, dimScale.y * .5f);
-	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "height_scale"), scale * .3);
-	glUniform1f(glGetUniformLocation(m_shDeform->m_programID, "falloff"), falloff * 5000);
+	//Bind the stamp texture if it uses one
+	if (stamp.m_isTexStamp)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, stamp.m_texture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	}
+	
+	// Set the Shader parameters
+	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
+
+	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
+	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), scale, scale);
+	if (stamp.m_isTexStamp)
+		glUniform1i(glGetUniformLocation(shaderID, "in_stamp"), 1);
+
+	glUniform1f(glGetUniformLocation(shaderID, "intensity"), intensity);
+	glUniform1f(glGetUniformLocation(shaderID, "falloff"), 0.3f * 50);
+
+	// Call a predefined function if need be
+	if (stamp.initShader)
+		stamp.initShader(stamp);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -152,7 +196,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
-	if (isCoarse){
+	if (isCoarse)
+	{
 		// Setup textures to copy heightmap changes to the other map
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
 		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
@@ -161,19 +206,19 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 		glBindTexture(GL_TEXTURE_2D, backupTex);
 
 		// Move the clicked texture coordinate back to between [0,1]
-		if (tex_coord.x > 1.0f)
-			tex_coord.x -= int(tex_coord.x);
-		if (tex_coord.y > 1.0f)
-			tex_coord.y -= int(tex_coord.y);
-		if (tex_coord.x < .0f)
-			tex_coord.x -= int(tex_coord.x) - 1;
-		if (tex_coord.y < .0f)
-			tex_coord.y -= int(tex_coord.y) - 1;
+		if (clickPos.x > 1.0f)
+			clickPos.x -= int(clickPos.x);
+		if (clickPos.y > 1.0f)
+			clickPos.y -= int(clickPos.y);
+		if (clickPos.x < .0f)
+			clickPos.x -= int(clickPos.x) - 1;
+		if (clickPos.y < .0f)
+			clickPos.y -= int(clickPos.y) - 1;
 		// Setup the regions for copying
-		int copyW = (int)ceil(dimScale.x * dim) ;
-		int copyH = (int)ceil(dimScale.y * dim);
-		int copyX = max(0, (int)(dim * tex_coord.x) - copyW/2);
-		int copyY = max(0, (int)(dim * tex_coord.y) - copyH/2);
+		int copyW = (int)ceil(scale * dim) ;
+		int copyH = (int)ceil(scale * dim);
+		int copyX = max(0, (int)(dim * clickPos.x) - copyW/2);
+		int copyY = max(0, (int)(dim * clickPos.y) - copyH/2);
 		// Make sure it's not out of bounds
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
@@ -184,16 +229,16 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, float falloff,
 
 
 	//Delete the created memory if need be
-	if (!isCoarse && copySrcTex==0)
+	if (!isCoarse && copySrcTex == 0)
 		glDeleteTextures(1, &backupTex);
 
 	// Regenerate normals and tangent
-	calculate_pdmap(texdata, tex_coord, dimScale, isCoarse);
+	calculate_pdmap(texdata, clickPos, scale, isCoarse);
 }
 
 //--------------------------------------------------------
 void
-Deform::calculate_pdmap(TexData texdata, vector2 tex_coord, vector2 dimScale, bool isCoarse){
+Deform::calculate_pdmap(TexData texdata, vector2 clickPos, float scale, bool isCoarse){
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 
@@ -215,10 +260,9 @@ Deform::calculate_pdmap(TexData texdata, vector2 tex_coord, vector2 dimScale, bo
 
 	// Set the Shader sampler
 	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
-	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f/dim);
-	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "thingy"), tex_coord.x, tex_coord.y);
-	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "size_scale"), dimScale.x,
-			dimScale.y);
+	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f / dim);
+	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "clickPos"), clickPos.x, clickPos.y);
+	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_scale"), scale, scale);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -252,5 +296,5 @@ Deform::calculate_pdmap(TexData texdata, vector2 tex_coord, vector2 dimScale, bo
 void
 Deform::create_pdmap(TexData texdata, bool isCoarse)
 {
-	calculate_pdmap(texdata, vector2(0.5f), vector2(1.0f), isCoarse);
+	calculate_pdmap(texdata, vector2(0.5f), 1.0f, isCoarse);
 }

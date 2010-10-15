@@ -4,6 +4,8 @@
 #include "re_math.h"
 #include <vector>
 using namespace reMath;
+#include <map>
+using namespace std;
 #include "re_shader.h"
 #include "util.h"
 #include "deform.h"

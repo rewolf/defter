@@ -3,6 +3,8 @@
 #include "re_math.h"
 #include "util.h"
 using namespace reMath;
+#include <map>
+using namespace std;
 #include "re_shader.h"
 #include "deform.h"
 #include <list>
@@ -404,7 +406,7 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 		if (mapID != 0 && mapID != m_zeroTex.heightmap)
 		{
 			// Displace it here and now
-			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false);
+			//m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false);
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap)
@@ -417,9 +419,9 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 				tile.m_texdata = newID;
 
 				// Displace it now
-				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false,
-						m_zeroTex.heightmap);
-				m_pDeform->create_pdmap(tile.m_texdata, false);
+				//m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false,
+				//		m_zeroTex.heightmap);
+				//m_pDeform->create_pdmap(tile.m_texdata, false);
 			}
 			else
 			{

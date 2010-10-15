@@ -45,6 +45,8 @@ class Deform;
 #include "FreeImage.h"
 #include "re_math.h"
 using namespace reMath;
+#include <map>
+using namespace std;
 #include "re_shader.h"
 #include "util.h"
 #include "deform.h"
@@ -371,7 +373,7 @@ DefTer::Init()
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
 	m_pDeform->create_pdmap(m_coarsemap, true);
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
+	//m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
 	printf("Done\n");
@@ -704,7 +706,7 @@ DefTer::ProcessInput(float dt)
 		if (m_is_hd_stamp)
 			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .4f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .2f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, "Gaussian", 50.0f, 0.2f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;
