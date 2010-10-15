@@ -26,7 +26,7 @@ out vec2 geom_TexCoord;
 // GLOBALS
 //--------
 const vec2  const_list	= vec2(1.0,  .0);
-const float HEIGHT 		= 50.0;
+const float HEIGHT 		= 40.0;
 
 //------------------------------------------------------------------------------
 // NB:

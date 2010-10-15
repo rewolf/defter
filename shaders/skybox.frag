@@ -14,7 +14,7 @@ void main(){
 	float fogY, fogFactor;
 
 	// Fog controls
-	fogY		= log2_fog_density * frag_pos.y - log2_fog_density * 10.0;
+	fogY		= min(0,log2_fog_density * frag_pos.y - log2_fog_density * 10.0);
 	fogFactor	= exp2(-fogY * fogY);
 
 	// Mix to get the final color

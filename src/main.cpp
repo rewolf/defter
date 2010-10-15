@@ -77,7 +77,7 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
-#define VERT_SCALE			(50.0f)
+#define VERT_SCALE			(40.0f)
 #define GRAVITY				(-9.81f)
 #define EYE_HEIGHT			(2.0f)
 
@@ -756,25 +756,24 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsKeyPressed(SDLK_w))
 	{
 		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
-		//matrix4 rot =  rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f)  ;
 		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_s))
 	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_a))
 	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_d))
 	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
