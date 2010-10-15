@@ -1,6 +1,13 @@
+/*
+/ Copyright © 2010
+/ Andrew Flower & Justin Crause
+/ Honours Project - Deformable Terrain
+/*
+
 #version 150 core
 #pragma optionNV inline all
 
+// Uniforms
 uniform sampler2D colormap;
 uniform sampler2D pdmap;
 
@@ -18,21 +25,26 @@ uniform ivec2 tileOffset;
 // .x = hd_aura_sq ; .y = inv_tile_size
 uniform vec2 hdasq_its;
 
+
+// Shader Input
 in vec3 frag_View;
 in vec2 frag_TexCoord;
 
+
+// Shader Ouput
 out vec4 frag_Color;
 
-// GLOBALS
-//--------
+
+// Constansts
 const vec4 light		= normalize(vec4(0.0, 4.0, -10.0, 0.0));
 const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
 const float log2_fog_den= -0.0001442695;
 const vec4 cc			= vec4(1.0, 0.0, -1.0, 2.0);
 
-vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
-vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
-vec4 light_Specular	= vec4(0.9, 0.9, 0.9, 1.0);
+const vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
+const vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
+const vec4 light_Specular	= vec4(0.9, 0.9, 0.9, 1.0);
+
 
 //------------------------------------------------------------------------------
 void main()
@@ -68,9 +80,9 @@ void main()
 	color = texture(colormap, frag_TexCoord * 100.0);
 
 	// Initial variables and settings
-	ambient = light_Ambient;
-	diffuse = light_Diffuse;
-	specular = light_Specular;
+	ambient		= light_Ambient;
+	diffuse		= light_Diffuse;
+	specular	= light_Specular;
 
 	// Calculate the reflec vector
 	reflec = -reflect(lightDir, normal);
@@ -82,10 +94,10 @@ void main()
 	specularIntensity = pow(max(0.0, dot(reflec, viewVec)), 32);
 
 	// Factor in the intensities to the diffuse and specular amounts
-	diffuse *= diffuseIntensity;
-	specular *= specularIntensity * 0.3;
+	diffuse	   *= diffuseIntensity;
+	specular   *= specularIntensity * 0.3;
 
-	// Calculate the final color
+	// Calculate the frag color
 	frag_Color = (ambient + diffuse + specular) * color;
 
 	// Add in an overlay for an aura that allows the HD defs in
@@ -99,13 +111,14 @@ void main()
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
 
-	// high-detail maps
-	vec2 tile = frag_TexCoord * hdasq_its.y - tileOffset;
-	vec2 tc   = fract(tile);
-	int t = int(floor(tile.x) + floor(tile.y) * 6);
-	float factor =clamp(.5+fogZ * 0.02, 0.0, 1.0);
+	// High-detail maps
+	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
+	vec2 tc		= fract(tile);
+	int t		= int(floor(tile.x) + floor(tile.y) * 6);
+	float factor= clamp(0.5 + fogZ * 0.015, 0.0, 1.0);
 	vec4 detail;
-	switch(t){
+	switch(t)
+	{
 		case 0:
 			detail =  texture(detail0, tc).rrrr;
 			break;

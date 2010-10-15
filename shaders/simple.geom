@@ -1,3 +1,9 @@
+/*
+/ Copyright © 2010
+/ Andrew Flower & Justin Crause
+/ Honours Project - Deformable Terrain
+/*
+
 #version 150 core
 
 // Declare the incoming primitive type
@@ -12,12 +18,15 @@ in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
 in vec3 geom_Normal[3];
 
+
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
 
-//--------------------------------------------------------
-void main(){
+
+//------------------------------------------------------------------------------
+void main()
+{
 	vec3 x;
 	vec3 y;
 	vec3 z;
@@ -27,7 +36,7 @@ void main(){
 	vertex[1] = gl_in[1].gl_Position;
 	vertex[2] = gl_in[2].gl_Position;
 
-	// gather components for frustum culling below
+	// Gather components for frustum culling below
 	x = abs(vec3(vertex[0].x, vertex[1].x, vertex[2].x));
 	y = abs(vec3(vertex[0].y, vertex[1].y, vertex[2].y));
 	z = -vec3(vertex[0].z, vertex[1].z, vertex[2].z);
@@ -55,6 +64,6 @@ void main(){
 	frag_View = geom_View[2];
 	frag_TexCoord = geom_TexCoord[2];
 	EmitVertex();
+
 	EndPrimitive();
 }
-
