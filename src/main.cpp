@@ -693,6 +693,9 @@ DefTer::ProcessInput(float dt)
 		UpdateClickPos();
 	}
 
+	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+		dt *= 10.0f;
+
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
@@ -751,8 +754,8 @@ DefTer::ProcessInput(float dt)
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	float speed = 1.33f;
-	if (m_input.IsKeyPressed(SDLK_LSHIFT))
-		speed*=30.0f;
+	//if (m_input.IsKeyPressed(SDLK_LSHIFT))
+	//	speed*=30.0f;
 	if (m_input.IsKeyPressed(SDLK_w))
 	{
 		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
@@ -796,6 +799,9 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
+	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+		dt *= 10.0f;
+
 	//Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
