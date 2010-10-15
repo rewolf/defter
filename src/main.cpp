@@ -418,11 +418,11 @@ DefTer::Init()
 	printf("Done\n");
 
 	// Assign some more to shader uniforms
+	vector2 hdasq_its;
+	hdasq_its.x = float(HD_AURA_SQ) / (CLIPMAP_RES * m_coarsemap_dim * CLIPMAP_RES * m_coarsemap_dim);
+	hdasq_its.y = 1.0f / (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex);
 	glUseProgram(m_shMain->m_programID);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "hd_aura_sq"), 
-			float(HD_AURA_SQ) / (CLIPMAP_RES*m_coarsemap_dim * CLIPMAP_RES*m_coarsemap_dim));
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "inv_tile_size"), 
-				1.0f/ (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex));
+	glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "hdasq_its"), 1, hdasq_its.v);
 
 	return true;
 }

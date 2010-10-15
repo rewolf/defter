@@ -13,11 +13,10 @@ uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;
 uniform vec4 cam_and_shift;
-uniform float hd_aura_sq;
 uniform float is_hd_stamp;
-uniform float inv_tile_size;
 uniform ivec2 tileOffset;
-
+// .x = hd_aura_sq ; .y = inv_tile_size
+uniform vec2 hdasq_its;
 
 in vec3 frag_View;
 in vec2 frag_TexCoord;
@@ -26,10 +25,10 @@ out vec4 frag_Color;
 
 // GLOBALS
 //--------
-const vec4 light		= normalize(vec4(.0, 4.0, -10.0, 0.0));
+const vec4 light		= normalize(vec4(0.0, 4.0, -10.0, 0.0));
 const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
-const float log2_fog_density	= -0.0001442695;
-const vec4 cc			= vec4(1.0, .0, -1.0, 2.0);
+const float log2_fog_den= -0.0001442695;
+const vec4 cc			= vec4(1.0, 0.0, -1.0, 2.0);
 
 vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
@@ -40,8 +39,8 @@ void main()
 {
 	// Draw in the clicked position
 	vec2 dist 		= click_pos - frag_TexCoord;
-	float scale_sq 	= scales.y*scales.y;
-	if (dot(dist,dist) < .25 * scale_sq)
+	float scale_sq 	= scales.y * scales.y;
+	if (dot(dist, dist) < .25 * scale_sq)
 	{
 		frag_Color = vec4(1.0, 0.0, 0.0, 1.0);
 		return;
@@ -91,20 +90,20 @@ void main()
 
 	// Add in an overlay for an aura that allows the HD defs in
 	dist = cam_and_shift.xy + 0.5 - frag_TexCoord;
-	if (dot(dist, dist) < hd_aura_sq)
+	if (dot(dist, dist) < hdasq_its.x)
 		frag_Color += 2.0 * is_hd_stamp * (color * vec4(0.0, 0.0, 1.0, 1.0));
 
 
 	// Fog controls
-	fogZ		= gl_FragCoord.z * (1.0/gl_FragCoord.w);
-	fogFactor	= exp2(log2_fog_density * fogZ * fogZ);
+	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
+	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
 
 	// high-detail maps
-	vec2 tile = frag_TexCoord * inv_tile_size - tileOffset;
+	vec2 tile = frag_TexCoord * hdasq_its.y - tileOffset;
 	vec2 tc   = fract(tile);
-	int t = int(floor(tile.x) + floor(tile.y)*6);
-	float factor =clamp(.5+fogZ * .02, .0, 1.0);
+	int t = int(floor(tile.x) + floor(tile.y) * 6);
+	float factor =clamp(.5+fogZ * 0.02, 0.0, 1.0);
 	/*switch(t){
 		case 0:
 			frag_Color=  mix(texture(detail0, tc).rrrr, frag_Color, factor)
