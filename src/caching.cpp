@@ -238,6 +238,23 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 //--------------------------------------------------------
 Caching::~Caching()
 {
+	// Unload all currently loaded files
+	for (int i = 0; i < m_GridSize * m_GridSize; i++)
+	{
+		if (m_Grid[i].m_modified)
+			Unload(m_Grid + i);
+	}
+
+	// Wait until all the data has been unloaded
+	do
+	{
+		UpdatePBOs();
+		SDL_Delay(10);
+	} while(m_readyUnloadQueue.size() > 0 ||
+			m_busyUnloadQueue.size() > 0 ||
+			m_unloadQueue.size() > 0 ||
+			m_doneUnloadQueue.size() > 0);
+
 	RE_DELETE(m_shRadar);
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
@@ -251,10 +268,10 @@ Caching::~Caching()
 	glDeleteTextures(1, &m_zeroTex.pdmap);
 	delete[] m_Grid;
 
-	// delete PBO pool
+	// Delete PBO pool
 	glDeleteBuffers(PBO_POOL*2, m_pbos);
 
-	// delete texture ID pool
+	// Delete texture ID pool
 	glDeleteTextures(9, m_cacheHeightmapTex);
 	glDeleteTextures(9, m_cachePDTex);
 }
@@ -406,7 +423,7 @@ Caching::DeformHighDetail(vector2 clickPos, string stampName, float scale, float
 		if (mapID != 0 && mapID != m_zeroTex.heightmap)
 		{
 			// Displace it here and now
-			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, vector2(0.0f), stampName, scale, intensity, false);
+			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, vector2(0.0f), stampName, vector3(scale, intensity, 0.0f), false);
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap)
@@ -419,7 +436,7 @@ Caching::DeformHighDetail(vector2 clickPos, string stampName, float scale, float
 				tile.m_texdata = newID;
 
 				// Displace it now
-				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, vector2(0.0f), stampName, scale, intensity, false);
+				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, vector2(0.0f), stampName, vector3(scale, intensity, 0.0f), false);
 				m_pDeform->create_pdmap(tile.m_texdata, false);
 			}
 			else
