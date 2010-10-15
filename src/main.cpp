@@ -706,7 +706,71 @@ DefTer::ProcessInput(float dt)
 		if (m_is_hd_stamp)
 			m_pCaching->DeformHighDetail(m_clickPos, "%", 10.0f, 0.4f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, "Gaussian", 50.0f, 0.2f * wheel_ticks, true);
+		{
+			float scale = 50.0f;
+			vector2 areaMin(m_clickPos - vector2(scale / 2.0f));
+			vector2 areaMax(areaMin	+ vector2(scale));
+
+			areaMin *= m_pClipmap->m_metre_to_tex;
+			areaMin += vector2(0.5f);
+			areaMax *= m_pClipmap->m_metre_to_tex;
+			areaMax += vector2(0.5f);
+
+			// Left-Col
+			if (areaMin.x < 0.0 && areaMax.y > 1.0)
+			{
+				// Left-Top
+				printf("LT=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			if (areaMin.x < 0.0)
+			{
+				// Left-Centre
+				printf("LC=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			if (areaMin.x < 0.0 && areaMin.y < 0.0)
+			{
+				// Left-Bottom
+				printf("LB=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			// Centre-Col
+			if (areaMax.y > 1.0)
+			{
+				// Centre-Top
+				printf("CT=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			if (areaMin.y < 0.0)
+			{
+				// Centre-Bottom
+				printf("CB=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			// Right-Col
+			if (areaMax.x > 1.0 && areaMax.y > 1.0)
+			{
+				// Right-Top
+				printf("RT=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			if (areaMax.x > 1.0)
+			{
+				// Right-Centre
+				printf("RC=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			if (areaMax.x > 1.0 && areaMin.y < 0.0)
+			{
+				// Right-Bottom
+				printf("RB=");
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			}
+			
+			printf("Main=");
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+		}
 	}
 
 	static bool wireframe = false;
