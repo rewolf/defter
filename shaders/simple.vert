@@ -1,10 +1,14 @@
+/*
+/ Copyright © 2010
+/ Andrew Flower & Justin Crause
+/ Honours Project - Deformable Terrain
+/*
+
 #version 150 core
 #pragma optionNV unroll all
 #pragma optionNV inline all
 
-
-// UNIFORMS
-//---------
+// Uniforms
 uniform sampler2D heightmap;
 // texToMetre = .x  ; metreToTex = .y
 uniform vec2 scales;
@@ -15,23 +19,26 @@ uniform mat4 projection;
 uniform mat4 view;
 
 
-// VARYINGS
-//---------
+// Shader Input
 in vec3 vert_Position;
 in vec2 vert_TexCoord;
 
+
+// Shader Output
 out vec3 geom_View;
 out vec2 geom_TexCoord;
 
-// GLOBALS
-//--------
+
+// Constansts
 const vec2  const_list	= vec2(1.0,  .0);
 const float HEIGHT 		= 40.0;
 
+
 //------------------------------------------------------------------------------
 // NB:
-// Clipmap is centred on origin but the origin texel has coordinate 0.5,0.5
-// the camera, starts at 0,0
+// Clipmap is centred on origin but the origin texel has coordinate 0.5, 0.5
+// the camera, starts at 0, 0
+//------------------------------------------------------------------------------
 void main()
 {
 	// Variables

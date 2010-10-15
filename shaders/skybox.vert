@@ -1,16 +1,29 @@
+/*
+/ Copyright © 2010
+/ Andrew Flower & Justin Crause
+/ Honours Project - Deformable Terrain
+/*
+
 #version 150 core
 
+// Uniforms
 uniform mat4 mvpMatrix;
 
-in vec3 in_Position;
-in vec2 in_TexCoord;
 
+// Shader Input
+in vec3 vert_Position;
+in vec2 vert_TexCoord;
+
+
+// Shader Output
+out vec3 frag_Position;
 out vec2 frag_TexCoord;
-out vec3 frag_pos;
 
 
-void main(){
-	gl_Position 	= mvpMatrix * vec4(in_Position, 1.0f);
-	frag_pos 		= in_Position;
-	frag_TexCoord	= in_TexCoord;
+//------------------------------------------------------------------------------
+void main()
+{
+	gl_Position 	= mvpMatrix * vec4(vert_Position, 1.0f);
+	frag_Position 	= vert_Position;
+	frag_TexCoord	= vert_TexCoord;
 }

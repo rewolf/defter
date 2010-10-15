@@ -1,6 +1,12 @@
+/*
+/ Copyright © 2010
+/ Andrew Flower & Justin Crause
+/ Honours Project - Deformable Terrain
+/*
+
 #version 150 core
 
-// Textures for rendering the background
+// Uniforms
 uniform sampler2D heightmap;
 uniform sampler2D colormap;
 
@@ -26,11 +32,20 @@ uniform mat2 viewRotation;
 // Variable to draw a line at this position
 uniform vec2 linePos;
 
+
+// Shader Input
 in vec2 frag_TexCoord;
+
+
+// Shader Output
 out vec4 frag_Color;
 
+
+// Constansts
 const vec2 const_list = vec2(1.0, 0.0);
 
+
+//------------------------------------------------------------------------------
 void main()
 {
 	vec2 dist, texCoord;
@@ -84,9 +99,8 @@ void main()
 			r = dot(dist, dist);
 			if (r < dotRadius)
 				color = vec4(0.0, 1.0, 1.0, 1.0);
-
 		break;
 	}
 
-	frag_Color	= color;
+	frag_Color = color;
 }
