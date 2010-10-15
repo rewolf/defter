@@ -46,6 +46,7 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	Stamp newStamp;
 
 	// Gaussian function stamp
+	newStamp.initShader = &setupGaussian;
 	m_no_error &= newStamp.SetupShader("shaders/gaussian.vert", "shaders/gaussian.frag");
 	stampCollection["Gaussian"] = newStamp;
 
@@ -176,7 +177,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 
 	// Call a predefined function if need be
 	if (stamp.initShader)
-		stamp.initShader(stamp);
+		stamp.initShader(stamp, clickPos, scale, intensity);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -305,4 +306,13 @@ void
 Deform::create_pdmap(TexData texdata, bool isCoarse)
 {
 	calculate_pdmap(texdata, vector2(0.5f), 1.0f, isCoarse);
+}
+
+//--------------------------------------------------------
+void
+setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity){
+	const float epsilon = 0.000001f;
+
+	float falloff = - log(epsilon / intensity)/ (scale * scale);
+	glUniform1f(glGetUniformLocation(stamp.m_shader->m_programID, "falloff"), falloff);
 }

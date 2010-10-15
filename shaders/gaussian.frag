@@ -5,6 +5,7 @@
 uniform sampler2D in_heightmap;
 uniform vec2 clickPos;
 uniform float intensity;
+uniform vec2 stamp_scale;
 
 uniform float falloff;
 
@@ -22,6 +23,5 @@ void main()
 
 	dist = fract(clickPos) - frag_TexCoord;
 
-	height += exp( - dot(dist, dist) * 0.3 * 50) * intensity;
-	height = 1.0;
+	height += exp( - dot(dist, dist)  * falloff) * intensity;
 }
