@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.00f;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -714,25 +714,25 @@ DefTer::ProcessInput(float dt)
 		speed*=30.0f;
 	if (m_input.IsKeyPressed(SDLK_w))
 	{
-		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_s))
 	{
-		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_a))
 	{
-		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_d))
 	{
-		matrix4 rot = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
@@ -767,7 +767,7 @@ DefTer::Logic(float dt)
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
-
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 }
