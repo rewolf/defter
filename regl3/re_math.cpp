@@ -1,8 +1,9 @@
 /*****************************************************************************
  * reMath contains vector and matrix class
  *
- * Author: rewolf & Juzz Wuzz 2010
- * andrew.flower@gmail.com & juzzwuzz@gmail.com
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
 #include <stdio.h>

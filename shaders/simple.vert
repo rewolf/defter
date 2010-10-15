@@ -2,7 +2,7 @@
 / Copyright © 2010
 / Andrew Flower & Justin Crause
 / Honours Project - Deformable Terrain
-/*
+*/
 
 #version 150 core
 #pragma optionNV unroll all

@@ -1,3 +1,10 @@
+/*****************************************************************************
+ * skybox: Handles code for rendering a skybox in the program
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #include "regl3.h"
 #include "re_math.h"
@@ -8,7 +15,8 @@ using namespace reMath;
 
 
 //--------------------------------------------------------
-Skybox::Skybox(){
+Skybox::Skybox()
+{
 	m_no_error = true;
 	m_shSky = new ShaderProg("shaders/skybox.vert","","shaders/skybox.frag");
 
@@ -78,7 +86,8 @@ Skybox::Skybox(){
 
 
 //--------------------------------------------------------
-Skybox::~Skybox(){
+Skybox::~Skybox()
+{
 	RE_DELETE(m_shSky);
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
@@ -86,7 +95,8 @@ Skybox::~Skybox(){
 
 //--------------------------------------------------------
 void
-Skybox::render(matrix4 &transform){
+Skybox::render(matrix4 &transform)
+{
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_tex);
 	glUseProgram(m_shSky->m_programID);
@@ -97,4 +107,3 @@ Skybox::render(matrix4 &transform){
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, 30, GL_UNSIGNED_BYTE, 0);
 }
-
