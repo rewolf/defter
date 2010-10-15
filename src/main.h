@@ -20,12 +20,14 @@ private:
 	bool		LoadCoarseMap	(string filename); 
 	void		UpdateStamp		(int stampID);
 	void		UpdateClickPos	(void);
+	float		InterpHeight	(vector2 worldPos);
 
 public:
 	ShaderProg*			m_shSplash;
 	GLuint				m_vbo[3];
 	GLuint				m_vao;
 	GLuint				m_splashmap;
+	float*				m_elevationData;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	Deform*			m_pDeform;
@@ -48,6 +50,9 @@ public:
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
 	vector2			m_clipmap_shift;
+	float			m_fall_speed;
+	bool			m_gravity_on;
+	bool			m_on_ground;
 };
 
 

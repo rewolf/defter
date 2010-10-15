@@ -23,7 +23,7 @@ Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim){
 		nVerts = pot-1;
 	}
 
-	m_enabled			= true;
+	m_cullingEnabled			= true;
 	m_N					= nVerts;
 	m_nLevels			= nLevels;
 	m_quad_size			= quad_size;
@@ -554,7 +554,7 @@ Clipmap::cull(matrix4& mvp, vector2 shift){
 	for (int i = 0; i < (int)blocks.size(); i++){
 		cull_block& block = blocks[i];
 
-		if (!m_enabled){
+		if (!m_cullingEnabled){
 			m_draw_count[m_primcount] 	= blocks[i].count;
 			m_draw_starts[m_primcount]	= blocks[i].start_index;
 			m_primcount++;

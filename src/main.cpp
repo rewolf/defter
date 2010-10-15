@@ -77,9 +77,12 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
+#define VERT_SCALE			(50.0f)
+#define GRAVITY				(-9.81f)
+#define EYE_HEIGHT			(2.0f)
 
-float timeCount = 0;
-long frameCount = 0;
+//float timeCount = 0;
+//long frameCount = 0;
 
 
 /******************************************************************************
@@ -108,7 +111,7 @@ int main(int argc, char* argv[])
 	Sleep(sleepTime);
 #endif
 
-	printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
+	//printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
 
 	return 0;
 }
@@ -117,11 +120,15 @@ int main(int argc, char* argv[])
 //--------------------------------------------------------
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
-	m_shMain  = NULL;
-	m_pDeform = NULL;
-	m_pClipmap= NULL;
-	m_pCaching= NULL;
-	m_pSkybox = NULL;
+	m_shMain  		= NULL;
+	m_pDeform 		= NULL;
+	m_pClipmap		= NULL;
+	m_pCaching		= NULL;
+	m_pSkybox 		= NULL;
+	m_elevationData	= NULL;
+	m_gravity_on	= true;
+	m_on_ground		= false;
+	m_fall_speed	= .0f;
 }
 
 //--------------------------------------------------------
@@ -137,6 +144,8 @@ DefTer::~DefTer()
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
+	if (m_elevationData)
+		delete [] m_elevationData;
 	glDeleteBuffers(2, m_pbo);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
@@ -300,6 +309,7 @@ DefTer::InitGL()
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
 	"c\t"		"= En/Disable Frustum Culling\n"
+	"g\t"		"= Toggle Gravity\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
@@ -523,6 +533,13 @@ DefTer::LoadCoarseMap(string filename)
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
 
+	// Create elevationData for camera collisions
+	m_elevationData = new float[m_coarsemap_dim * m_coarsemap_dim];
+	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
+	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+		m_elevationData[i] = bits[i] * scale;
+	}
+
 	// Allocate GPU Texture space for partial derivative map
 	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &m_coarsemap.pdmap);
@@ -602,6 +619,24 @@ DefTer::UpdateClickPos(void)
 }
 
 //--------------------------------------------------------
+// Interpolates the height of the coarsemap at the given location in world space
+float
+DefTer::InterpHeight(vector2 worldPos){
+	worldPos = (worldPos*m_pClipmap->m_metre_to_tex + vector2(.5f)) * m_coarsemap_dim;
+	int x 	= int(worldPos.x);
+	int y 	= int(worldPos.y);
+	float fx= worldPos.x - x;
+	float fy= worldPos.y - y;
+	
+	float x0 = (1-fx) * m_elevationData[x   + m_coarsemap_dim * (y)		] 
+		     + (  fx) * m_elevationData[x+1 + m_coarsemap_dim * (y)		];
+	float x1 = (1-fx) * m_elevationData[x   + m_coarsemap_dim * (y+1)	] 
+		     + (  fx) * m_elevationData[x+1 + m_coarsemap_dim * (y+1)	];
+
+	return (1-fy) * x0 + fy * x1 + EYE_HEIGHT;
+}
+
+//--------------------------------------------------------
 // Process user input
 void
 DefTer::ProcessInput(float dt)
@@ -664,7 +699,7 @@ DefTer::ProcessInput(float dt)
 		if (m_is_hd_stamp)
 			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .4f * wheel_ticks);
 		else
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .5f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, 1.0f, .2f * wheel_ticks, true);
 	}
 
 	static bool wireframe = false;
@@ -707,6 +742,12 @@ DefTer::ProcessInput(float dt)
 			UpdateStamp(1);
 	}
 
+	// Toggle gravity
+	if (m_input.WasKeyPressed(SDLK_g)){
+		m_gravity_on ^= true;
+		printf("Gravity %s\n", m_gravity_on ? "ON" : "OFF");
+	}
+
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	float speed = 1.33f;
@@ -714,25 +755,26 @@ DefTer::ProcessInput(float dt)
 		speed*=30.0f;
 	if (m_input.IsKeyPressed(SDLK_w))
 	{
-		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
+		//matrix4 rot =  rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f)  ;
 		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_s))
 	{
-		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_a))
 	{
-		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
 	if (m_input.IsKeyPressed(SDLK_d))
 	{
-		matrix4 rot = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f);
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
@@ -744,8 +786,8 @@ DefTer::ProcessInput(float dt)
 	// Toggle Frustum Culling
 	if (m_input.WasKeyPressed(SDLK_c))
 	{
-		m_pClipmap->m_enabled ^= true;
-		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_enabled));
+		m_pClipmap->m_cullingEnabled ^= true;
+		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_cullingEnabled));
 	}
 
 	reGL3App::ProcessInput(dt);
@@ -759,8 +801,26 @@ DefTer::Logic(float dt)
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
 	// Update position
-	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
 	glUseProgram(m_shMain->m_programID);
+	if (m_gravity_on ){
+		m_fall_speed	  += GRAVITY * dt;
+		m_cam_translate.y += m_fall_speed * dt;
+
+		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+		if ( m_cam_translate.y < terrain_height ){
+			m_cam_translate.y = terrain_height;
+			m_fall_speed = 	  .0f;
+			m_on_ground  =    true;
+		}
+	}else{
+		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+		if ( m_cam_translate.y < terrain_height ){
+			m_cam_translate.y = terrain_height;
+			m_fall_speed = 	  .0f;
+			m_on_ground  =    true;
+		}
+	}
+	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
 
 	// pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
@@ -812,26 +872,21 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[2]->m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3]->m_texdata.heightmap);
-	/*printf("%d %d %d %d\n",
-			activeTiles[0]->m_texdata.heightmap,
-			activeTiles[1]->m_texdata.heightmap,
-			activeTiles[2]->m_texdata.heightmap,
-			activeTiles[3]->m_texdata.heightmap);*/
 	//--
-
+/*
 	static reTimer timer;
 	glFinish();
 	timer.start();
-
+*/
 	m_pClipmap->render();
 	
 	m_pSkybox->render(viewproj);
 
 	m_pCaching->Render();
-
+/*
 	glFinish();
 	timeCount += timer.getElapsed();
 	frameCount ++;
-
+*/
 	SDL_GL_SwapWindow(m_pWindow);
 }

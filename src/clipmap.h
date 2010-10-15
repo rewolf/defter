@@ -42,7 +42,7 @@ public:
 	float		m_tex_to_metre;
 	float		m_metre_to_tex;
 
-	bool 		m_enabled;
+	bool 		m_cullingEnabled;
 
 	string		m_clipmap_stats;
 };
