@@ -21,7 +21,7 @@ void main()
 	
 	height = texture(in_heightmap, frag_TexCoord).r;
 
-	dist = fract(clickPos) - frag_TexCoord;
+	dist = clickPos - frag_TexCoord;
 
 	height += exp( - dot(dist, dist)  * falloff) * intensity;
 }

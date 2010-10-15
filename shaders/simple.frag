@@ -105,7 +105,7 @@ void main()
 	vec2 tc   = fract(tile);
 	int t = int(floor(tile.x) + floor(tile.y)*6);
 	float factor =clamp(.5+fogZ * .02, .0, 1.0);
-	switch(t){
+	/*switch(t){
 		case 0:
 			frag_Color=  mix(texture(detail0, tc).rrrr, frag_Color, factor)
 			   	* cc.xxxy + cc.yyyx;
@@ -122,7 +122,7 @@ void main()
 			frag_Color=  mix(texture(detail3, tc).rrrr, frag_Color, factor)
 			   	* cc.xxxy + cc.yyyx;
 			break;
-	};
+	};*/
 	
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);

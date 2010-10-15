@@ -128,9 +128,6 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pCaching		= NULL;
 	m_pSkybox 		= NULL;
 	m_elevationData	= NULL;
-	m_gravity_on	= true;
-	m_is_crouching	= false;
-	m_fall_speed	= .0f;
 }
 
 //--------------------------------------------------------
@@ -242,8 +239,18 @@ DefTer::InitGL()
 	m_cam_translate.set(-halfTile, 0.0f, -halfTile);
 
 	// Set the initial stamp mode and clicked state
+	m_stampName		= "Gaussian";
+	m_stampIntensity= 0.2f;
+	m_stampScale	= 50.0f;
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
+	m_clickPos		= vector2(0.0f);
+	m_clickPosPrev	= vector2(0.0f);
+
+	// Init the world settings
+	m_gravity_on	= true;
+	m_is_crouching	= false;
+	m_fall_speed	= .0f;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -372,8 +379,8 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, 0.0f, 0.0f, true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
-	//m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), 1.0f, .0f, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
 	printf("Done\n");
@@ -562,23 +569,6 @@ DefTer::LoadCoarseMap(string filename)
 }
 
 //--------------------------------------------------------
-// This method will change the active stamp
-void
-DefTer::UpdateStamp(int stampID)
-{
-	if (stampID == 0)
-		m_is_hd_stamp = false;
-	else
-		m_is_hd_stamp = true;
-
-	// Update the click position
-	UpdateClickPos();
-
-	glUseProgram(m_shMain->m_programID);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
-}
-
-//--------------------------------------------------------
 // Updates the click position such that it follows the camera in HD mode,
 // Also will hide in shaders if no point is currently 'clicked'
 void
@@ -697,6 +687,7 @@ DefTer::ProcessInput(float dt)
 		UpdateClickPos();
 	}
 
+	// Increase the game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
 
@@ -704,12 +695,11 @@ DefTer::ProcessInput(float dt)
 	if (m_clicked && wheel_ticks != 0)
 	{
 		if (m_is_hd_stamp)
-			m_pCaching->DeformHighDetail(m_clickPos, "%", 10.0f, 0.4f * wheel_ticks);
+			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, 10.0f, 0.4f * wheel_ticks);
 		else
 		{
-			float scale = 50.0f;
-			vector2 areaMin(m_clickPos - vector2(scale / 2.0f));
-			vector2 areaMax(areaMin	+ vector2(scale));
+			vector2 areaMin(m_clickPos - vector2(m_stampScale / 2.0f));
+			vector2 areaMax(areaMin	+ vector2(m_stampScale));
 
 			areaMin *= m_pClipmap->m_metre_to_tex;
 			areaMin += vector2(0.5f);
@@ -720,98 +710,123 @@ DefTer::ProcessInput(float dt)
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 			}
 			
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), "Gaussian", scale, 0.2f * wheel_ticks, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, m_stampScale, m_stampIntensity * wheel_ticks, true);
 
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampScale, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampScale, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampScale, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampScale, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampScale, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampScale, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampScale, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampScale, true);
 			}
 			
-			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, scale, true);
+			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampScale, true);
 		}
 	}
 
-	static bool wireframe = false;
+	// Take screenshot
+	static int lastScreenshot = 1;
+	if (m_input.WasKeyPressed(SDLK_F12))
+	{
+		char filename[256];
+		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
+		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
+
+		mkdir("screenshots");
+		sprintf(filename, "screenshots/screenshot%05d.png", lastScreenshot++);
+		if (SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false))
+			printf("Wrote screenshot to %s\n", filename);
+		else
+			fprintf(stderr, "Failed to write screenshot\n");
+
+		delete[] framebuffer;		
+	}
+
+	// Toggle Frustum Culling
+	if (m_input.WasKeyPressed(SDLK_c))
+	{
+		m_pClipmap->m_cullingEnabled ^= true;
+		printf("Frustum Culling Enabled: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
+	}
+
 	// Toggle wireframe
+	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
 		wireframe ^= true;
@@ -821,39 +836,39 @@ DefTer::ProcessInput(float dt)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
-	// Take screenshot
-	static int lastScreenshot = 1;
-	if (m_input.WasKeyPressed(SDLK_F12)){
-		char filename[256];
-		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
-		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
-
-		mkdir("screenshots");
-		sprintf(filename, "screenshots/screenshot%05d.png", lastScreenshot++);
-		if (SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false)){
-			printf("Wrote screenshot to %s\n", filename);
-		}else{
-			fprintf(stderr, "Failed to write screenshot\n");
-		}
-
-		delete[] framebuffer;		
-	}
-
-	// Switch stamps
+	// Toggle between HD and coarse mode
 	if (m_input.WasKeyPressed(SDLK_h))
 	{
 		m_clicked = false;
 
-		if (m_is_hd_stamp)
-			UpdateStamp(0);
-		else
-			UpdateStamp(1);
+		m_is_hd_stamp ^= true;
+
+		// Update the click position
+		UpdateClickPos();
+
+		glUseProgram(m_shMain->m_programID);
+		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
+	}
+
+	// Change between a set of stamps
+	if (m_input.WasKeyPressed(SDLK_1))
+	{
+		m_stampName = "%";
+		printf("Stamp: %%\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_2))
+	{
+		m_stampName = "Gaussian";
+		printf("Stamp: Gaussian\n");
 	}
 
 	// Toggle gravity
-	if (m_input.WasKeyPressed(SDLK_g)){
+	if (m_input.WasKeyPressed(SDLK_g))
+	{
 		m_gravity_on ^= true;
-		printf("Gravity %s\n", m_gravity_on ? "ON" : "OFF");
+		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
 	// Controls to handle movement of the camera
@@ -885,39 +900,44 @@ DefTer::ProcessInput(float dt)
 		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
 		UpdateClickPos();
 	}
+
 	// Boundary check for wrapping position
 	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
 	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
 	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 
-	if (m_input.WasKeyPressed(SDLK_SPACE)){
-		if (close_enough(m_fall_speed, .0f)){
+	// Controls for jumping (Floating)
+	if (m_input.WasKeyPressed(SDLK_SPACE))
+	{
+		// Only jump if on the ground
+		if (close_enough(m_fall_speed, .0f))
 			m_fall_speed = 5.0f;
-		}
 	}
-	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on){
+	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on)
+	{
+		// Float if gravity off
 		m_cam_translate.y += 5.0f * dt;
 	}
-	if (m_input.IsKeyPressed(SDLK_LCTRL)){
-	   if (!m_gravity_on){
+	// Controls for crouching (Sinking)
+	if (m_input.IsKeyPressed(SDLK_LCTRL))
+	{
+		// Sink if gravity off
+	   if (!m_gravity_on)
+	   {
 			m_cam_translate.y -= 5.0f * dt;
 	   }
-	   else{
+	   // Crouch - Drop camera down
+	   else
+	   {
 		   m_is_crouching = true;
-		   m_cam_translate.y-=100;
 	   }
 	}
-	if (m_is_crouching && !m_input.IsKeyPressed(SDLK_LCTRL)){
+	// Disable crouching if it was previously enabled and no longer pressing Ctrl
+	if (m_is_crouching && !m_input.IsKeyPressed(SDLK_LCTRL))
+	{
 		m_is_crouching = false;
 	}
 	
-	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_c))
-	{
-		m_pClipmap->m_cullingEnabled ^= true;
-		printf("Frustum Culling Enabled: %d\n", int(m_pClipmap->m_cullingEnabled));
-	}
-
 	reGL3App::ProcessInput(dt);
 }
 
@@ -925,39 +945,45 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
+	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
 
-	//Update the caching system
+	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
 	// Update position
 	glUseProgram(m_shMain->m_programID);
-	if (m_gravity_on ){
+	if (m_gravity_on)
+	{
 		m_fall_speed	  += GRAVITY * dt;
 		m_cam_translate.y += m_fall_speed * dt;
 
 		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-		if ( m_cam_translate.y < terrain_height ){
+		if (m_cam_translate.y < terrain_height)
+		{
 			m_cam_translate.y = terrain_height;
 			m_fall_speed = 	  .0f;
 		}
-	}else{
+	}
+	else
+	{
 		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-		if ( m_cam_translate.y < terrain_height ){
+		if (m_cam_translate.y < terrain_height)
+		{
 			m_cam_translate.y = terrain_height;
 			m_fall_speed = 	  .0f;
 		}
 	}
 	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
 
-	// pass the camera's texture coordinates and the shift amount necessary
+	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 }
 

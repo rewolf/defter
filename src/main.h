@@ -39,6 +39,9 @@ public:
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
+	string			m_stampName;
+	float			m_stampIntensity;
+	float			m_stampScale;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
 	vector2			m_clickPos;

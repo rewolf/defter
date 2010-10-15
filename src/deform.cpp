@@ -69,25 +69,20 @@ Deform::~Deform()
 
 //--------------------------------------------------------
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, float scale,
-	float intensity, bool isCoarse, GLuint copySrcTex)
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector3 sir,
+	bool isCoarse, GLuint copySrcTex)
 {
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
-	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f)
-								   : (clickPos * metre_scale);
-	scale				= 0.5f * scale * metre_scale;
+	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
+	clickPos		   += clickOffset;
+	sir.x				= 0.5f * sir.x * metre_scale;
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 
-
 	GLuint	backupTex;
-
-	//if (clickOffset.x != 0.0f)
-	//	clickPos.x = 1.0 - (clickOffset.x * clickPos.x);
-	clickPos += clickOffset;
 	
-
+	// Stamp controls
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
 
@@ -169,15 +164,15 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
 
 	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
-	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), scale, scale);
+	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), sir.x, sir.x);
 	if (stamp.m_isTexStamp)
 		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
 
-	glUniform1f(glGetUniformLocation(shaderID, "intensity"), intensity);
+	glUniform1f(glGetUniformLocation(shaderID, "intensity"), sir.y);
 
 	// Call a predefined function if need be
 	if (stamp.initShader)
-		stamp.initShader(stamp, clickPos, scale, intensity);
+		stamp.initShader(stamp, clickPos, sir.x, sir.y);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -222,19 +217,18 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		if (clickPos.y < .0f)
 			clickPos.y -= int(clickPos.y) - 1;
 		// Setup the regions for copying
-		int copyW = (int)ceil(2.0f * scale * dim) ;
-		int copyH = (int)ceil(2.0f * scale * dim);
+		int copyW = (int)ceil(2.0f * sir.x * dim) ;
+		int copyH = (int)ceil(2.0f * sir.x * dim);
 		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
 		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
 		// Make sure it's not out of bounds
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
-		//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
-		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+		//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
-
 
 	//Delete the created memory if need be
 	if (!isCoarse && copySrcTex == 0)
@@ -243,13 +237,22 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 
 //--------------------------------------------------------
 void
-Deform::calculate_pdmap(TexData texdata, vector2 clickPos, float scale, bool isCoarse){
+Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, float scale, bool isCoarse, bool init){
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
-	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f)
-								   : (clickPos * metre_scale);
-	scale				= 0.5f * scale * metre_scale;
+
+	if (!init)
+	{
+		clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
+		scale				= 0.5f * scale * metre_scale;
+		clickPos += clickOffset;
+	}
+	else
+	{
+		clickPos		= vector2(0.5f);
+		scale			= 1.0f;
+	}
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -305,14 +308,15 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, float scale, bool isC
 void
 Deform::create_pdmap(TexData texdata, bool isCoarse)
 {
-	calculate_pdmap(texdata, vector2(0.5f), 1.0f, isCoarse);
+	calculate_pdmap(texdata, vector2(0.0f), vector2(0.0f), 0.0f, isCoarse, true);
 }
 
 //--------------------------------------------------------
 void
-setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity){
+setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity)
+{
 	const float epsilon = 0.000001f;
 
-	float falloff = - log(epsilon / intensity)/ (scale * scale);
+	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
 	glUniform1f(glGetUniformLocation(stamp.m_shader->m_programID, "falloff"), falloff);
 }
