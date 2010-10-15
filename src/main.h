@@ -52,7 +52,7 @@ public:
 	vector2			m_clipmap_shift;
 	float			m_fall_speed;
 	bool			m_gravity_on;
-	bool			m_on_ground;
+	bool			m_is_crouching;
 };
 
 

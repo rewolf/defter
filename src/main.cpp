@@ -127,7 +127,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pSkybox 		= NULL;
 	m_elevationData	= NULL;
 	m_gravity_on	= true;
-	m_on_ground		= false;
+	m_is_crouching	= false;
 	m_fall_speed	= .0f;
 }
 
@@ -310,6 +310,8 @@ DefTer::InitGL()
 	"l\t"		"= Lines/Wireframe Toggle\n"
 	"c\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
+	"Space\t"	"= Jump/Float\n"
+	"Ctrl\t"	"= Crouch/Sink\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
@@ -633,7 +635,7 @@ DefTer::InterpHeight(vector2 worldPos){
 	float x1 = (1-fx) * m_elevationData[x   + m_coarsemap_dim * (y+1)	] 
 		     + (  fx) * m_elevationData[x+1 + m_coarsemap_dim * (y+1)	];
 
-	return (1-fy) * x0 + fy * x1 + EYE_HEIGHT;
+	return (1-fy) * x0 + fy * x1 + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
 }
 
 //--------------------------------------------------------
@@ -694,7 +696,7 @@ DefTer::ProcessInput(float dt)
 	}
 
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
-		dt *= 10.0f;
+		dt *= 5.0f;
 
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
@@ -754,8 +756,8 @@ DefTer::ProcessInput(float dt)
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	float speed = 1.33f;
-	//if (m_input.IsKeyPressed(SDLK_LSHIFT))
-	//	speed*=30.0f;
+	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+		speed*=3.0f;
 	if (m_input.IsKeyPressed(SDLK_w))
 	{
 		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
@@ -784,6 +786,27 @@ DefTer::ProcessInput(float dt)
 	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
 	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
 	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
+
+	if (m_input.WasKeyPressed(SDLK_SPACE)){
+		if (close_enough(m_fall_speed, .0f)){
+			m_fall_speed = 5.0f;
+		}
+	}
+	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on){
+		m_cam_translate.y += 5.0f * dt;
+	}
+	if (m_input.IsKeyPressed(SDLK_LCTRL)){
+	   if (!m_gravity_on){
+			m_cam_translate.y -= 5.0f * dt;
+	   }
+	   else{
+		   m_is_crouching = true;
+		   m_cam_translate.y-=100;
+	   }
+	}
+	if (m_is_crouching && !m_input.IsKeyPressed(SDLK_LCTRL)){
+		m_is_crouching = false;
+	}
 	
 	// Toggle Frustum Culling
 	if (m_input.WasKeyPressed(SDLK_c))
@@ -800,7 +823,7 @@ void
 DefTer::Logic(float dt)
 {
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
-		dt *= 10.0f;
+		dt *= 5.0f;
 
 	//Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
@@ -815,14 +838,12 @@ DefTer::Logic(float dt)
 		if ( m_cam_translate.y < terrain_height ){
 			m_cam_translate.y = terrain_height;
 			m_fall_speed = 	  .0f;
-			m_on_ground  =    true;
 		}
 	}else{
 		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
 		if ( m_cam_translate.y < terrain_height ){
 			m_cam_translate.y = terrain_height;
 			m_fall_speed = 	  .0f;
-			m_on_ground  =    true;
 		}
 	}
 	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
