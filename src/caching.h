@@ -21,6 +21,7 @@ struct CacheRequest{
 	Tile*			tile;
 	bool			useZero;
 	int				m_waitCount;
+	int 			m_cycles;
 };
 
 struct DeformOp{

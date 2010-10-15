@@ -26,6 +26,8 @@ extern const int SCREEN_W;
 extern const int SCREEN_H;
 extern const float ASPRAT;
 
+#define LOAD_CYCLES		(4)
+#define	UNLOAD_CYCLES	(2)
 #define READS_PER_FRAME	(3)
 #define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
 #define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
@@ -767,6 +769,7 @@ Caching::Load(Tile* tile)
 		}
 	}*/
 
+	load.m_cycles = 0;
 	m_readyLoadQueue.push_back(load);
 }
 
@@ -786,12 +789,16 @@ Caching::Unload(Tile* tile)
 		return;
 	}
 
+	// reset modified status
+	tile->m_modified = false;
+
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
 	DEBUG3("UNLOAD %d %d\n", tile->m_row, tile->m_col);
 
 	unload.m_waitCount = 0;
+	unload.m_cycles = 0;
 	m_readyUnloadQueue.push_back(unload);
 }
 
@@ -906,6 +913,7 @@ Caching::UpdatePBOs()
 	m_readyUnloadQueue.insert(m_readyUnloadQueue.begin(), skip.begin(), skip.end());
 
 	// LOADING : Final phase - Texture memory transfer commences
+	list<CacheRequest> loadsSkipped;
 	for (int i = 0; i < READS_PER_FRAME; i++)
 	{
 		// Get a load-ready struct
@@ -921,6 +929,13 @@ Caching::UpdatePBOs()
 				break;
 			}
 			m_doneLoadQueue.pop_front();
+			// now check if we've allowed this tile a few cycles to load
+			if (load.m_cycles < LOAD_CYCLES){
+				load.m_cycles++;
+				loadsSkipped.push_back(load);
+				UNLOCK(m_doneLoadQueueMutex);
+				continue;
+			}
 			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
 			UNLOCK(m_doneLoadQueueMutex);
 		}
@@ -963,8 +978,12 @@ Caching::UpdatePBOs()
 		if (!load.useZero)
 			m_pDeform->create_pdmap(load.tile->m_texdata, false);
 	}
+	LOCK(m_doneLoadQueueMutex);
+	m_doneLoadQueue.insert(m_doneLoadQueue.begin(), loadsSkipped.begin(), loadsSkipped.end());
+	UNLOCK(m_doneLoadQueueMutex);
 
 	// UNLOADING : Final step of releasing PBO and TEXTURES
+	list<CacheRequest> unloadsSkipped;
 	for (int i = 0; i < READS_PER_FRAME; i++)
 	{
 		TexData texID;
@@ -973,6 +992,13 @@ Caching::UpdatePBOs()
 		if (m_doneUnloadQueue.size()){
 			unload = m_doneUnloadQueue.front();
 			m_doneUnloadQueue.pop_front();
+			// Give an unload request some time to transfer from GPU
+			if (unload.m_cycles < UNLOAD_CYCLES){
+				unload.m_cycles++;
+				unloadsSkipped.push_back(unload);
+				UNLOCK(m_doneUnloadQueueMutex);
+				continue;
+			}
 			texID = unload.tile->m_texdata;
 			assert(texID.heightmap!=0);
 		}
@@ -1000,6 +1026,9 @@ Caching::UpdatePBOs()
 		// Release the PBO for someone else to use next frame around.
 		m_pboPackPool.push(unload.pbo);
 	}
+	LOCK(m_doneUnloadQueueMutex);
+	m_doneUnloadQueue.insert(m_doneUnloadQueue.begin(), unloadsSkipped.begin(), unloadsSkipped.end());
+	UNLOCK(m_doneUnloadQueueMutex);
 }
 
 //--------------------------------------------------------
