@@ -382,7 +382,7 @@ Caching::Update(vector2 worldPos, vector2 cam_rotation)
 
 //--------------------------------------------------------
 void
-Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
+Caching::DeformHighDetail(vector2 clickPos, string stampName, float scale, float intensity)
 {
 	// Get the tile index into the array
 	// X = Column : Y = Row
@@ -406,7 +406,7 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 		if (mapID != 0 && mapID != m_zeroTex.heightmap)
 		{
 			// Displace it here and now
-			//m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false);
+			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, stampName, scale, intensity, false);
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap)
@@ -419,9 +419,8 @@ Caching::DeformHighDetail(TexData coarseMap, vector2 clickPos, float scale)
 				tile.m_texdata = newID;
 
 				// Displace it now
-				//m_pDeform->displace_heightmap(tile.m_texdata, clickPos, 15.8f, 1.0, false,
-				//		m_zeroTex.heightmap);
-				//m_pDeform->create_pdmap(tile.m_texdata, false);
+				m_pDeform->displace_heightmap(tile.m_texdata, clickPos, stampName, scale, intensity, false);
+				m_pDeform->create_pdmap(tile.m_texdata, false);
 			}
 			else
 			{

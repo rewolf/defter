@@ -1,4 +1,3 @@
-
 #version 150 core
 
 // Uniforms
@@ -10,6 +9,7 @@ in vec2 vert_Position;
 
 // Shader Output
 out vec2 frag_TexCoord;
+out vec2 stamp_TexCoord;
 
 void main()
 {
@@ -20,4 +20,6 @@ void main()
 
 	gl_Position 	= vec4(2 * (texCoord - dif), 1.0, 1.0);
 	frag_TexCoord 	= texCoord  + clickFract;
+
+	stamp_TexCoord	= vert_Position * 0.5 + 0.5;
 }

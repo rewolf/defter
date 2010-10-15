@@ -41,7 +41,7 @@ public:
 	~Caching				(void);
 	void Init				(GLuint coarsemapTex, GLuint coarsemapColorTex, vector2 worldPos);
 	void Update				(vector2 worldPos, vector2 cam_rotation);
-	void DeformHighDetail	(TexData coarseMap, vector2 clickPos, float scale);
+	void DeformHighDetail	(vector2 clickPos, string stampName, float scale, float intensity);
 	void Render				(void);
 	void GetActiveTiles 	(Tile** activeTiles);
 

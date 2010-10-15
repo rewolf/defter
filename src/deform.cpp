@@ -24,14 +24,11 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glGenFramebuffers(1, &m_fbo_heightmap);
 
 	// Setup shader
-	m_shTexStamp = NULL;
-	//m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
+	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
 	m_shPDMapper = new ShaderProg("shaders/calc_pdmap.vert", "", "shaders/calc_pdmap.frag");
-	//glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
-	//glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_TexCoord");
+	glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_TexCoord");
-	m_no_error &= /*m_shTexStamp->CompileAndLink() &*/ m_shPDMapper->CompileAndLink();
+	m_no_error &= m_shTexStamp->CompileAndLink() & m_shPDMapper->CompileAndLink();
 
 	// Create VAO and VBO
 	glGenVertexArrays(1, &m_vao);
@@ -47,10 +44,15 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 
 	// Add in the stamps
 	Stamp newStamp;
-	newStamp.SetupShader("shaders/gaussian.vert", "shaders/gaussian.frag");
+
+	// Gaussian function stamp
+	m_no_error &= newStamp.SetupShader("shaders/gaussian.vert", "shaders/gaussian.frag");
 	stampCollection["Gaussian"] = newStamp;
 
+	// Testing image stamp
 	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/test.png");
+	stampCollection["%"] = newStamp;
 	// Add other stamps...
 }
 
@@ -81,7 +83,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 	GLuint	backupTex;
 
 	Stamp stamp			= stampCollection[stampName];
-	GLuint shaderID		= stamp.m_shader->m_programID;
+	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
 
 	// check if doing a high detail deform
 	if (!isCoarse || !m_initialised)
@@ -163,10 +165,9 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), scale, scale);
 	if (stamp.m_isTexStamp)
-		glUniform1i(glGetUniformLocation(shaderID, "in_stamp"), 1);
+		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
 
 	glUniform1f(glGetUniformLocation(shaderID, "intensity"), intensity);
-	glUniform1f(glGetUniformLocation(shaderID, "falloff"), 0.3f * 50);
 
 	// Call a predefined function if need be
 	if (stamp.initShader)
@@ -215,10 +216,10 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, string stampName, 
 		if (clickPos.y < .0f)
 			clickPos.y -= int(clickPos.y) - 1;
 		// Setup the regions for copying
-		int copyW = (int)ceil(scale * dim) ;
-		int copyH = (int)ceil(scale * dim);
-		int copyX = max(0, (int)(dim * clickPos.x) - copyW/2);
-		int copyY = max(0, (int)(dim * clickPos.y) - copyH/2);
+		int copyW = (int)ceil(2.0f * scale * dim) ;
+		int copyH = (int)ceil(2.0f * scale * dim);
+		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
+		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
 		// Make sure it's not out of bounds
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;

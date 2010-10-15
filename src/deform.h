@@ -9,22 +9,30 @@ struct  Stamp {
 
 	void(*initShader) (Stamp stamp);
 
-	Stamp(bool isTexStamp = false, GLuint texture  = 0, ShaderProg *shader = NULL)
+	Stamp()
 	{
-		m_isTexStamp	= isTexStamp;
-		m_texture		= texture;
-		m_shader		= shader;
+		m_isTexStamp	= false;
+		m_texture		= 0;
+		m_shader		= NULL;
 
 		initShader		= NULL;
 	}
 
 	bool SetupShader(string vertPath, string fragPath)
 	{
+		m_isTexStamp = false;
+
 		m_shader = new ShaderProg(vertPath, "", fragPath);
 		glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
 		glBindAttribLocation(m_shader->m_programID, 0, "vert_TexCoord");
 
 		return (m_shader->CompileAndLink());
+	}
+
+	bool LoadTexture(string textureName)
+	{
+		m_isTexStamp = true;
+		return (LoadPNG(&m_texture, textureName));
 	}
 };
 

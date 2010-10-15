@@ -704,7 +704,7 @@ DefTer::ProcessInput(float dt)
 	if (m_clicked && wheel_ticks != 0)
 	{
 		if (m_is_hd_stamp)
-			m_pCaching->DeformHighDetail(m_coarsemap, m_clickPos, .4f * wheel_ticks);
+			m_pCaching->DeformHighDetail(m_clickPos, "%", 10.0f, 0.4f * wheel_ticks);
 		else
 			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, "Gaussian", 50.0f, 0.2f * wheel_ticks, true);
 	}
