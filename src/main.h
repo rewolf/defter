@@ -55,6 +55,7 @@ public:
 	float			m_fall_speed;
 	bool			m_gravity_on;
 	bool			m_is_crouching;
+	bool			m_is_super_speed;
 };
 
 

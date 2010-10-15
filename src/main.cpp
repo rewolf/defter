@@ -320,13 +320,27 @@ DefTer::InitGL()
 	"c\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
-	"Ctrl\t"	"= Crouch/Sink\n"
+	"L-Ctrl\t"	"= Crouch/Sink\n"
+	"h\t"		"= High Detail Toggle\n"
+	"L-Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
 	"F12\t"		"= Screenshot\n"
 	"Esc\t"		"= Quit\n"
 	);
+	printf("-----------------------------------------\n");
+	printf("-------------Stamp  Controls-------------\n");
+	printf("-----------------------------------------\n");
+	printf(
+	"Pg Up/Dn"	"= Stamp Scale\n"
+	"+/-\t"		"= Stamp Intensity \n"
+	"0\t"		"= %%\n"
+	"1\t"		"= Gaussian\n"
+	);
+	printf("-----------------------------------------\n");
+	printf("-----------------------------------------\n");
+	printf("\n");
 
 	return true;
 }
@@ -696,7 +710,14 @@ DefTer::ProcessInput(float dt)
 
 	// Increase the game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+	{
 		dt *= 5.0f;
+		m_is_super_speed = true;
+	}
+	if (m_is_super_speed && !m_input.IsKeyPressed(SDLK_LSHIFT))
+	{
+		m_is_super_speed = false;
+	}
 
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
@@ -869,6 +890,33 @@ DefTer::ProcessInput(float dt)
 	{
 		m_stampName = "Gaussian";
 		printf("Stamp: Gaussian\n");
+	}
+
+	// Change the scale of the stamp
+	if (m_input.IsKeyPressed(SDLK_PAGEUP))
+	{
+		float change = 0.1f * (m_is_super_speed ? 10.0f : 1.0f);
+		m_stampScale = min(m_stampScale + change, 200.0f);
+		printf("Stamp Scale: %.1f\n", m_stampScale);
+	}
+	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
+	{
+		float change = 0.1f * (m_is_super_speed ? 10.0f : 1.0f);
+		m_stampScale = max(m_stampScale - change, 0.1f);
+		printf("Stamp Scale: %.1f\n", m_stampScale);
+	}
+	// Change the intensity of the stamp
+	if (m_input.IsKeyPressed(SDLK_PLUS))
+	{
+		float change = 0.01f * (m_is_super_speed ? 10.0f : 1.0f);
+		m_stampScale = min(m_stampIntensity + change, 1.0f);
+		printf("Stamp Intensity: %.2f\n", m_stampScale);
+	}
+	else if (m_input.IsKeyPressed(SDLK_MINUS))
+	{
+		float change = 0.01f * (m_is_super_speed ? 10.0f : 1.0f);
+		m_stampScale = max(m_stampIntensity - change, 0.01f);
+		printf("Stamp Intensity: %.2f\n", m_stampScale);
 	}
 
 	// Toggle gravity
