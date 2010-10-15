@@ -134,6 +134,9 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 		case 24:
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, bits);
 			break;
+		case 8:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, bits);
+			break;
 		default:
 			fprintf(stderr, "Failed to load image %s of bitdepth %d\n", filename.c_str(), bitdepth);
 			return false;

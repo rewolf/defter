@@ -891,6 +891,11 @@ DefTer::ProcessInput(float dt)
 		m_stampName = "Gaussian";
 		printf("Stamp: Gaussian\n");
 	}
+	else if (m_input.WasKeyPressed(SDLK_3))
+	{
+		m_stampName = "leftfoot";
+		printf("Stamp: Left Foot\n");
+	}
 
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))

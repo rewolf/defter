@@ -52,8 +52,13 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 
 	// Testing image stamp
 	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/test.png");
+	m_no_error &= newStamp.LoadTexture("images/stamps/percent.png");
 	stampCollection["%"] = newStamp;
+
+	// Footprint stamp
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/leftfoot.png");
+	stampCollection["leftfoot"] = newStamp;
 	// Add other stamps...
 }
 
@@ -130,8 +135,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	}
 	else
 		backupTex = m_coarseBackup;
-
-	//printf("backup: %d, heightmap: %d, copy: %d\n", backupTex, texdata.heightmap, copySrcTex);
 
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
