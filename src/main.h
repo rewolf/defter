@@ -89,6 +89,7 @@ public:
 	// footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
+	bool			m_drawing_feet;
 
 };
 

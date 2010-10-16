@@ -85,7 +85,7 @@ const float		FRICTION	= 1.8f;
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
 #define EYE_HEIGHT			(2.0f)
-#define STEP_TIME			(.6f)
+#define STEP_TIME			(.4f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
@@ -279,6 +279,7 @@ DefTer::InitGL()
 	m_hit_ground	= false;
 	m_footprintDT	= .0f;
 	m_flipFoot		= false;
+	m_drawing_feet	= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -345,10 +346,11 @@ DefTer::InitGL()
 	printf(
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
-	"f\t"		"= En/Disable Frustum Culling\n"
+	"k\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
 	"c\t"		"= Crouch/Sink\n"
+	"f\t"		"= Toggle footprint deforms\n"
 	"h\t"		"= High Detail Toggle\n"
 	"L-Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
@@ -965,10 +967,16 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_f))
+	if (m_input.WasKeyPressed(SDLK_k))
 	{
 		m_pClipmap->m_cullingEnabled ^= true;
-		printf("Frustum Culling Enabled: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
+		printf("Frustum Culling: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
+	}
+
+	// Toggle footprints
+	if (m_input.WasKeyPressed(SDLK_f)){
+		m_drawing_feet ^= true;
+		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
 	// Toggle wireframe
@@ -1165,14 +1173,16 @@ DefTer::Logic(float dt)
 
 	// Create footprints
 	m_footprintDT += dt;
-	if (m_gravity_on && m_footprintDT > STEP_TIME && close_enough(m_velocity.y, 0.0f))
-	{
-		vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
-		vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
-		foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
-		m_footprintDT 	 = 0.0f;
-		m_flipFoot		^= true;
-		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
+	{ 
+		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
+			vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
+			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
+			m_footprintDT 	 = 0.0f;
+			m_flipFoot		^= true;
+			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+		}
 	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
