@@ -23,7 +23,6 @@
 #	pragma comment(lib, "opengl32.lib")
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
-#	pragma comment(lib, "sdl_image.lib")
 #	pragma comment(lib, "freeimage.lib")
 #endif
 
@@ -67,8 +66,8 @@ extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 
-#define COARSEMAP_FILENAME	("images/hmap02.png")
-#define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
+#define COARSEMAP_FILENAME	("images/coarsemap.png")
+#define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
 #define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
@@ -264,7 +263,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
-	m_stampSIRM		= vector4(50.0f, 0.2f, 0.0f, 0.0f);
+	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
@@ -359,7 +358,8 @@ DefTer::InitGL()
 	printf("-----------------------------------------\n");
 	printf(
 	"Pg Up/Dn"	"= Stamp Scale\n"
-	"+/-\t"		"= Stamp Intensity \n"
+	"+/-\t"		"= Stamp Intensity\n"
+	"m\t"		"= Stamp Mirror\n"
 	"0\t"		"= %%\n"
 	"1\t"		"= Gaussian\n"
 	);
@@ -635,13 +635,14 @@ DefTer::LoadCoarseMap(string filename)
 
 //--------------------------------------------------------
 bool
-DefTer::SaveCoarseMap(string filename){
-	GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+DefTer::SaveCoarseMap(string filename)
+{
+GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
 
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, mapdata);
 
-	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, false))
+	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, true))
 		return false;
 
 
@@ -689,7 +690,7 @@ DefTer::UpdateClickPos(void)
 		m_clickPosPrev = m_clickPos;
 
 		glUseProgram(m_shMain->m_programID);
-		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), temp.x, temp.y);
+		glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "click_pos"), 1, temp.v);
 	}
 }
 
@@ -1063,6 +1064,14 @@ DefTer::ProcessInput(float dt)
 	{
 		m_stampSIRM.y = max(m_stampSIRM.y - (0.5f * dt), 0.01f);
 		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
+	}
+	// Toggle stamp mirroring
+	if (m_input.WasKeyPressed(SDLK_m))
+	{
+		if (m_stampSIRM.w == 0.0f)
+			m_stampSIRM.w = 1.0f;
+		else
+			m_stampSIRM.w = 0.0f;
 	}
 
 	// Toggle gravity
