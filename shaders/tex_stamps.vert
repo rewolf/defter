@@ -10,6 +10,7 @@
 uniform vec2 stamp_scale;
 uniform mat2 stamp_rotation;
 uniform vec2 clickPos;
+uniform vec2 stamp_mirror;
 
 
 // Shader Input
@@ -32,5 +33,5 @@ void main()
 
 	frag_TexCoord 	= texCoord  + clickPos;
 	stamp_TexCoord	= (vert_Position * 0.5 + 0.5);
-	//stamp_TexCoord.x= 1.0 - stamp_TexCoord.x;
+	stamp_TexCoord.x= stamp_mirror.x - (stamp_mirror.y * stamp_TexCoord.x);
 }

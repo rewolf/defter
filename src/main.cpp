@@ -23,7 +23,6 @@
 #	pragma comment(lib, "opengl32.lib")
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
-#	pragma comment(lib, "sdl_image.lib")
 #	pragma comment(lib, "freeimage.lib")
 #endif
 
@@ -67,8 +66,8 @@ extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 
-#define COARSEMAP_FILENAME	("images/hmap02.png")
-#define COARSEMAP_TEXTURE	("images/hmap03_texture.png")
+#define COARSEMAP_FILENAME	("images/coarsemap.png")
+#define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
 #define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
 #define CLIPMAP_RES			(.1f)
@@ -264,7 +263,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
-	m_stampSIR		= vector3(50.0f, 0.2f, 0.0f);
+	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
@@ -359,7 +358,8 @@ DefTer::InitGL()
 	printf("-----------------------------------------\n");
 	printf(
 	"Pg Up/Dn"	"= Stamp Scale\n"
-	"+/-\t"		"= Stamp Intensity \n"
+	"+/-\t"		"= Stamp Intensity\n"
+	"m\t"		"= Stamp Mirror\n"
 	"0\t"		"= %%\n"
 	"1\t"		"= Gaussian\n"
 	);
@@ -414,7 +414,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, vector3(0.0f, 0.0f, 0.0f), true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, vector4(0.0f), true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -635,13 +635,14 @@ DefTer::LoadCoarseMap(string filename)
 
 //--------------------------------------------------------
 bool
-DefTer::SaveCoarseMap(string filename){
-	GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+DefTer::SaveCoarseMap(string filename)
+{
+GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
 
 	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, mapdata);
 
-	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, false))
+	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, true))
 		return false;
 
 
@@ -689,7 +690,7 @@ DefTer::UpdateClickPos(void)
 		m_clickPosPrev = m_clickPos;
 
 		glUseProgram(m_shMain->m_programID);
-		glUniform2f(glGetUniformLocation(m_shMain->m_programID, "click_pos"), temp.x, temp.y);
+		glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "click_pos"), 1, temp.v);
 	}
 }
 
@@ -805,9 +806,6 @@ DefTer::ProcessInput(float dt)
 			m_cam_rotate.x = -PI * 0.5f;
 		if (m_cam_rotate.x > PI * 0.5f)
 			m_cam_rotate.x = PI * 0.5f;
-
-		// Set the rotation
-		m_stampSIR.z = m_cam_rotate.y;
 	}
 
 	// Change the selected deformation location
@@ -834,9 +832,10 @@ DefTer::ProcessInput(float dt)
 		else
 		{
 			// Factor in the camera translation
-			p += m_cam_translate;
-			m_clickPos	= vector2(p.x, p.z);
-			m_clicked	= true;
+			m_stampSIRM.z	 = PI / 2.0f + atan2f(p.z, p.x);
+			p				+= m_cam_translate;
+			m_clickPos		 = vector2(p.x, p.z);
+			m_clicked		 = true;
 		}
 
 		//Update the clicked position in shaders, etc...
@@ -857,20 +856,18 @@ DefTer::ProcessInput(float dt)
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
-		vector2 clickDiff = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
-		vector3 stampSIR = m_stampSIR;
-		stampSIR.y		*= wheel_ticks;
-		stampSIR.z		= PI / 2.0f + atan2f(clickDiff.y, clickDiff.x);
-
+		vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
+		vector4 stampSIRM	 = m_stampSIRM;
+		stampSIRM.y			*= wheel_ticks;
 
 		if (m_is_hd_stamp)
 		{
-			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIR);
+			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIRM);
 		}
 		else
 		{
-			vector2 areaMin(m_clickPos - vector2(stampSIR.x / 2.0f));
-			vector2 areaMax(areaMin	+ stampSIR.x);
+			vector2 areaMin(m_clickPos - vector2(stampSIRM.x / 2.0f));
+			vector2 areaMax(areaMin	+ stampSIRM.x);
 
 			areaMin *= m_pClipmap->m_metre_to_tex;
 			areaMin += vector2(0.5f);
@@ -881,93 +878,93 @@ DefTer::ProcessInput(float dt)
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSIRM, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, stampSIRM, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, stampSIRM, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSIRM, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, stampSIRM, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, stampSIRM, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, stampSIRM, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSIR, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSIRM, true);
 			}
 			
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSIR, true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSIRM, true);
 
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), stampSIRM.x, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), stampSIRM.x, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), stampSIRM.x, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), stampSIRM.x, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), stampSIRM.x, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), stampSIRM.x, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), stampSIRM.x, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), stampSIR.x, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), stampSIRM.x, true);
 			}
 			
-			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), stampSIR.x, true);
+			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), stampSIRM.x, true);
 
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
@@ -1049,39 +1046,32 @@ DefTer::ProcessInput(float dt)
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
-		m_stampSIR.x = min(m_stampSIR.x + (20.0f * dt), 200.0f);
-		printf("Stamp Scale: %.1f\n", m_stampSIR.x);
+		m_stampSIRM.x = min(m_stampSIRM.x + (20.0f * dt), 200.0f);
+		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
 	}
 	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
 	{
-		m_stampSIR.x = max(m_stampSIR.x - (20.0f * dt), 1.0f);
-		printf("Stamp Scale: %.1f\n", m_stampSIR.x);
+		m_stampSIRM.x = max(m_stampSIRM.x - (20.0f * dt), 1.0f);
+		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
 	}
 	// Change the intensity of the stamp
 	if (m_input.IsKeyPressed(SDLK_PLUS) || m_input.IsKeyPressed(SDLK_KP_PLUS))
 	{
-		m_stampSIR.y = min(m_stampSIR.y + (0.5f * dt), 1.0f);
-		printf("Stamp Intensity: %.2f\n", m_stampSIR.y);
+		m_stampSIRM.y = min(m_stampSIRM.y + (0.5f * dt), 1.0f);
+		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
 	}
 	else if (m_input.IsKeyPressed(SDLK_MINUS) || m_input.IsKeyPressed(SDLK_KP_MINUS))
 	{
-		m_stampSIR.y = max(m_stampSIR.y - (0.5f * dt), 0.01f);
-		printf("Stamp Intensity: %.2f\n", m_stampSIR.y);
+		m_stampSIRM.y = max(m_stampSIRM.y - (0.5f * dt), 0.01f);
+		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
 	}
-	// Change the rotation of the stamp
-	if (m_input.IsKeyPressed(SDLK_LEFTBRACKET))
+	// Toggle stamp mirroring
+	if (m_input.WasKeyPressed(SDLK_m))
 	{
-		m_stampSIR.z += PI * dt;
-		if (m_stampSIR.z > 2.0f * PI)
-			m_stampSIR.z = 0.0f;
-		printf("Stamp Rotation: %.1f\n", m_stampSIR.z * 180.0f / PI);
-	}
-	else if (m_input.IsKeyPressed(SDLK_RIGHTBRACKET))
-	{
-		m_stampSIR.z -= PI * 0.5f * dt;
-		if (m_stampSIR.z < 0.0f)
-			m_stampSIR.z = 2.0f * PI;
-		printf("Stamp Rotation: %.1f\n", m_stampSIR.z * 180.0f / PI);
+		if (m_stampSIRM.w == 0.0f)
+			m_stampSIRM.w = 1.0f;
+		else
+			m_stampSIRM.w = 0.0f;
 	}
 
 	// Toggle gravity
@@ -1174,10 +1164,10 @@ DefTer::Logic(float dt)
 	m_footprintDT += dt;
 	if (m_gravity_on && m_footprintDT > 1.0f && close_enough(m_fall_speed, 0.0f))
 	{
-		vector3 stampSIR(0.5f, 2.0f, m_cam_rotate.y);
+		vector4 stampSIRM(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 		vector2 foot = vector2(m_cam_translate.x, m_cam_translate.z);
 		foot += rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
-		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIR);
+		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		m_footprintDT 	 = 0.0f;
 		m_flipFoot		^= true;
 	}

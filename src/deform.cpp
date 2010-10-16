@@ -82,7 +82,7 @@ Deform::~Deform()
 
 //--------------------------------------------------------
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector3 sir,
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector4 SIRM,
 	bool isCoarse, GLuint copySrcTex)
 {
 	int 	viewport[4];
@@ -90,8 +90,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
 	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
 	clickPos		   += clickOffset;
-	sir.x				= 0.5f * sir.x * metre_scale;
-	matrix2 stampRot	= rotate_tr2(sir.z);
+	SIRM.x				= 0.5f * SIRM.x * metre_scale;
+	matrix2 stampRot	= rotate_tr2(SIRM.z);
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 
 	GLuint	backupTex;
@@ -175,17 +175,25 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	// Set the Shader parameters
 	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
 
-	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
-	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), sir.x, sir.x);
+	glUniform2fv(glGetUniformLocation(shaderID, "clickPos"), 1, clickPos.v);
+	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), SIRM.x, SIRM.x);
 	glUniformMatrix2fv(glGetUniformLocation(shaderID, "stamp_rotation"), 1, GL_FALSE, stampRot.m);
 	if (stamp.m_isTexStamp)
+	{
 		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
 
-	glUniform1f(glGetUniformLocation(shaderID, "intensity"), sir.y);
+		// Controls for mirroring the texture
+		vector2 mirror(0.0f, -1.0f);
+		if (SIRM.w != 0)
+			mirror = vector2(1.0f);
+		glUniform2fv(glGetUniformLocation(shaderID, "stamp_mirror"), 1, mirror.v);
+	}
+
+	glUniform1f(glGetUniformLocation(shaderID, "intensity"), SIRM.y);
 
 	// Call a predefined function if need be
 	if (stamp.initShader)
-		stamp.initShader(stamp, clickPos, sir.x, sir.y);
+		stamp.initShader(stamp, clickPos, SIRM.x, SIRM.y);
 
 	// Bind the Framebuffer and set it's color attachment
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
@@ -222,8 +230,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 
 		// Setup the regions for copying
 		// Do a slightly larger area than required to allow for rotation
-		int copyW = (int)ceil(2.9f * sir.x * dim) ;
-		int copyH = (int)ceil(2.9f * sir.x * dim);
+		int copyW = (int)ceil(2.9f * SIRM.x * dim) ;
+		int copyH = (int)ceil(2.9f * SIRM.x * dim);
 		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
 		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
 		// Make sure it's not out of bounds

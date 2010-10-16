@@ -54,7 +54,7 @@ public:
 	GLuint			m_colormap_tex;
 
 	string			m_stampName;
-	vector3			m_stampSIR;
+	vector4			m_stampSIRM;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
 	vector2			m_clickPos;
