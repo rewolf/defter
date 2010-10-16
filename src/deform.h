@@ -1,8 +1,16 @@
+/*****************************************************************************
+ * Header: deform
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _DEFORM_H_
 #define _DEFORM_H_
 
-struct  Stamp {
+struct Stamp
+{
 	bool			m_isTexStamp;
 	GLuint			m_texture;
 	ShaderProg*		m_shader;
@@ -36,7 +44,8 @@ struct  Stamp {
 	}
 };
 
-class Deform{
+class Deform
+{
 public:
 	Deform					(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex);
 	~Deform();

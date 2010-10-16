@@ -1,19 +1,10 @@
-/*
-    Copyright (C) 2010 Andrew Flower <andrew.flower@gmail.com>
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/*****************************************************************************
+ * Header: regl3
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _REGL3_H
 #define _REGL3_H
@@ -61,8 +52,10 @@ typedef unsigned int u_int;
  * AppConfig
  * Contains settings to pass to AppMain for SDL, OpenGL setup.
  */
-struct AppConfig{
-	AppConfig(){
+struct AppConfig
+{
+	AppConfig()
+	{
 		fullscreen 	= false;
 		VSync		= false;
 		resizable	= false;
@@ -76,7 +69,8 @@ struct AppConfig{
 		gl_minor	= 1;
 		title		= "SDL1.3 & OpenGL";
 	}
-	void Print(){
+	void Print()
+	{
 		printf("fullscreen: %d\n", fullscreen);
 		printf("VSync: %d\n", VSync);
 		printf("resizable: %d\n", resizable);
@@ -104,7 +98,8 @@ struct AppConfig{
  * reGL3App - The Main app class, that can be instantiated
  * or derived to create an application using SDL and GL3
  ******************************************************************************/
-class reGL3App{
+class reGL3App
+{
 public:
 	reGL3App(AppConfig conf=AppConfig());
 	virtual ~reGL3App();
@@ -135,6 +130,5 @@ public:
 
 	float			m_currentFPS;
 };
-
 
 #endif

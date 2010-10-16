@@ -1,8 +1,16 @@
+/*****************************************************************************
+ * Header: re_shader
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _RE_SHADER_PROG_
 #define _RE_SHADER_PROG_
 
-class ShaderProg{
+class ShaderProg
+{
 public:
 
 	ShaderProg(string vertPath, string geomPath, string fragPath);

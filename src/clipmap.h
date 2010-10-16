@@ -1,14 +1,23 @@
+/*****************************************************************************
+ * Header: clipmap
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _CLIPMAP_H_
 #define _CLIPMAP_H_
 
-struct cull_block{
+struct cull_block
+{
 	int		count;
 	int		start_index;
 	vector2	bound[4];
 };
 
-class Clipmap{
+class Clipmap
+{
 public:
 	Clipmap (int nVerts, float quad_size, int levels, int heightmap_dim);
 	~Clipmap ();
@@ -46,6 +55,5 @@ public:
 
 	string		m_clipmap_stats;
 };
-
 
 #endif

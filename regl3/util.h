@@ -1,3 +1,10 @@
+/*****************************************************************************
+ * Header: util (ReGL)
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _UTIL_FOR_REGL3_H_
 #define _UTIL_FOR_REGL3_H_

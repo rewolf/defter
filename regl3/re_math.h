@@ -1,3 +1,10 @@
+/*****************************************************************************
+ * Header: re_math
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _REMATH_H_
 #define _REMATH_H_
@@ -11,7 +18,8 @@
  *	  vector3 instead.
  */
 
-namespace reMath{
+namespace reMath
+{
 	// Forward declarations
 	class vector2;
 	class vector3;
@@ -28,7 +36,8 @@ namespace reMath{
 	 * vector2
 	 * A class to handle 2D vectors and their operations
 	 ******************************************************************************/
-	class vector2{
+	class vector2
+	{
 	public:
 		vector2();
 		vector2(float xy);
@@ -77,8 +86,9 @@ namespace reMath{
 
 
 	public:
-		union{
-			struct {float x,y;};
+		union
+		{
+			struct { float x,y; };
 			float v[2];
 		};
 	};
@@ -88,7 +98,8 @@ namespace reMath{
 	 * vector3
 	 * A class to handle 3D vectors and their operations
 	 ******************************************************************************/
-	class vector3{
+	class vector3
+	{
 	public:
 		vector3();
 		vector3(float xyz);
@@ -138,8 +149,9 @@ namespace reMath{
 
 
 	public:
-		union{
-			struct {float x,y,z;};
+		union
+		{
+			struct { float x,y,z; };
 			float v[3];
 		};
 	};
@@ -149,7 +161,8 @@ namespace reMath{
 	 * vector4
 	 * A Class to represent homogeneous coordinates - not fully functional
 	 ******************************************************************************/
-	class vector4{
+	class vector4
+	{
 	public:
 		vector4();
 		vector4(float xyzw);
@@ -181,7 +194,7 @@ namespace reMath{
 
 	public:
 		union{
-			struct {float x,y,z,w;};
+			struct { float x,y,z,w; };
 			float v[4];
 		};
 	};
@@ -192,7 +205,8 @@ namespace reMath{
 	 * A class to represent 2x2 matrices that are often used in vector
 	 * transformations. Note column-major indices
 	 ******************************************************************************/
-	class matrix2{
+	class matrix2
+	{
 	public:
 		matrix2();
 		matrix2(const matrix2& copy);
@@ -230,7 +244,8 @@ namespace reMath{
 	 * A class to represent 3x3 matrices that are often used in vector
 	 * transformations. Note column-major indices
 	 ******************************************************************************/
-	class matrix3{
+	class matrix3
+	{
 	public:
 		matrix3();
 		matrix3(const matrix3& copy);
@@ -269,7 +284,8 @@ namespace reMath{
 	 * A class to represent 4x4 matrices that are often used in vector
 	 * transformations. Note column-major indices
 	 ******************************************************************************/
-	class matrix4{
+	class matrix4
+	{
 	public:
 		matrix4();
 		matrix4(const matrix4& copy);
@@ -329,5 +345,5 @@ namespace reMath{
 	matrix4 scale_tr		(vector3 vec);
 	matrix4 scale_tr		(float scale);
 }
-#endif
 
+#endif

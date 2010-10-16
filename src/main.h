@@ -1,8 +1,17 @@
+/*****************************************************************************
+ * Header: main
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
+
 #ifndef _PROTO_MAIN_H
 #define _PROTO_MAIN_H
 
 
-class DefTer : public reGL3App{
+class DefTer : public reGL3App
+{
 public:
 	DefTer(AppConfig& conf);
 	~DefTer();
@@ -58,6 +67,5 @@ public:
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
 };
-
 
 #endif

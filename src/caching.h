@@ -1,9 +1,16 @@
-
+/*****************************************************************************
+ * Header: caching
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #ifndef _CACHING_H_
 #define _CACHING_H_
 
-struct	Tile {
+struct Tile
+{
 	TexData	m_texdata;
 	bool	m_modified;
 	bool	m_LoadedPrevious;
@@ -14,7 +21,8 @@ struct	Tile {
 };
 
 enum REQUEST_TYPE	{ LOAD, UNLOAD};
-struct CacheRequest{
+struct CacheRequest
+{
 	REQUEST_TYPE	type;
 	GLuint			pbo;
 	GLubyte*		ptr;
@@ -24,7 +32,8 @@ struct CacheRequest{
 	int 			m_cycles;
 };
 
-struct DeformOp{
+struct DeformOp
+{
 	Tile*			tile;
 	vector2 		clickPos;
 	float			scale;
@@ -35,7 +44,8 @@ int hdd_cacher(void* data);
 
 #define PBO_POOL		(4)
 
-class Caching{
+class Caching
+{
 public:
 	Caching					(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes);
 	~Caching				(void);
@@ -113,6 +123,5 @@ private:
 	GLuint				m_pbos[PBO_POOL*2];
 	bool				m_threadRunning;
 };
-
 
 #endif
