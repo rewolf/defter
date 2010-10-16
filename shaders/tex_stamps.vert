@@ -8,6 +8,7 @@
 
 // Uniforms
 uniform vec2 stamp_scale;
+uniform mat2 stamp_rotation;
 uniform vec2 clickPos;
 
 
@@ -25,7 +26,7 @@ void main()
 {
 	vec2 dif 		= 0.5 - clickPos;
 
-	vec2 texCoord 	= vert_Position * stamp_scale;
+	vec2 texCoord 	= stamp_rotation * vert_Position * stamp_scale;
 
 	gl_Position 	= vec4(2 * (texCoord - dif), 1.0, 1.0);
 

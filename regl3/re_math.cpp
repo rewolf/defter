@@ -1726,6 +1726,19 @@ namespace reMath{
 	 ******************************************************************************/
 
 	//-------------------------------------------------------------------------
+	// ROTATE_TR2 returns a rotation matrix2
+	// The angle must be specified in RADIANS
+	matrix2
+	rotate_tr2 (float angle){
+		matrix2 out;
+		out[0] =  cosf(angle);
+		out[1] =  sinf(angle);
+		out[2] = -sinf(angle);
+		out[3] =  cosf(angle);
+		return out;
+	}
+
+	//-------------------------------------------------------------------------
 	// TRANSLATE_TR returns a matrix that may be used for vector translation
 	// if the vector is pre-multiplied by this matrix.
 	matrix4

@@ -337,6 +337,8 @@ namespace reMath
 
 	bool close_enough(float f1, float f2);
 
+	matrix2 rotate_tr2		(float angle);
+
 	matrix4 translate_tr	(float x, float y, float z);
 	matrix4 translate_tr	(vector3 vec);
 	matrix4 rotate_tr		(float angle, float x, float y, float z);

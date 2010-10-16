@@ -91,6 +91,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
 	clickPos		   += clickOffset;
 	sir.x				= 0.5f * sir.x * metre_scale;
+	matrix2 stampRot	= rotate_tr2(sir.z);
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 
 	GLuint	backupTex;
@@ -176,6 +177,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 
 	glUniform2f(glGetUniformLocation(shaderID, "clickPos"), clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), sir.x, sir.x);
+	glUniformMatrix2fv(glGetUniformLocation(shaderID, "stamp_rotation"), 1, GL_FALSE, stampRot.m);
 	if (stamp.m_isTexStamp)
 		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
 
@@ -219,8 +221,9 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glBindTexture(GL_TEXTURE_2D, backupTex);
 
 		// Setup the regions for copying
-		int copyW = (int)ceil(2.0f * sir.x * dim) ;
-		int copyH = (int)ceil(2.0f * sir.x * dim);
+		// Do a slightly larger area than required to allow for rotation
+		int copyW = (int)ceil(2.9f * sir.x * dim) ;
+		int copyH = (int)ceil(2.9f * sir.x * dim);
 		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
 		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
 		// Make sure it's not out of bounds
@@ -246,7 +249,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	if (!init)
 	{
 		clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
-		scale				= 0.5f * scale * metre_scale;
+		scale				= 0.75f * scale * metre_scale;
 		clickPos += clickOffset;
 	}
 	else

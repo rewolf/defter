@@ -8,6 +8,7 @@
 
 // Uniforms
 uniform vec2 stamp_scale;
+uniform mat2 stamp_rotation;
 uniform vec2 clickPos;
 
 

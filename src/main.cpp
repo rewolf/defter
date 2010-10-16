@@ -263,8 +263,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
-	m_stampIntensity= 0.2f;
-	m_stampScale	= 50.0f;
+	m_stampSir		= vector3(50.0f, 0.2f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
@@ -856,109 +855,111 @@ DefTer::ProcessInput(float dt)
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, 10.0f, 0.4f * wheel_ticks);
 		else
 		{
-			vector2 areaMin(m_clickPos - vector2(m_stampScale / 2.0f));
-			vector2 areaMax(areaMin	+ vector2(m_stampScale));
+			vector2 areaMin(m_clickPos - vector2(m_stampSir.x / 2.0f));
+			vector2 areaMax(areaMin	+ m_stampSir.x);
 
 			areaMin *= m_pClipmap->m_metre_to_tex;
 			areaMin += vector2(0.5f);
 			areaMax *= m_pClipmap->m_metre_to_tex;
 			areaMax += vector2(0.5f);
 
+			vector3 stampSir = m_stampSir;
+			stampSir.y		*= wheel_ticks;
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSir, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, stampSir, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, stampSir, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSir, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, stampSir, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, stampSir, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, stampSir, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSir, true);
 			}
 			
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, vector3(m_stampScale, m_stampIntensity * wheel_ticks, 0.0f), true);
+			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSir, true);
 
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), stampSir.x, true);
 			}
 			if (areaMin.x < 0.0)
 			{
 				// Left-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), stampSir.x, true);
 			}
 			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), stampSir.x, true);
 			}
 			// Centre-Col
 			if (areaMax.y > 1.0)
 			{
 				// Centre-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), stampSir.x, true);
 			}
 			if (areaMin.y < 0.0)
 			{
 				// Centre-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), stampSir.x, true);
 			}
 			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
 				// Right-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), stampSir.x, true);
 			}
 			if (areaMax.x > 1.0)
 			{
 				// Right-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), stampSir.x, true);
 			}
 			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampScale, true);
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), stampSir.x, true);
 			}
 			
-			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampScale, true);
+			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), stampSir.x, true);
 
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
-			// restart timer
+			// Restart timer
 			m_deformTimer.start();
 			m_otherState = READY;
 		}
@@ -1036,26 +1037,39 @@ DefTer::ProcessInput(float dt)
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
-		float change = 0.1f * (m_is_super_speed ? 10.0f : 1.0f);
-		m_stampScale = min(m_stampScale + change, 200.0f);
-		printf("Stamp Scale: %.1f\n", m_stampScale);
+		m_stampSir.x = min(m_stampSir.x + (20.0f * dt), 200.0f);
+		printf("Stamp Scale: %.1f\n", m_stampSir.x);
 	}
 	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
 	{
-		float change = 0.1f * (m_is_super_speed ? 10.0f : 1.0f);
-		m_stampScale = max(m_stampScale - change, 0.1f);
-		printf("Stamp Scale: %.1f\n", m_stampScale);
+		m_stampSir.x = max(m_stampSir.x - (20.0f * dt), 0.1f);
+		printf("Stamp Scale: %.1f\n", m_stampSir.x);
 	}
 	// Change the intensity of the stamp
 	if (m_input.IsKeyPressed(SDLK_PLUS) || m_input.IsKeyPressed(SDLK_KP_PLUS))
 	{
-		m_stampIntensity = min(m_stampIntensity + 0.01f, 1.0f);
-		printf("Stamp Intensity: %.2f\n", m_stampIntensity);
+		m_stampSir.y = min(m_stampSir.y + (0.5f * dt), 1.0f);
+		printf("Stamp Intensity: %.2f\n", m_stampSir.y);
 	}
 	else if (m_input.IsKeyPressed(SDLK_MINUS) || m_input.IsKeyPressed(SDLK_KP_MINUS))
 	{
-		m_stampIntensity = max(m_stampIntensity - 0.01f, 0.01f);
-		printf("Stamp Intensity: %.2f\n", m_stampIntensity);
+		m_stampSir.y = max(m_stampSir.y - (0.5f * dt), 0.01f);
+		printf("Stamp Intensity: %.2f\n", m_stampSir.y);
+	}
+	// Change the rotation of the stamp
+	if (m_input.IsKeyPressed(SDLK_LEFTBRACKET))
+	{
+		m_stampSir.z += M_PI * dt;
+		if (m_stampSir.z > 2.0f * M_PI)
+			m_stampSir.z = 0.0f;
+		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / M_PI);
+	}
+	else if (m_input.IsKeyPressed(SDLK_RIGHTBRACKET))
+	{
+		m_stampSir.z -= M_PI * 0.5f * dt;
+		if (m_stampSir.z < 0.0f)
+			m_stampSir.z = 2.0f * M_PI;
+		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / M_PI);
 	}
 
 	// Toggle gravity
