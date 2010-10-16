@@ -48,6 +48,23 @@ float reTimer::getElapsed()
 #endif
 }
 
+//--------------------------------------------------------
+float reTimer::peekElapsed()
+{
+#ifdef _WIN32
+    __int64 temp, elapsed;
+    QueryPerformanceCounter((LARGE_INTEGER*)&temp);
+    elapsed = temp - m_now;
+    return ((float)(elapsed * m_freqInv));
+#else
+    timeval temp;
+    gettimeofday(&temp, 0);
+    float elapsed = temp.tv_sec - m_now.tv_sec + (temp.tv_usec - m_now.tv_usec) * 1.0e-6;
+    return elapsed;
+#endif
+}
+
+//--------------------------------------------------------
 float reTimer::getFPS()
 {
 #ifdef _WIN32

@@ -3,6 +3,10 @@
 
 #define NUM_PBOS			(4)
 
+enum XferState {
+	CHILLED, READY, BUFFERING, RETRIEVING, DONE
+};
+
 class DefTer : public reGL3App{
 public:
 	DefTer(AppConfig& conf);
@@ -61,12 +65,18 @@ public:
 	// Coarsemap continuous unpacking stuff
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
+	SDL_Thread*		m_retrieverThread;
 	SDL_mutex*		m_elevationDataMutex;
-	bool			m_packedCoarseDeform;
-	bool			m_isTransferring;
+	SDL_cond*		m_waitCondition;
+	GLushort*		m_bufferPtr;
+	
+	XferState		m_XferState;
+	XferState		m_otherState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 };
 
+// thread that retrieves the coarsemap from the PBOs
+int map_retriever(void* defter);
 
 #endif
