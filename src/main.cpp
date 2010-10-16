@@ -84,7 +84,18 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define EYE_HEIGHT			(2.0f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(10)	// After commencing download, wait a few cycles before mapping
+#define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
+
+#define DEBUG_ON			(0)
+#if DEBUG_ON
+	#define DEBUG(x)		printf(x)
+	#define DEBUG2(x,y)		printf(x,y)
+	#define DEBUG3(x,y,z)	printf(x,y,z)
+#else
+	#define DEBUG(x)		{}
+	#define DEBUG2(x,y)		{}
+	#define DEBUG3(x,y,z)	{}
+#endif
 
 //float timeCount = 0;
 //long frameCount = 0;
@@ -720,7 +731,7 @@ DefTer::UpdateCoarsemapStreamer(){
 
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
-		printf("__________\nStart transfer\n");
+		DEBUG("__________\nStart transfer\n");
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -742,7 +753,7 @@ DefTer::UpdateCoarsemapStreamer(){
 		m_cyclesPassed++;
 		if ( m_cyclesPassed > MAP_BUFFER_CYCLES ){
 			// map buffer to sys memory
-			printf("map buffer\n");
+			DEBUG("map buffer\n");
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 			m_bufferPtr 	= (GLushort*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 			m_XferState 	= RETRIEVING;
@@ -757,7 +768,7 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If the thread has finished with the buffer
 	else if (m_XferState == DONE){
 		// Unmap the buffer
-		printf("Unmap the buffer\n");
+		DEBUG("Unmap the buffer\n");
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 		m_XferState = CHILLED;
@@ -767,7 +778,7 @@ DefTer::UpdateCoarsemapStreamer(){
 		return;
 	}
 	CheckError("coarsemap streamer\n");
-	printf("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
+	DEBUG2("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
 }
 
 //--------------------------------------------------------
@@ -950,8 +961,6 @@ DefTer::ProcessInput(float dt)
 			// restart timer
 			m_deformTimer.start();
 			m_otherState = READY;
-
-			printf("DEFORMED\n");
 		}
 	}
 
@@ -1240,19 +1249,21 @@ DefTer::Render(float dt)
 int 
 map_retriever(void* defter){
 	DefTer* main = (DefTer*) defter;
-	static float scale = VERT_SCALE * 1.0f/USHRT_MAX;
-	static int dim = main->m_coarsemap_dim;
+	float scale = VERT_SCALE * 1.0f/USHRT_MAX;
+	int dim = main->m_coarsemap_dim;
+	reTimer copyTimer;
 
 	while(main->m_isRunning){
 		// unlock mutex, wait for a signal to transfer and then get mutex
 		SDL_mutexP(main->m_elevationDataMutex);
 		SDL_CondWait(main->m_waitCondition, main->m_elevationDataMutex);
+		copyTimer.start();
 		// We can unlock it and continue to load into the array buffer
 		SDL_mutexV(main->m_elevationDataMutex);
 		if (!main->m_isRunning){
 			break;
 		}
-		printf("retrieving\n");
+		DEBUG("retrieving\n");
 		
 		// copy data and transform
 		for (int i = 0; i < dim * dim; i++){
@@ -1265,9 +1276,9 @@ map_retriever(void* defter){
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
+		DEBUG2("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
-	printf("thread dead\n");
 }
 
 
