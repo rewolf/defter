@@ -1204,7 +1204,11 @@ DefTer::Render(float dt)
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	matrix4 rotate, viewproj;
+	matrix4 rotate, rotateclamp, cullviewproj, viewproj, translate;
+
+	translate= translate_tr(.0f, -m_cam_translate.y, .0f);
+	rotateclamp  = rotate_tr(max(.0f, m_cam_rotate.x), 1.0f, .0f, .0f) * rotate_tr(m_cam_rotate.y, .0f, 1.0f, .0f);
+	cullviewproj = m_proj_mat * rotateclamp * translate;
 
 	rotate   = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(m_cam_rotate.y, .0f, 1.0f, .0f);
 	viewproj = m_proj_mat * rotate;
@@ -1222,7 +1226,7 @@ DefTer::Render(float dt)
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
 
 	// Cull invisible blocks and render clipmap
-	m_pClipmap->cull(viewproj, m_clipmap_shift);
+	m_pClipmap->cull(cullviewproj, m_clipmap_shift);
 
 	// Block of four tiles where the 0th tile is the top left active tile
 	Tile activeTiles[4];
