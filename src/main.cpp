@@ -341,10 +341,10 @@ DefTer::InitGL()
 	printf(
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
-	"c\t"		"= En/Disable Frustum Culling\n"
+	"f\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
-	"L-Ctrl\t"	"= Crouch/Sink\n"
+	"c\t"		"= Crouch/Sink\n"
 	"h\t"		"= High Detail Toggle\n"
 	"L-Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
@@ -875,58 +875,63 @@ DefTer::ProcessInput(float dt)
 
 			areaMax += vector2(0.5f);
 
+			list<vector2> fuck;
+
 			// Left-Col
-			if (areaMin.x < 0.0 && areaMin.y < 0.0)
+			if (areaMin.x < 0.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 1.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMin.x < 0.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
-			{
-				// Left-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMin.x < 0.0 && areaMax.y > 1.0)
-			{
-				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSIRM, true);
-			}
+				if (areaMin.y < 0.0)
+					fuck.push_back(vector2(1.0f, 1.0f));
 
+				// Left-Centre
+				if (areaMax.y > 0.0 && areaMin.y < 1.0)
+					fuck.push_back(vector2(1.0f, 0.0f));
+
+				// Left-Bottom
+				if (areaMax.y > 1.0)
+					fuck.push_back(vector2(1.0f, -1.0f));
+			}
 
 			// Centre-Col
-			if (areaMin.y < 0.0 && areaMax.x > 0.0 && areaMin.x < 1.0)
+			if (areaMin.x < 1.0 && areaMax.x > 0.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMax.x > 0.0 && areaMin.x < 1.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
-			{
-				// Centre-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMax.y > 1.0 && areaMax.x > 0.0 && areaMin.x < 1.0)
-			{
-				// Centre-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSIRM, true);
-			}
+				if (areaMin.y < 0.0)
+					fuck.push_back(vector2(0.0f, 1.0f));
 
+				// Centre-Centre
+				if (areaMax.y > 0.0 && areaMin.y < 1.0)
+					fuck.push_back(vector2(0.0f));
+				
+				// Centre-Bottom
+				if (areaMax.y > 1.0)
+					fuck.push_back(vector2(0.0f, -1.0f));
+			}
 
 			// Right-Col
-			if (areaMax.x > 1.0 && areaMin.y < 0.0)
+			if (areaMax.x > 1.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMax.x > 1.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
-			{
+				if (areaMin.y < 0.0)
+					fuck.push_back(vector2(-1.0f, 1.0f));
+
 				// Right-Centre
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMax.x > 1.0 && areaMax.y > 1.0)
-			{
+				if (areaMax.y > 0.0 && areaMin.y < 1.0)
+					fuck.push_back(vector2(-1.0f, 0.0f));
+
 				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, -1.0f), m_stampName, stampSIRM, true);
+				if (areaMax.y > 1.0)
+					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
+
+			// Displace the heightmap
+			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampName, stampSIRM, true);
+
+			// Calculate the normals
+			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
 			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
@@ -955,7 +960,7 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_c))
+	if (m_input.WasKeyPressed(SDLK_f))
 	{
 		m_pClipmap->m_cullingEnabled ^= true;
 		printf("Frustum Culling Enabled: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
@@ -1091,7 +1096,7 @@ DefTer::ProcessInput(float dt)
 		m_cam_translate.y += 5.0f * dt;
 	}
 	// Controls for crouching (Sinking)
-	if (m_input.IsKeyPressed(SDLK_LCTRL))
+	if (m_input.IsKeyPressed(SDLK_c))
 	{
 		// Sink if gravity off
 	   if (!m_gravity_on)
@@ -1106,7 +1111,7 @@ DefTer::ProcessInput(float dt)
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
-	if (m_is_crouching && !m_input.IsKeyPressed(SDLK_LCTRL))
+	if (m_is_crouching && !m_input.IsKeyPressed(SDLK_c))
 	{
 		m_is_crouching = false;
 	}
