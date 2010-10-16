@@ -34,7 +34,7 @@ struct Stamp
 		glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
 		glBindAttribLocation(m_shader->m_programID, 0, "vert_TexCoord");
 
-		return (m_shader->CompileAndLink());
+		return (m_shader->CompileAndLink() == 1);
 	}
 
 	bool LoadTexture(string textureName)

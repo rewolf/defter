@@ -55,9 +55,9 @@ using namespace std;
 #include "caching.h"
 #include "main.h"
 
-#define PI					(3.14159265358f)
+#define PI					(3.14159265358979323846264338327950288f)
 #define FAR_PLANE			(1000.0f)
-#define NEAR_PLANE			(.5f)
+#define NEAR_PLANE			(0.5f)
 
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
@@ -695,7 +695,7 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
-	worldPos = (worldPos*m_pClipmap->m_metre_to_tex + vector2(.5f)) * m_coarsemap_dim;
+	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
 	float fx= worldPos.x - x0;
@@ -798,10 +798,10 @@ DefTer::ProcessInput(float dt)
 
 		//Clamp the camera to prevent the user flipping
 		//upside down messing up everything
-		if (m_cam_rotate.x < -M_PI * 0.5f)
-			m_cam_rotate.x = -M_PI * 0.5f;
-		if (m_cam_rotate.x > M_PI * 0.5f)
-			m_cam_rotate.x = M_PI * 0.5f;
+		if (m_cam_rotate.x < -PI * 0.5f)
+			m_cam_rotate.x = -PI * 0.5f;
+		if (m_cam_rotate.x > PI * 0.5f)
+			m_cam_rotate.x = PI * 0.5f;
 	}
 
 	// Change the selected deformation location
@@ -818,7 +818,7 @@ DefTer::ProcessInput(float dt)
 		matrix4 inverse = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
 
 		// Request unprojected coordinate
-		vector3 p = perspective_unproj_world(frag, SCREEN_W, SCREEN_H, NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
+		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
 		// Check that the position is in valid range when using coarse stamping
 		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
@@ -1059,17 +1059,17 @@ DefTer::ProcessInput(float dt)
 	// Change the rotation of the stamp
 	if (m_input.IsKeyPressed(SDLK_LEFTBRACKET))
 	{
-		m_stampSir.z += M_PI * dt;
-		if (m_stampSir.z > 2.0f * M_PI)
+		m_stampSir.z += PI * dt;
+		if (m_stampSir.z > 2.0f * PI)
 			m_stampSir.z = 0.0f;
-		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / M_PI);
+		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / PI);
 	}
 	else if (m_input.IsKeyPressed(SDLK_RIGHTBRACKET))
 	{
-		m_stampSir.z -= M_PI * 0.5f * dt;
+		m_stampSir.z -= PI * 0.5f * dt;
 		if (m_stampSir.z < 0.0f)
-			m_stampSir.z = 2.0f * M_PI;
-		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / M_PI);
+			m_stampSir.z = 2.0f * PI;
+		printf("Stamp Rotation: %.1f\n", m_stampSir.z * 180.0f / PI);
 	}
 
 	// Toggle gravity

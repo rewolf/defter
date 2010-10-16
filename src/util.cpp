@@ -113,14 +113,18 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale)
 	if (scale)
 	{
 		// Scaling variables
-		float targetScale, newW, newH;
+		float targetScale;
+		int newW, newH;
 		int offsetw, offseth;
 
 		targetScale = max(float(SCREEN_W) / width, float(SCREEN_H) / height);
 
 		// Calculate the new width & height based on the scale
-		newW		= float(width) * targetScale;
-		newH		= float(height) * targetScale;
+		float newWf	= float(width) * targetScale;
+		float newHf	= float(height) * targetScale;
+
+		newW		= (int)newWf;
+		newH		= (int)newHf;
 		
 		// Rescale the image to the new size
 		image = FreeImage_Rescale(image, newW, newH, FILTER_CATMULLROM);

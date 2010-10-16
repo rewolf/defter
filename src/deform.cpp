@@ -36,7 +36,7 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	m_shPDMapper = new ShaderProg("shaders/calc_pdmap.vert", "", "shaders/calc_pdmap.frag");
 	glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
-	m_no_error &= m_shTexStamp->CompileAndLink() & m_shPDMapper->CompileAndLink();
+	m_no_error &= (m_shTexStamp->CompileAndLink() == 1 && m_shPDMapper->CompileAndLink() == 1);
 
 	// Create VAO and VBO
 	glGenVertexArrays(1, &m_vao);
