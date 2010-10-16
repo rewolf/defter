@@ -1,5 +1,5 @@
 /*****************************************************************************
- * reMath contains vector and matrix class
+ * re_math: Provides math functions, vector and matrix classes
  *
  * Copyright © 2010
  * Authors: Andrew Flower & Justin Crause

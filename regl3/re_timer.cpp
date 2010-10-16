@@ -1,24 +1,15 @@
-/*
-    Copyright (C) 2010 Andrew Flower <andrew.flower@gmail.com>
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+/*****************************************************************************
+ * re_timer: Used to provide timing functions
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 #include "regl3.h"
 
 //--------------------------------------------------------
-reTimer::reTimer(){
+reTimer::reTimer()
+{
 #ifdef _WIN32
     __int64 tempFreq;
     QueryPerformanceFrequency((LARGE_INTEGER*)&tempFreq);
@@ -28,7 +19,8 @@ reTimer::reTimer(){
 }
 
 //--------------------------------------------------------
-void reTimer::start(){
+void reTimer::start()
+{
 #ifdef _WIN32
     QueryPerformanceCounter((LARGE_INTEGER*)&m_start);
 #else
@@ -38,7 +30,8 @@ void reTimer::start(){
 }
 
 //--------------------------------------------------------
-float reTimer::getElapsed(){
+float reTimer::getElapsed()
+{
 	m_frameCount++;
 #ifdef _WIN32
     __int64 temp, elapsed;
@@ -55,11 +48,11 @@ float reTimer::getElapsed(){
 #endif
 }
 
-float reTimer::getFPS(){
+float reTimer::getFPS()
+{
 #ifdef _WIN32
 	return ((float)(m_frameCount/((m_now - m_start)*m_freqInv)));
 #else
         return float(m_frameCount)/float(m_now.tv_sec-m_start.tv_sec +  (m_now.tv_usec - m_start.tv_usec) * 1.0e-6);
 #endif        
 }
-

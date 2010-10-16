@@ -1,3 +1,10 @@
+/*****************************************************************************
+ * util: Provides utility methods - image handling and error checking
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #include "regl3.h"
 #include "util.h"
@@ -9,17 +16,22 @@ extern const float ASPRAT;
 
 //--------------------------------------------------------
 bool
-SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip){
+SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip)
+{
 
 	FIBITMAP* 			image;
 	FREE_IMAGE_TYPE 	type;	// needed in case of 16-bit components
 	BYTE*				bits;
 
-	if (bitdepth == 8) {  // 8-bits per component
+	// 8-bits per component
+	if (bitdepth == 8)
+	{
 		image = FreeImage_Allocate(w, h, components * bitdepth);
 	} 
-	else if (bitdepth == 16){
-		switch(components){
+	else if (bitdepth == 16)
+	{
+		switch(components)
+		{
 			case 1:
 				type = FIT_UINT16;
 				break;
@@ -35,12 +47,14 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 		}
 		image = FreeImage_AllocateT(type, w, h);
 	}
-	else{
+	else
+	{
 		fprintf(stderr, "Invalid bitdepth for %s.  Must be 16 or 32.\n",filename);
 		return false;
 	}
 
-	if (!image){
+	if (!image)
+	{
 		fprintf(stderr, "Failed to allocate bitmap space for %s\n", filename);
 		return false;
 	}
@@ -59,7 +73,8 @@ SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int 
 
 //--------------------------------------------------------
 bool 
-LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
+LoadPNG(GLuint* tex, string filename, bool flip, bool scale)
+{
 	FIBITMAP*		image;
 	BYTE*			bits;
 	int				width;
@@ -68,7 +83,8 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 
 	image = FreeImage_Load(FIF_PNG, filename.c_str(), 0);
 
-	if (!image){
+	if (!image)
+	{
 		fprintf(stderr, "Error\n\tCould not load PNG: %s\n", filename.c_str());
 		return false;
 	}
@@ -80,7 +96,8 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	if (!CheckError("Loading PNG texture, setting parameters")){
+	if (!CheckError("Loading PNG texture, setting parameters"))
+	{
 		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
@@ -127,7 +144,8 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 	bitdepth= FreeImage_GetBPP(image);
 
 	// Choose based on bit depth
-	switch(bitdepth){
+	switch(bitdepth)
+	{
 		case 32:
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, bits);
 			break;
@@ -149,12 +167,14 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale){
 
 //--------------------------------------------------------
 bool 
-CheckError(string text){
+CheckError(string text)
+{
 	GLuint err = glGetError();
 
 	if (err!=GL_NO_ERROR){
 		fprintf(stderr, "Error\n\tOpenGL Error: ");
-		switch(err){
+		switch(err)
+		{
 			case GL_INVALID_ENUM:
 				fprintf(stderr, "Invalid Enum");
 				break;
@@ -191,32 +211,34 @@ CheckError(string text){
 }
 
 void
-PrintFBOErr(GLenum err){
+PrintFBOErr(GLenum err)
+{
 	printf("\n");
-	switch (err){
-	case GL_FRAMEBUFFER_UNDEFINED:
-		fprintf(stderr, "FB Undefined");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-		fprintf(stderr, "FB Incomplete Attachment");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-		fprintf(stderr, "FB Incomplete Missing Attachment");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-		fprintf(stderr, "FB Incomplete Draw Buffer");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-		fprintf(stderr, "FB Incomplete Read Buffer");
-		break;
-	case GL_FRAMEBUFFER_UNSUPPORTED:
-		fprintf(stderr, "FB Unsupported");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-		fprintf(stderr, "FB Incomplete Multisample");
-		break;
-	case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
-		fprintf(stderr, "FB Incomplete Layer Targets");
-		break;
+	switch (err)
+	{
+		case GL_FRAMEBUFFER_UNDEFINED:
+			fprintf(stderr, "FB Undefined");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			fprintf(stderr, "FB Incomplete Attachment");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			fprintf(stderr, "FB Incomplete Missing Attachment");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			fprintf(stderr, "FB Incomplete Draw Buffer");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			fprintf(stderr, "FB Incomplete Read Buffer");
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			fprintf(stderr, "FB Unsupported");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			fprintf(stderr, "FB Incomplete Multisample");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			fprintf(stderr, "FB Incomplete Layer Targets");
+			break;
 	}
 }
