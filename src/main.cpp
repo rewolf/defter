@@ -148,7 +148,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 DefTer::~DefTer()
 {
 	// signal thread to check "isRunning" status
-	SDL_CondSignal(m_waitCondition);
+	SDL_SemPost(m_waitSem);
 
 	SaveCoarseMap("images/last_shit_coarsemap.png");
 	glDeleteBuffers(3, m_vbo);
@@ -172,7 +172,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_splashmap);
 	SDL_DestroyMutex(m_elevationDataMutex);
-	SDL_DestroyCond(m_waitCondition);
+	SDL_DestroySemaphore(m_waitSem);
 }
 
 //--------------------------------------------------------
@@ -372,6 +372,10 @@ DefTer::InitGL()
 bool
 DefTer::Init()
 {
+	// Init the elevation data mutex
+	m_elevationDataMutex = SDL_CreateMutex();
+	m_waitSem			 = SDL_CreateSemaphore(0);
+
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
 	if (!LoadCoarseMap(COARSEMAP_FILENAME))
@@ -456,10 +460,6 @@ DefTer::Init()
 	glGenFramebuffers(1, &m_fboTransfer);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-	// Init the elevation data mutex
-	m_elevationDataMutex = SDL_CreateMutex();
-	m_waitCondition		 = SDL_CreateCond();
 
 	// start the retriever thread
 	m_retrieverThread	 = SDL_CreateThread(&map_retriever, this);
@@ -760,7 +760,7 @@ DefTer::UpdateCoarsemapStreamer(){
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 			// Signal retriever thread to take data from buffer:
-			SDL_CondSignal(m_waitCondition);
+			SDL_SemPost(m_waitSem);
 		}
 		else
 			return;
@@ -1255,11 +1255,9 @@ map_retriever(void* defter){
 
 	while(main->m_isRunning){
 		// unlock mutex, wait for a signal to transfer and then get mutex
-		SDL_mutexP(main->m_elevationDataMutex);
-		SDL_CondWait(main->m_waitCondition, main->m_elevationDataMutex);
+		SDL_SemWait(main->m_waitSem);
 		copyTimer.start();
 		// We can unlock it and continue to load into the array buffer
-		SDL_mutexV(main->m_elevationDataMutex);
 		if (!main->m_isRunning){
 			break;
 		}
