@@ -872,100 +872,62 @@ DefTer::ProcessInput(float dt)
 			areaMin *= m_pClipmap->m_metre_to_tex;
 			areaMin += vector2(0.5f);
 			areaMax *= m_pClipmap->m_metre_to_tex;
+
 			areaMax += vector2(0.5f);
 
 			// Left-Col
-			if (areaMin.x < 0.0 && areaMax.y > 1.0)
+			if (areaMin.x < 0.0 && areaMin.y < 0.0)
 			{
 				// Left-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 1.0f), m_stampName, stampSIRM, true);
 			}
-			if (areaMin.x < 0.0)
+			if (areaMin.x < 0.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
 			{
 				// Left-Centre
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), m_stampName, stampSIRM, true);
 			}
-			if (areaMin.x < 0.0 && areaMin.y < 0.0)
+			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{
 				// Left-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f), m_stampName, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), m_stampName, stampSIRM, true);
 			}
+
+
 			// Centre-Col
-			if (areaMax.y > 1.0)
+			if (areaMin.y < 0.0 && areaMax.x > 0.0 && areaMin.x < 1.0)
 			{
 				// Centre-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSIRM, true);
-			}
-			if (areaMin.y < 0.0)
-			{
-				// Centre-Bottom
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), m_stampName, stampSIRM, true);
 			}
+			if (areaMax.x > 0.0 && areaMin.x < 1.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
+			{
+				// Centre-Centre
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSIRM, true);
+			}
+			if (areaMax.y > 1.0 && areaMax.x > 0.0 && areaMin.x < 1.0)
+			{
+				// Centre-Bottom
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), m_stampName, stampSIRM, true);
+			}
+
+
 			// Right-Col
-			if (areaMax.x > 1.0 && areaMax.y > 1.0)
+			if (areaMax.x > 1.0 && areaMin.y < 0.0)
 			{
 				// Right-Top
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f), m_stampName, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSIRM, true);
 			}
-			if (areaMax.x > 1.0)
+			if (areaMax.x > 1.0 && areaMax.y > 0.0 && areaMin.y < 1.0)
 			{
 				// Right-Centre
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), m_stampName, stampSIRM, true);
 			}
-			if (areaMax.x > 1.0 && areaMin.y < 0.0)
-			{
-				// Right-Bottom
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), m_stampName, stampSIRM, true);
-			}
-			
-			m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampName, stampSIRM, true);
-
-			// Left-Col
-			if (areaMin.x < 0.0 && areaMax.y > 1.0)
-			{
-				// Left-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, -1.0f), stampSIRM.x, true);
-			}
-			if (areaMin.x < 0.0)
-			{
-				// Left-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f, 0.0f), stampSIRM.x, true);
-			}
-			if (areaMin.x < 0.0 && areaMin.y < 0.0)
-			{
-				// Left-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(1.0f), stampSIRM.x, true);
-			}
-			// Centre-Col
-			if (areaMax.y > 1.0)
-			{
-				// Centre-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, -1.0f), stampSIRM.x, true);
-			}
-			if (areaMin.y < 0.0)
-			{
-				// Centre-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f, 1.0f), stampSIRM.x, true);
-			}
-			// Right-Col
 			if (areaMax.x > 1.0 && areaMax.y > 1.0)
 			{
-				// Right-Top
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f), stampSIRM.x, true);
-			}
-			if (areaMax.x > 1.0)
-			{
-				// Right-Centre
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 0.0f), stampSIRM.x, true);
-			}
-			if (areaMax.x > 1.0 && areaMin.y < 0.0)
-			{
 				// Right-Bottom
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(-1.0f, 1.0f), stampSIRM.x, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, vector2(-1.0f, -1.0f), m_stampName, stampSIRM, true);
 			}
 			
-			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), stampSIRM.x, true);
-
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer

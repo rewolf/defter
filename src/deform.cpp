@@ -95,7 +95,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 
 	GLuint	backupTex;
-	
 	// Stamp controls
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
@@ -234,6 +233,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		int copyH = (int)ceil(2.9f * SIRM.x * dim);
 		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
 		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
+
 		// Make sure it's not out of bounds
 		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
 		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
