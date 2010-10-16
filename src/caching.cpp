@@ -21,6 +21,7 @@ using namespace std;
 #include "FreeImage.h"
 #ifdef _WIN32
 #	include "direct.h"
+#	define	mkdir(x)	_mkdir(x)
 #else
 #	include "sys/stat.h"
 #	define  mkdir(x)	mkdir(x, S_IRWXU)
@@ -120,7 +121,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	m_shRadar->CompileAndLink();
 
 	m_cellSize			= 1.0f / m_GridSize;
-	m_radar_pos			= vector2(SCREEN_W, SCREEN_H) - vector2(RADAR_OFFSET + RADAR_SIZE);
+	m_radar_pos			= vector2(float(SCREEN_W), float(SCREEN_H)) - vector2(RADAR_OFFSET + RADAR_SIZE);
 	m_radar2_pos		= m_radar_pos + vector2(RADAR2_SIZE / 2.0f, -(RADAR2_SIZE + RADAR_OFFSET));
 
 	// Vertex positions
@@ -511,7 +512,7 @@ Caching::Render(void)
 	glActiveTexture(GL_TEXTURE0);
 
 	// Change to the new viewport
-	glViewport(m_radar_pos.x, m_radar_pos.y, RADAR_SIZE, RADAR_SIZE);
+	glViewport((int)m_radar_pos.x, (int)m_radar_pos.y, (int)RADAR_SIZE, (int)RADAR_SIZE);
 
 	// Set initial uniforms
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "offset"), 1, offset.v);
@@ -526,7 +527,7 @@ Caching::Render(void)
 
 	// Fill in all loaded texture cells, skipping the current active one
 	glUniform1i(glGetUniformLocation(m_shRadar->m_programID, "pass"), 1);
-	int curIndex = m_TileIndexCurrent.y * m_GridSize + m_TileIndexCurrent.x;
+	int curIndex = (int)m_TileIndexCurrent.y * m_GridSize + (int)m_TileIndexCurrent.x;
 	for (int i = 0; i < m_GridSize * m_GridSize; i++)
 	{
 		// Only draw tiles currently loaded onto the GPU
@@ -584,7 +585,7 @@ Caching::Render(void)
 
 
 	// Draw the second radar image
-	glViewport(m_radar2_pos.x, m_radar2_pos.y, RADAR2_SIZE, RADAR2_SIZE);
+	glViewport((int)m_radar2_pos.x, (int)m_radar2_pos.y, (int)RADAR2_SIZE, (int)RADAR2_SIZE);
 
 	// Set initial uniforms
 	offset = m_TileIndexCurrent * m_cellSize;
@@ -1142,9 +1143,6 @@ Caching::LoadTextureData(CacheRequest load)
 {
 	FIBITMAP*		image;
 	BYTE*			bits;
-	int				width;
-	int				height;
-	int				bitdepth;
 	char			filename[256];
 	
 	sprintf(filename, "cache/tile%02d_%02d.png", load.tile->m_row, load.tile->m_col);
