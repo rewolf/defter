@@ -1172,13 +1172,13 @@ DefTer::Logic(float dt)
 
 	// Footprints
 	m_footprintDT += dt;
-	if ( m_gravity_on && m_footprintDT > 1.0f && close_enough(m_fall_speed, .0f)){
-		vector3 stampSIR(.5f, 2.0f, .0f);
-		stampSIR.z = m_cam_rotate.y + PI;
+	if (m_gravity_on && m_footprintDT > 1.0f && close_enough(m_fall_speed, 0.0f))
+	{
+		vector3 stampSIR(0.5f, 2.0f, m_cam_rotate.y);
 		vector2 foot = vector2(m_cam_translate.x, m_cam_translate.z);
-		foot += rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -.3, .0f);
-		m_pCaching->DeformHighDetail(vector2(foot.x, foot.y), "leftfoot", stampSIR);
-		m_footprintDT 	 = .0f;
+		foot += rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
+		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIR);
+		m_footprintDT 	 = 0.0f;
 		m_flipFoot		^= true;
 	}
 
