@@ -9,6 +9,7 @@
 #ifndef _PROTO_MAIN_H
 #define _PROTO_MAIN_H
 
+#define NUM_PBOS			(4)
 
 class DefTer : public reGL3App
 {
@@ -29,6 +30,7 @@ private:
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
+	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
 
 public:
@@ -56,8 +58,6 @@ public:
 	vector2			m_clickPos;
 	vector2			m_clickPosPrev;
 
-	GLuint			m_pbo[2];
-
 	matrix4			m_proj_mat;
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
@@ -66,6 +66,15 @@ public:
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
+
+	// Coarsemap continuous unpacking stuff
+	GLuint			m_pbo[NUM_PBOS];
+	GLuint			m_fboTransfer;
+	SDL_mutex*		m_elevationDataMutex;
+	bool			m_packedCoarseDeform;
+	bool			m_isTransferring;
+	reTimer			m_deformTimer;
+	int				m_cyclesPassed;
 };
 
 #endif

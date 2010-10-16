@@ -83,6 +83,9 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define GRAVITY				(-9.81f)
 #define EYE_HEIGHT			(2.0f)
 
+#define MAP_TRANSFER_WAIT	(.02f)	// 20 milliseconds
+#define MAP_TRANSFER_CYCLES	(20)
+
 //float timeCount = 0;
 //long frameCount = 0;
 
@@ -146,11 +149,13 @@ DefTer::~DefTer()
 	RE_DELETE(m_pCaching);
 	if (m_elevationData)
 		delete [] m_elevationData;
-	glDeleteBuffers(2, m_pbo);
+	glDeleteBuffers(NUM_PBOS, m_pbo);
+	glDeleteFramebuffers(1,&m_fboTransfer);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_splashmap);
+	SDL_DestroyMutex(m_elevationDataMutex);
 }
 
 //--------------------------------------------------------
@@ -350,14 +355,6 @@ DefTer::InitGL()
 bool
 DefTer::Init()
 {
-	// Init the PBO buffers
-	glGenBuffers(2, m_pbo);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
-	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
-	glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLubyte) * 3 * SCREEN_W * SCREEN_H, NULL,	GL_STREAM_READ);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
 	// Load heightmap
 	printf("Loading coarsemap...\t\t");
 	if (!LoadCoarseMap(COARSEMAP_FILENAME))
@@ -424,6 +421,25 @@ DefTer::Init()
 	hdasq_its.y = 1.0f / (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex);
 	glUseProgram(m_shMain->m_programID);
 	glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "hdasq_its"), 1, hdasq_its.v);
+
+	// Init stuff pertaining to the download of changed heightmap data for collision purposes
+	m_packedCoarseDeform = true;
+	m_isTransferring	 = false;
+	m_cyclesPassed		 = 0;
+
+	// Init the PBOs
+	glGenBuffers(NUM_PBOS, m_pbo);
+	for (int i = 0; i < NUM_PBOS; i++){
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[i]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLushort) * m_coarsemap_dim * m_coarsemap_dim, NULL,	GL_STREAM_READ);
+	}
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+	// Create the FBO
+	glGenFramebuffers(1, &m_fboTransfer);
+
+	// Init the elevation data mutex
+	m_elevationDataMutex = SDL_CreateMutex();
 
 	return true;
 }
@@ -669,6 +685,31 @@ DefTer::InterpHeight(vector2 worldPos)
 }
 
 //--------------------------------------------------------
+// Handles the GPU side of transferring the updated coarsemap to the CPU
+void
+DefTer::UpdateCoarsemapStreamer(){
+	// If there is a new deformation that hasn't been changed in a short while...
+	if (!m_packedCoarseDeform && m_deformTimer.getElapsed() > MAP_TRANSFER_WAIT && !m_isTransferring){
+		// Setup PBO and FBO
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+				m_coarsemap.heightmap, 0);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+		m_cyclesPassed = 0;
+	}
+	// Otherwise if we are transferring
+	else if (m_isTransferring){
+		m_cyclesPassed++;
+		if ( m_cyclesPassed > MAP_TRANSFER_CYCLES ){
+			// map buffer to sys memory
+		}
+	}
+}
+
+//--------------------------------------------------------
 // Process user input
 void
 DefTer::ProcessInput(float dt)
@@ -842,6 +883,12 @@ DefTer::ProcessInput(float dt)
 			}
 			
 			m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, vector2(0.0f), m_stampScale, true);
+
+			// Once this is finally complete, change variables relating to streaming the coarsemap
+			// to the CPU for collision detection
+			// restart timer
+			m_deformTimer.start();
+			m_packedCoarseDeform = false;
 		}
 	}
 
@@ -1021,6 +1068,7 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
+	UpdateCoarsemapStreamer();
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
