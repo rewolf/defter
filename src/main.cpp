@@ -65,6 +65,10 @@ using namespace std;
 extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
+const vector3 	GRAVITY		= vector3(0.0f, -9.81f, 0.0f);
+const float		ACCELERATION= 3.5f;
+const float		AIR_DRAG	= 0.6f;
+const float		FRICTION	= 1.8f;
 
 #define COARSEMAP_FILENAME	("images/coarsemap.png")
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
@@ -80,8 +84,8 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
-#define GRAVITY				(-9.81f)
 #define EYE_HEIGHT			(2.0f)
+#define STEP_TIME			(.6f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
@@ -272,7 +276,7 @@ DefTer::InitGL()
 	// Init the world settings
 	m_gravity_on	= true;
 	m_is_crouching	= false;
-	m_fall_speed	= .0f;
+	m_hit_ground	= false;
 	m_footprintDT	= .0f;
 	m_flipFoot		= false;
 
@@ -789,8 +793,9 @@ DefTer::UpdateCoarsemapStreamer(){
 void
 DefTer::ProcessInput(float dt)
 {
-	int wheel_ticks = m_input.GetWheelTicks();
-	MouseDelta move = m_input.GetMouseDelta();
+	int wheel_ticks 	 = m_input.GetWheelTicks();
+	MouseDelta move 	 = m_input.GetMouseDelta();
+	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
 
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
@@ -1045,50 +1050,44 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_g))
 	{
 		m_gravity_on ^= true;
+		m_velocity.y  = .0f;
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
-	float speed = 1.33f;
-	if (m_input.IsKeyPressed(SDLK_LSHIFT))
-		speed*=3.0f;
+	vector3 moveDirection;
+	matrix4 rotation;
+	if (!m_gravity_on)
+		rotation = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
+	else
+		rotation = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
 	if (m_input.IsKeyPressed(SDLK_w))
-	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
-		m_cam_translate += rot * vector3(.0f, .0f, -speed) * dt;
-		UpdateClickPos();
-	}
+		moveDirection += rotation * vector3( 0.0f, 0.0f,-1.0f);
+
 	if (m_input.IsKeyPressed(SDLK_s))
-	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
-		m_cam_translate += rot * vector3(.0f, .0f, speed) * dt;
-		UpdateClickPos();
-	}
+		moveDirection += rotation * vector3( 0.0f, 0.0f, 1.0f);
+
 	if (m_input.IsKeyPressed(SDLK_a))
-	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
-		m_cam_translate += rot * vector3(-speed, .0f, .0f) * dt;
-		UpdateClickPos();
-	}
+		moveDirection += rotation * vector3(-1.0f, 0.0f, 0.0f);
+
 	if (m_input.IsKeyPressed(SDLK_d))
-	{
-		matrix4 rot =  rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
-		m_cam_translate += rot * vector3(speed, .0f, .0f) * dt;
-		UpdateClickPos();
+		moveDirection += rotation * vector3( 1.0f, 0.0f, 0.0f);
+
+	if (moveDirection.Mag2() > 1.0e-3){
+		moveDirection.Normalize();
+		if (m_input.IsKeyPressed(SDLK_LSHIFT))
+			moveDirection *= 3.0f;
+		m_frameAcceleration += moveDirection *= ACCELERATION;
 	}
 
-	// Boundary check for wrapping position
-	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
-	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
-	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 
 	// Controls for jumping (Floating)
 	if (m_input.WasKeyPressed(SDLK_SPACE))
 	{
 		// Only jump if on the ground
-		if (close_enough(m_fall_speed, .0f))
-			m_fall_speed = 5.0f;
+		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
+			m_velocity.y = 8.0f;
 	}
 	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on)
 	{
@@ -1107,7 +1106,7 @@ DefTer::ProcessInput(float dt)
 	   else
 	   {
 		   m_is_crouching = true;
-		   m_cam_translate.y -= 100.0f;
+		   m_cam_translate.y -= terrain_height;
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
@@ -1123,58 +1122,70 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
+	float speed2, terrain_height;
+
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
 
-	// Footprints
-	m_footprintDT += dt;
-	if (m_gravity_on && m_footprintDT > 1.0f && close_enough(m_fall_speed, 0.0f))
-	{
-		vector4 stampSIRM(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
-		vector2 foot = vector2(m_cam_translate.x, m_cam_translate.z);
-		foot += rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
-		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
-		m_footprintDT 	 = 0.0f;
-		m_flipFoot		^= true;
-	}
-
 	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
-	// Update position
-	glUseProgram(m_shMain->m_programID);
+	// Perform camera physics
 	if (m_gravity_on)
-	{
-		m_fall_speed	  += GRAVITY * dt;
-		m_cam_translate.y += m_fall_speed * dt;
-
-		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-		if (m_cam_translate.y < terrain_height)
-		{
-			m_cam_translate.y = terrain_height;
-			m_fall_speed = 	  .0f;
-		}
-	}
+		m_frameAcceleration += GRAVITY;
+	if (m_hit_ground)
+		m_frameAcceleration += - FRICTION * vector3(m_velocity.x, .0f, m_velocity.z);
 	else
+		m_frameAcceleration += - AIR_DRAG * m_velocity;
+
+	m_velocity 		+= m_frameAcceleration * dt;
+	m_cam_translate	+= m_velocity * dt;
+	speed2			 = m_velocity.Mag2();
+
+	// If the camera is moving we may need to drag the selection to within the HD Aura
+	if (speed2 > 1.0e-5)
+		UpdateClickPos();
+
+	// Boundary check for wrapping position
+	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
+	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
+	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
+
+	// Don't let player go under the terrain
+	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+	if (m_cam_translate.y < terrain_height)
 	{
-		float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-		if (m_cam_translate.y < terrain_height)
-		{
-			m_cam_translate.y = terrain_height;
-			m_fall_speed = 	  .0f;
-		}
+		m_cam_translate.y 	= terrain_height;
+		m_velocity.y 		= .0f;
+		m_hit_ground		= true;
+	} else{
+		m_hit_ground		= false;
 	}
-	vector3 pos = m_cam_translate * m_pClipmap->m_metre_to_tex;
+
+	// Create footprints
+	m_footprintDT += dt;
+	if (m_gravity_on && m_footprintDT > STEP_TIME && close_enough(m_velocity.y, 0.0f))
+	{
+		vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+		vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
+		foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
+		m_footprintDT 	 = 0.0f;
+		m_flipFoot		^= true;
+		m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
+	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
-
+	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
+
+	m_frameAcceleration.set(.0f);
 }
 
 //--------------------------------------------------------

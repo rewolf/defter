@@ -63,3 +63,8 @@ cleanall:
 	rm -rf $(LIB_BINDIR)
 	rm -rf $(DISTDIR)
 	rm -f *.o
+
+rebuild:
+	@make clean
+	@make test
+	./$(OUTFILE)

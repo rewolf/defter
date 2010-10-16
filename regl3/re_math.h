@@ -92,7 +92,7 @@ namespace reMath
 			float v[2];
 		};
 	};
-	vector2 operator*	(float scalar, const vector2& vec);
+	extern vector2 operator*	(float scalar, const vector2& vec);
 
 	/******************************************************************************
 	 * vector3
@@ -155,7 +155,7 @@ namespace reMath
 			float v[3];
 		};
 	};
-	vector3 operator*	(float scalar, const vector3& vec);
+	extern vector3 operator*	(float scalar, const vector3& vec);
 
 	/******************************************************************************
 	 * vector4
@@ -198,7 +198,7 @@ namespace reMath
 			float v[4];
 		};
 	};
-	vector4 operator*	(float scalar, const vector4& pt);
+	extern vector4 operator*	(float scalar, const vector4& pt);
 
 	/******************************************************************************
 	 * matrix2
@@ -237,7 +237,7 @@ namespace reMath
 	public:
 		float	m[4];
 	};
-	matrix2 operator*	(float scalar, const matrix2&);
+	extern matrix2 operator*	(float scalar, const matrix2&);
 
 	/******************************************************************************
 	 * matrix3
@@ -277,7 +277,7 @@ namespace reMath
 	public:
 		float	m[9];
 	};
-	matrix3 operator*	(float scalar, const matrix3&);
+	extern matrix3 operator*	(float scalar, const matrix3&);
 
 	/******************************************************************************
 	 * matrix4
@@ -318,7 +318,7 @@ namespace reMath
 	public:
 		float	m[16];
 	};
-	matrix4 operator*	(float scalar, const matrix4&);
+	extern matrix4 operator*	(float scalar, const matrix4&);
 
 
 	/******************************************************************************

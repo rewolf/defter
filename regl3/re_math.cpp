@@ -95,7 +95,7 @@ namespace reMath{
 	//-------------------------------------------------------------------------
 	// OPERATOR* performs scalar-vector multiplication
 	vector2 
-	operator *(float scalar, vector2 &vec){
+	operator *(float scalar, const vector2 &vec){
 		vector2 out;
 		out.x = vec.x * scalar;
 		out.y = vec.y * scalar;
@@ -396,7 +396,7 @@ namespace reMath{
 	//-------------------------------------------------------------------------
 	// OPERATOR* performs scalar-vector multiplication
 	vector3 
-	operator *(float scalar, vector3& vec){
+	operator *(float scalar, const vector3& vec){
 		vector3 out;
 		out.x = vec.x * scalar;
 		out.y = vec.y * scalar;

@@ -38,10 +38,10 @@ private:
 	float		InterpHeight	(vector2 worldPos);
 
 public:
-	ShaderProg*			m_shSplash;
-	GLuint				m_vbo[3];
-	GLuint				m_vao;
-	GLuint				m_splashmap;
+	ShaderProg*		m_shSplash;
+	GLuint			m_vbo[3];
+	GLuint			m_vao;
+	GLuint			m_splashmap;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	Deform*			m_pDeform;
@@ -64,7 +64,9 @@ public:
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
 	vector2			m_clipmap_shift;
-	float			m_fall_speed;
+	vector3			m_velocity;
+	vector3			m_frameAcceleration;
+	bool			m_hit_ground;
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
@@ -87,6 +89,7 @@ public:
 	// footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
+
 };
 
 // thread that retrieves the coarsemap from the PBOs
