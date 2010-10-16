@@ -1236,49 +1236,54 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[2]->m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3]->m_texdata.heightmap);
-	//--
-/*
+
+	/*
 	static reTimer timer;
 	glFinish();
 	timer.start();
-*/
+	*/
 	m_pClipmap->render();
 	
 	m_pSkybox->render(viewproj);
 
 	m_pCaching->Render();
-/*
+	/*
 	glFinish();
 	timeCount += timer.getElapsed();
 	frameCount ++;
-*/
+	*/
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
 
+	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
 }
 
 //--------------------------------------------------------
 int 
-map_retriever(void* defter){
+map_retriever(void* defter)
+{
 	DefTer* main = (DefTer*) defter;
-	float scale = VERT_SCALE * 1.0f/USHRT_MAX;
+	float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	int dim = main->m_coarsemap_dim;
 	reTimer copyTimer;
 
-	while(main->m_isRunning){
+	while(main->m_isRunning)
+	{
 		// unlock mutex, wait for a signal to transfer and then get mutex
 		SDL_SemWait(main->m_waitSem);
 		copyTimer.start();
 		// We can unlock it and continue to load into the array buffer
-		if (!main->m_isRunning){
+		if (!main->m_isRunning)
+		{
 			break;
 		}
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		for (int i = 0; i < dim * dim; i++){
+		for (int i = 0; i < dim * dim; i++)
+		{
 			main->m_elevationDataBuffer[i] = main->m_bufferPtr[i] * scale;
 		}
 
@@ -1288,9 +1293,9 @@ map_retriever(void* defter){
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
-		DEBUG2("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed()*1000);
+		DEBUG2("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
+
+	return 0;
 }
-
-
