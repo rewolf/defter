@@ -83,12 +83,11 @@ extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 #define GRAVITY				(-9.81f)
 #define EYE_HEIGHT			(2.0f)
 
-#define MAP_TRANSFER_WAIT	(.10f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(20)	// After commencing download, wait a few cycles before mapping
+#define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
+#define MAP_BUFFER_CYCLES	(10)	// After commencing download, wait a few cycles before mapping
 
 //float timeCount = 0;
 //long frameCount = 0;
-
 
 /******************************************************************************
  * Main 
@@ -125,12 +124,13 @@ int main(int argc, char* argv[])
 //--------------------------------------------------------
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
-	m_shMain  		= NULL;
-	m_pDeform 		= NULL;
-	m_pClipmap		= NULL;
-	m_pCaching		= NULL;
-	m_pSkybox 		= NULL;
-	m_elevationData	= NULL;
+	m_shMain  			  = NULL;
+	m_pDeform 			  = NULL;
+	m_pClipmap			  = NULL;
+	m_pCaching			  = NULL;
+	m_pSkybox 			  = NULL;
+	m_elevationData		  = NULL;
+	m_elevationDataBuffer = NULL;
 }
 
 //--------------------------------------------------------
@@ -152,6 +152,8 @@ DefTer::~DefTer()
 	RE_DELETE(m_pCaching);
 	if (m_elevationData)
 		delete [] m_elevationData;
+	if (m_elevationDataBuffer)
+		delete [] m_elevationDataBuffer;
 	glDeleteBuffers(NUM_PBOS, m_pbo);
 	glDeleteFramebuffers(1,&m_fboTransfer);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
@@ -429,7 +431,7 @@ DefTer::Init()
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
 	m_otherState		 = CHILLED;
-	m_cyclesPassed		 = 0;
+	m_cyclesPassed		 = -1;
 
 	// Init the PBOs
 	glGenBuffers(NUM_PBOS, m_pbo);
@@ -442,8 +444,6 @@ DefTer::Init()
 	// Create the FBO
 	glGenFramebuffers(1, &m_fboTransfer);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			m_coarsemap.heightmap, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
 	// Init the elevation data mutex
@@ -594,7 +594,8 @@ DefTer::LoadCoarseMap(string filename)
 
 	// Create elevationData for camera collisions
 	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData = new float[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
 	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
 	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++)
 	{
@@ -723,11 +724,12 @@ DefTer::UpdateCoarsemapStreamer(){
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
-		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-				m_coarsemap.heightmap, 0);
+		if (m_cyclesPassed < 0)
+			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+					m_coarsemap.heightmap, 0);
 
 		// Commence transfer to PBO
-		glReadPixels(0, 0, m_coarsemap_dim/10, m_coarsemap_dim/10, GL_RED, GL_UNSIGNED_SHORT, 0);
+		glReadPixels(0, 0, m_coarsemap_dim, m_coarsemap_dim, GL_RED, GL_UNSIGNED_SHORT, 0);
 
 		// Reset buffer state
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -1245,18 +1247,24 @@ map_retriever(void* defter){
 		// unlock mutex, wait for a signal to transfer and then get mutex
 		SDL_mutexP(main->m_elevationDataMutex);
 		SDL_CondWait(main->m_waitCondition, main->m_elevationDataMutex);
+		// We can unlock it and continue to load into the array buffer
+		SDL_mutexV(main->m_elevationDataMutex);
 		if (!main->m_isRunning){
-			SDL_mutexV(main->m_elevationDataMutex);
 			break;
 		}
 		printf("retrieving\n");
 		
 		// copy data and transform
 		for (int i = 0; i < dim * dim; i++){
-			main->m_elevationData[i] = main->m_bufferPtr[i] * scale;
+			main->m_elevationDataBuffer[i] = main->m_bufferPtr[i] * scale;
 		}
 
-		main->m_XferState = DONE;
+		// finally lock the data array, and swap the pointers
+		SDL_mutexP(main->m_elevationDataMutex);
+		float * temp 				= main->m_elevationData;
+		main->m_elevationData 		= main->m_elevationDataBuffer;
+		main->m_elevationDataBuffer = temp;
+		main->m_XferState 			= DONE;
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 	printf("thread dead\n");

@@ -1,7 +1,7 @@
 #ifndef _PROTO_MAIN_H
 #define _PROTO_MAIN_H
 
-#define NUM_PBOS			(4)
+#define NUM_PBOS			(1)
 
 enum XferState {
 	CHILLED, READY, BUFFERING, RETRIEVING, DONE
@@ -33,7 +33,6 @@ public:
 	GLuint				m_vbo[3];
 	GLuint				m_vao;
 	GLuint				m_splashmap;
-	float*				m_elevationData;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	Deform*			m_pDeform;
@@ -63,6 +62,8 @@ public:
 	bool			m_is_super_speed;
 
 	// Coarsemap continuous unpacking stuff
+	float*			m_elevationData;
+	float*			m_elevationDataBuffer;
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
 	SDL_Thread*		m_retrieverThread;

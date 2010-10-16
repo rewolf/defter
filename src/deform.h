@@ -48,6 +48,7 @@ public:
 
 	bool			m_no_error;
 
+	GLuint			m_coarseBackup;
 private:
 	ShaderProg*		m_shTexStamp;
 	ShaderProg*		m_shPDMapper;
@@ -63,7 +64,6 @@ private:
 	int				m_highDim;
 	float			m_metre_to_tex;
 	float			m_metre_to_detail_tex;
-	GLuint			m_coarseBackup;
 	bool			m_initialised;
 
 	map<string, Stamp> stampCollection;
