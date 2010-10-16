@@ -115,7 +115,7 @@ void main()
 	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
 	vec2 tc		= fract(tile);
 	int t		= int(floor(tile.x) + floor(tile.y) * 6);
-	float factor= clamp(0.5 + fogZ * 0.015, 0.0, 1.0);
+	float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
 	vec4 detail;
 	switch(t)
 	{
