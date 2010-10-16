@@ -9,7 +9,11 @@
 #ifndef _PROTO_MAIN_H
 #define _PROTO_MAIN_H
 
-#define NUM_PBOS			(4)
+#define NUM_PBOS			(1)
+
+enum XferState {
+	CHILLED, READY, BUFFERING, RETRIEVING, DONE
+};
 
 class DefTer : public reGL3App
 {
@@ -38,7 +42,6 @@ public:
 	GLuint				m_vbo[3];
 	GLuint				m_vao;
 	GLuint				m_splashmap;
-	float*				m_elevationData;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	Deform*			m_pDeform;
@@ -68,13 +71,22 @@ public:
 	bool			m_is_super_speed;
 
 	// Coarsemap continuous unpacking stuff
+	float*			m_elevationData;
+	float*			m_elevationDataBuffer;
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
+	SDL_Thread*		m_retrieverThread;
 	SDL_mutex*		m_elevationDataMutex;
-	bool			m_packedCoarseDeform;
-	bool			m_isTransferring;
+	SDL_cond*		m_waitCondition;
+	GLushort*		m_bufferPtr;
+	
+	XferState		m_XferState;
+	XferState		m_otherState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 };
+
+// thread that retrieves the coarsemap from the PBOs
+int map_retriever(void* defter);
 
 #endif

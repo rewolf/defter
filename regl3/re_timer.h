@@ -24,6 +24,7 @@ public:
     reTimer();
     void start();
     float getElapsed();
+    float peekElapsed();
 	float getFPS();
     
 protected:
