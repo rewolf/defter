@@ -83,6 +83,10 @@ public:
 	XferState		m_otherState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
+
+	// footprints
+	float			m_footprintDT;
+	bool			m_flipFoot;
 };
 
 // thread that retrieves the coarsemap from the PBOs

@@ -274,6 +274,8 @@ DefTer::InitGL()
 	m_gravity_on	= true;
 	m_is_crouching	= false;
 	m_fall_speed	= .0f;
+	m_footprintDT	= .0f;
+	m_flipFoot		= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -1162,6 +1164,18 @@ DefTer::Logic(float dt)
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
+
+	// Footprints
+	m_footprintDT += dt;
+	if ( m_gravity_on && m_footprintDT > 1.0f && close_enough(m_fall_speed, .0f)){
+		vector3 stampSIR(.5f, 2.0f, .0f);
+		stampSIR.z = m_cam_rotate.y + PI;
+		vector2 foot = vector2(m_cam_translate.x, m_cam_translate.z);
+		foot += rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -.3, .0f);
+		m_pCaching->DeformHighDetail(vector2(foot.x, foot.y), "leftfoot", stampSIR);
+		m_footprintDT 	 = .0f;
+		m_flipFoot		^= true;
+	}
 
 	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
