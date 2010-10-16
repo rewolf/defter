@@ -76,7 +76,7 @@ public:
 	GLuint			m_fboTransfer;
 	SDL_Thread*		m_retrieverThread;
 	SDL_mutex*		m_elevationDataMutex;
-	SDL_cond*		m_waitCondition;
+	SDL_sem*		m_waitSem;
 	GLushort*		m_bufferPtr;
 	
 	XferState		m_XferState;
