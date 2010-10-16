@@ -1199,19 +1199,19 @@ DefTer::Render(float dt)
 	m_pClipmap->cull(viewproj, m_clipmap_shift);
 
 	// Block of four tiles where the 0th tile is the top left active tile
-	Tile* activeTiles[4];
+	Tile activeTiles[4];
 	m_pCaching->GetActiveTiles(activeTiles);
-	int firstTile[2] = {activeTiles[0]->m_row, activeTiles[0]->m_col};
+	int firstTile[2] = {activeTiles[0].m_row, activeTiles[0].m_col};
 	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
 			firstTile[0]);
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, activeTiles[0]->m_texdata.heightmap);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, activeTiles[1]->m_texdata.heightmap);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[1].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, activeTiles[2]->m_texdata.heightmap);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[2].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE6);
-	glBindTexture(GL_TEXTURE_2D, activeTiles[3]->m_texdata.heightmap);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
 	/*
 	static reTimer timer;

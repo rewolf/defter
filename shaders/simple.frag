@@ -117,22 +117,22 @@ void main()
 	int t		= int(floor(tile.x) + floor(tile.y) * 6);
 	float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
 	if (factor > .001){
-	vec4 detail;
-	switch(t)
-	{
-		case 0:
-			detail =  texture(detail0, tc).rrrr;
-			break;
-		case 1:
-			detail =  texture(detail1, tc).rrrr;
-			break;
-		case 6:
-			detail =  texture(detail2, tc).rrrr;
-			break;
-		case 7:
-			detail =  texture(detail3, tc).rrrr;
-			break;
-	};
+		vec4 detail;
+		switch(t)
+		{
+			case 0:
+				detail =  texture(detail0, tc).rrrr;
+				break;
+			case 1:
+				detail =  texture(detail1, tc).rrrr;
+				break;
+			case 6:
+				detail =  texture(detail2, tc).rrrr;
+				break;
+			case 7:
+				detail =  texture(detail3, tc).rrrr;
+				break;
+		};
 	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
 	}
 	// Mix fog to get the final color

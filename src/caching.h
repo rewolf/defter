@@ -53,7 +53,7 @@ public:
 	void Update				(vector2 worldPos, vector2 cam_rotation);
 	void DeformHighDetail	(vector2 clickPos, string stampName, vector4 stampSIRM);
 	void Render				(void);
-	void GetActiveTiles 	(Tile** activeTiles);
+	void GetActiveTiles 	(Tile activeTiles[4]);
 
 	friend int hdd_cacher 	(void* data);
 

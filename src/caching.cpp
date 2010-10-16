@@ -725,30 +725,21 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
 //--------------------------------------------------------
 // Returns the index of the the top-left active tile
 void
-Caching::GetActiveTiles(Tile** activeTiles){
-	/*
-	for (int i = 0; i < m_GridSize; i ++){
-		for (int j = 0; j < m_GridSize; j++){
-			if (m_Grid[i*m_GridSize + j].m_texID!=-1)
-				printf(" *%2d* ", m_Grid[i*m_GridSize + j].m_texdata.heightmap);
-			else
-				printf("  %2d  ", m_Grid[i*m_GridSize + j].m_texdata.heightmap);
-		}
-		printf("\n");
-	}
-	printf("---------------------------\n");
-	*/
-	for (int i = 0; i < m_GridSize; i ++){
-		for (int j = 0; j < m_GridSize; j++){
-			if (m_Grid[OFFSET(j, i, m_GridSize)].m_texID != -1){
-				activeTiles[0] = &m_Grid[	OFFSET(	j	, 	i	, m_GridSize)	];
-				activeTiles[1] = &m_Grid[	OFFSET(	j+1	, 	i	, m_GridSize)	];
-				activeTiles[2] = &m_Grid[	OFFSET(	j	, 	i+1	, m_GridSize)	];
-				activeTiles[3] = &m_Grid[	OFFSET(	j+1	, 	i+1	, m_GridSize)	];
-				return;
-			}
-		}
-	}
+Caching::GetActiveTiles(Tile activeTiles[4]){
+	int row = int(m_LeftOffset.y);
+	int col = int(m_LeftOffset.x);
+	activeTiles[0] = m_Grid[OFFSET(WRAP(col    , m_GridSize), WRAP(row	   , m_GridSize), m_GridSize)];
+	activeTiles[0].m_row = row;
+	activeTiles[0].m_col = col;
+	activeTiles[1] = m_Grid[OFFSET(WRAP(col + 1, m_GridSize), WRAP(row    , m_GridSize), m_GridSize)];
+	activeTiles[1].m_row = row;
+	activeTiles[1].m_col = col+1;
+	activeTiles[2] = m_Grid[OFFSET(WRAP(col    , m_GridSize), WRAP(row	+ 1, m_GridSize), m_GridSize)];
+	activeTiles[2].m_row = row+1;
+	activeTiles[2].m_col = col;
+	activeTiles[3] = m_Grid[OFFSET(WRAP(col + 1, m_GridSize), WRAP(row + 1, m_GridSize), m_GridSize)];
+	activeTiles[3].m_row = row+1;
+	activeTiles[3].m_col = col+1;
 }
 
 //--------------------------------------------------------
