@@ -655,55 +655,64 @@ Caching::UpdateTiles(bool newStatus, int region, vector2 TileIndex)
 	{
 	case 0:
 		//Top-Left
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f));
 		SetActiveStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f));
 		break;
 
 	case 1:
 		//Top-Centre
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(3.0f, 2.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(3.0f, 2.0f));
 		SetActiveStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(1.0f, 2.0f));
 		break;
 
 	case 2:
 		//Top-Right
-		SetLoadStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f));
+		m_LeftOffset = TileIndex - vector2(0.0f, 1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f));
 		SetActiveStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f));
 		break;
 
 	case 3:
 		//Centre-Left
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(2.0f, 3.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f, 3.0f));
 		SetActiveStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f, 1.0f));
 		break;
 
 	case 4:
 		//Centre-Centre
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f), vector2(3.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(3.0f));
 		SetActiveStatus(newStatus, TileIndex, vector2(1.0f));
 		break;
 
 	case 5:
 		//Centre-Right
-		SetLoadStatus(newStatus, TileIndex - vector2(0.0f, 1.0f), vector2(2.0f, 3.0f));
+		m_LeftOffset = TileIndex - vector2(0.0f, 1.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f, 3.0f));
 		SetActiveStatus(newStatus, TileIndex, vector2(2.0f, 1.0f));
 		break;
 
 	case 6:
 		//Bottom-Left
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f, 0.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f));
 		SetActiveStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(2.0f));
 		break;
 
 	case 7:
 		//Bottom-Centre
-		SetLoadStatus(newStatus, TileIndex - vector2(1.0f, 0.0f), vector2(3.0f, 2.0f));
+		m_LeftOffset = TileIndex - vector2(1.0f, 0.0f);
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(3.0f, 2.0f));
 		SetActiveStatus(newStatus, TileIndex, vector2(1.0f, 2.0f));
 		break;
 
 	case 8:
 		//Bottom-Right
-		SetLoadStatus(newStatus, TileIndex, vector2(2.0f));
+		m_LeftOffset = TileIndex;
+		SetLoadStatus(newStatus, m_LeftOffset, vector2(2.0f));
 		SetActiveStatus(newStatus, TileIndex, vector2(2.0f));
 		break;
 

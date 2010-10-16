@@ -803,6 +803,9 @@ DefTer::ProcessInput(float dt)
 			m_cam_rotate.x = -PI * 0.5f;
 		if (m_cam_rotate.x > PI * 0.5f)
 			m_cam_rotate.x = PI * 0.5f;
+
+		// Set the rotation
+		m_stampSIR.z = m_cam_rotate.y;
 	}
 
 	// Change the selected deformation location
@@ -852,24 +855,26 @@ DefTer::ProcessInput(float dt)
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
+		vector2 clickDiff = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
+		vector3 stampSIR = m_stampSIR;
+		stampSIR.y		*= wheel_ticks;
+		stampSIR.z		= PI / 2.0f + atan2f(clickDiff.y, clickDiff.x);
+
+
 		if (m_is_hd_stamp)
 		{
-			vector3 stampSIR = m_stampSIR;
-			stampSIR.y		*= wheel_ticks;
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIR);
 		}
 		else
 		{
-			vector2 areaMin(m_clickPos - vector2(m_stampSIR.x / 2.0f));
-			vector2 areaMax(areaMin	+ m_stampSIR.x);
+			vector2 areaMin(m_clickPos - vector2(stampSIR.x / 2.0f));
+			vector2 areaMax(areaMin	+ stampSIR.x);
 
 			areaMin *= m_pClipmap->m_metre_to_tex;
 			areaMin += vector2(0.5f);
 			areaMax *= m_pClipmap->m_metre_to_tex;
 			areaMax += vector2(0.5f);
 
-			vector3 stampSIR = m_stampSIR;
-			stampSIR.y		*= wheel_ticks;
 			// Left-Col
 			if (areaMin.x < 0.0 && areaMax.y > 1.0)
 			{

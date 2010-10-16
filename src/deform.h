@@ -40,7 +40,7 @@ struct Stamp
 	bool LoadTexture(string textureName)
 	{
 		m_isTexStamp = true;
-		return (LoadPNG(&m_texture, textureName));
+		return (LoadPNG(&m_texture, textureName, true));
 	}
 };
 

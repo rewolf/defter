@@ -31,5 +31,6 @@ void main()
 	gl_Position 	= vec4(2 * (texCoord - dif), 1.0, 1.0);
 
 	frag_TexCoord 	= texCoord  + clickPos;
-	stamp_TexCoord	= vert_Position * 0.5 + 0.5;
+	stamp_TexCoord	= (vert_Position * 0.5 + 0.5);
+	//stamp_TexCoord.x= 1.0 - stamp_TexCoord.x;
 }

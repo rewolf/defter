@@ -96,6 +96,7 @@ private:
 	int					m_RegionPrevious;
 	vector2				m_TileIndexCurrent;
 	vector2				m_TileIndexPrevious;
+	vector2				m_LeftOffset;
 
 	queue<DeformOp>		m_deformQueue;
 
