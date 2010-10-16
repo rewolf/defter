@@ -1,3 +1,11 @@
+/*****************************************************************************
+ * deform: Creates deformations on a heightmap and calculates partial
+ *		   derivative maps
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #include "regl3.h"
 #include "re_math.h"

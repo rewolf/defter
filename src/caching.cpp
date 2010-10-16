@@ -1,3 +1,10 @@
+/*****************************************************************************
+ * caching: Caching system for level of detail and loading of tiles
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #include "regl3.h"
 #include "re_math.h"
@@ -209,7 +216,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	
 	// Initialise PBO pool
 	int texSize = sizeof(GLbyte) * highDim * highDim;
-	glGenBuffers(PBO_POOL*2, m_pbos);
+	glGenBuffers(PBO_POOL * 2, m_pbos);
 	for (int i = 0 ; i < PBO_POOL; i++)
 	{
 		GLuint pbo;
@@ -245,7 +252,7 @@ Caching::~Caching()
 			Unload(m_Grid + i);
 	}
 
-	// Wait until all the data has been unloaded
+	// Wait until all the data has been unloaded if must
 	do
 	{
 		UpdatePBOs();
@@ -718,7 +725,8 @@ Caching::GetActiveTiles(Tile** activeTiles){
 		}
 		printf("\n");
 	}
-	printf("---------------------------\n");*/
+	printf("---------------------------\n");
+	*/
 	for (int i = 0; i < m_GridSize; i ++){
 		for (int j = 0; j < m_GridSize; j++){
 			if (m_Grid[OFFSET(j, i, m_GridSize)].m_texID != -1){
@@ -924,7 +932,8 @@ Caching::UpdatePBOs()
 			// Push request onto the busy queue to be checked next frame
 			m_busyUnloadQueue.push_back(unload);
 		}
-		else{
+		else
+		{
 			break;
 		}
 	}
@@ -1007,11 +1016,13 @@ Caching::UpdatePBOs()
 		TexData texID;
 		// Get a finished unload struct
 		LOCK(m_doneUnloadQueueMutex);
-		if (m_doneUnloadQueue.size()){
+		if (m_doneUnloadQueue.size())
+		{
 			unload = m_doneUnloadQueue.front();
 			m_doneUnloadQueue.pop_front();
 			// Give an unload request some time to transfer from GPU
-			if (unload.m_cycles < UNLOAD_CYCLES){
+			if (unload.m_cycles < UNLOAD_CYCLES)
+			{
 				unload.m_cycles++;
 				unloadsSkipped.push_back(unload);
 				UNLOCK(m_doneUnloadQueueMutex);

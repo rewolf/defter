@@ -1,27 +1,19 @@
+/*****************************************************************************
+ * regl3: Main program to create and handle a OpenGL 3.x context
+ *
+ * Copyright © 2010
+ * Authors: Andrew Flower & Justin Crause
+ * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
+ *****************************************************************************/
 
 #include "regl3.h"
 
-/*
-    Copyright (C) 2010 Andrew Flower <andrew.flower@gmail.com>
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
 /******************************************************************************
  * reGL3App Constructor
  * Just stores the config struct
  ******************************************************************************/
-reGL3App::reGL3App(AppConfig conf){
+reGL3App::reGL3App(AppConfig conf)
+{
 	m_config  = conf;
 	m_isRunning = true;
 }
@@ -30,7 +22,8 @@ reGL3App::reGL3App(AppConfig conf){
  * reGL3App Destructor
  * Basically just kills SDL at the moment.
  ******************************************************************************/
-reGL3App::~reGL3App(){
+reGL3App::~reGL3App()
+{
 	SDL_GL_DeleteContext(m_context);
 	SDL_DestroyWindow(m_pWindow);
 	SDL_Quit();
@@ -43,7 +36,8 @@ reGL3App::~reGL3App(){
  * This will block until the run loop is stopped by calling Quit.
  ******************************************************************************/
 bool 
-reGL3App::Start(){
+reGL3App::Start()
+{
 	printf("-----------------------------------------\n");
 	if (!InitSDL())
 		return false;
@@ -63,7 +57,8 @@ reGL3App::Start(){
  * Can be called at any time to stop the run loop.
  ******************************************************************************/
 void
-reGL3App::Quit(){
+reGL3App::Quit()
+{
 	m_isRunning = false;
 }
 
@@ -72,7 +67,8 @@ reGL3App::Quit(){
  * Initializes all settings for SDL, using those specified from m_config
  ******************************************************************************/
 bool
-reGL3App::InitSDL(){
+reGL3App::InitSDL()
+{
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0){
 		fprintf(stderr, "Couldn't initialize SDL: %s\n", SDL_GetError());
 		return false;
@@ -103,7 +99,8 @@ reGL3App::InitSDL(){
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, m_config.fsaa);
 	}
-	else{
+	else
+	{
 		// HW acceleration
 		SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 	}
@@ -111,14 +108,16 @@ reGL3App::InitSDL(){
 	// Create the window
 	m_pWindow = SDL_CreateWindow(m_config.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
 		m_config.winWidth, m_config.winHeight, flags);
-	if (!m_pWindow){
+	if (!m_pWindow)
+	{
 		fprintf(stderr, "Could not create SDL window: %s\n", SDL_GetError());
 		return false;
 	}
 
 	// Create the GL context for the window
 	m_context = SDL_GL_CreateContext(m_pWindow);
-	if (!m_context){
+	if (!m_context)
+	{
 		fprintf(stderr, "Could not create the OpenGL context for the window: %s\n", SDL_GetError());
 		return false;
 	}
@@ -138,7 +137,8 @@ reGL3App::InitSDL(){
  * Initializes OpenGL stuff
  ******************************************************************************/
 bool
-reGL3App::InitGL(){
+reGL3App::InitGL()
+{
 	glClearColor(.0f, .0f, .0f, .0f);
 	glClearDepth(1.0f);
 
@@ -155,7 +155,9 @@ reGL3App::InitGL(){
  * management etc.
  ******************************************************************************/
 void
-reGL3App::Logic(float dt){
+reGL3App::Logic(float dt)
+{
+
 }
 
 /******************************************************************************
@@ -163,7 +165,8 @@ reGL3App::Logic(float dt){
  * A function whose purpose is to handle any input updates
  ******************************************************************************/
 void
-reGL3App::ProcessInput(float dt){
+reGL3App::ProcessInput(float dt)
+{
 	if (m_input.WasKeyPressed(SDLK_ESCAPE))
 		Quit();
 }
@@ -174,7 +177,8 @@ reGL3App::ProcessInput(float dt){
  * Performs the drawing to GL context. The default is a blank screen
  ******************************************************************************/
 void
-reGL3App::Render(float dt){
+reGL3App::Render(float dt)
+{
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	SDL_GL_SwapWindow(m_pWindow);
@@ -186,7 +190,8 @@ reGL3App::Render(float dt){
  * It will exit only when m_isRunning is false, which can be set via Quit().
  ******************************************************************************/
 void
-reGL3App::Run(){
+reGL3App::Run()
+{
 	reTimer timer;
 	timer.start();
 	// Start the main loop
@@ -239,7 +244,7 @@ reGL3App::Run(){
 			SDL_Delay(int(m_config.sleepTime*1000));
 		}
 	}
-	printf("Average fps: %.2f\n", timer.getFPS());
+	printf("Average FPS: %.2f\n", timer.getFPS());
 }
 
 /******************************************************************************
@@ -248,10 +253,13 @@ reGL3App::Run(){
  * and then passes them to the Input handler
  ******************************************************************************/
 void
-reGL3App::WinProc(){
+reGL3App::WinProc()
+{
 	SDL_Event evt;
-	while (SDL_PollEvent(&evt)){
-		switch(evt.type){
+	while (SDL_PollEvent(&evt))
+	{
+		switch(evt.type)
+		{
 			case SDL_KEYDOWN:
 				// Don't really understand what SDL guys are doing with their key
 				// codes, but ill just do this hack to remove the bitflag so it
@@ -291,7 +299,3 @@ reGL3App::WinProc(){
 		}
 	}
 }
-
-
-
-
