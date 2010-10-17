@@ -99,6 +99,9 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
 
+	static reTimer timer;
+	glFinish();
+	timer.start();
 	// check if doing a high detail deform
 	if (!isCoarse || !m_initialised)
 	{
@@ -143,7 +146,10 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	}
 	else
 		backupTex = m_coarseBackup;
+	glFinish();
+	printf("\t\tCopy: %.3fms\n", timer.getElapsed()*1000);
 
+	timer.start();
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
@@ -204,8 +210,14 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	// Bind the VAO
 	glBindVertexArray(m_vao);
+	glFinish();
+	printf("\t\tSetup: %.3fms\n", timer.getElapsed()*1000);
+	timer.start();
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glFinish();
+	printf("\t\tRender: %.3fms\n", timer.getElapsed()*1000);
+	timer.start();
 
 	// Reset viewport and framebuffer as it was
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
@@ -245,6 +257,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	//Delete the created memory if need be
 	if (!isCoarse && copySrcTex == 0)
 		glDeleteTextures(1, &backupTex);
+	glFinish();
+	printf("\t\tEnd: %.3fms\n", timer.getElapsed()*1000);
 }
 
 //--------------------------------------------------------

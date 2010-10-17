@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -869,7 +869,12 @@ DefTer::ProcessInput(float dt)
 
 		if (m_is_hd_stamp)
 		{
+			reTimer timer;
+			glFinish();
+			timer.start();
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIRM);
+			glFinish();
+			printf("Stamp: %.3fms\n", timer.getElapsed() * 1000);
 		}
 		else
 		{
@@ -1181,7 +1186,12 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
+			reTimer timer;
+			glFinish();
+			timer.start();
 			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			glFinish();
+			printf("Stamp: %.3fms\n", timer.getElapsed() * 1000);
 		}
 	}
 
