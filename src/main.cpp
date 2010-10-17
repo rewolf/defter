@@ -90,15 +90,11 @@ const float		FRICTION	= 1.8f;
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(0)
+#define DEBUG_ON			(1)
 #if DEBUG_ON
-#	define DEBUG(x)			printf(x)
-#	define DEBUG2(x,y)		printf(x,y)
-#	define DEBUG3(x,y,z)	printf(x,y,z)
+#	define DEBUG(...)		printf(__VA_ARGS__)
 #else
 #	define DEBUG(x)			{}
-#	define DEBUG2(x,y)		{}
-#	define DEBUG3(x,y,z)	{}
 #endif
 
 #define PROFILE				(1)
@@ -126,7 +122,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -799,7 +795,7 @@ DefTer::UpdateCoarsemapStreamer(){
 		return;
 	}
 	CheckError("coarsemap streamer\n");
-	DEBUG2("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
+	DEBUG("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
 }
 
 //--------------------------------------------------------
@@ -1303,7 +1299,7 @@ map_retriever(void* defter)
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
-		DEBUG2("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
+		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 
