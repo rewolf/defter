@@ -50,6 +50,7 @@ public:
 	Deform					(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex);
 	~Deform();
 
+	void init_backups		(void);
 	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName,
 							vector4 SIRM, bool isCoarse, GLuint copySrcTex = 0);
 	void calculate_pdmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, float scale, bool isCoarse, bool init = false);
@@ -58,6 +59,7 @@ public:
 	bool			m_no_error;
 
 	GLuint			m_coarseBackup;
+	GLuint			m_highBackup;
 private:
 	ShaderProg*		m_shTexStamp;
 	ShaderProg*		m_shPDMapper;

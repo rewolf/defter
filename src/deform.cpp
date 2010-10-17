@@ -49,6 +49,7 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glEnableVertexAttribArray(0);
 
 	m_initialised = false;
+	init_backups();
 
 	// Add in the stamps
 	Stamp newStamp;
@@ -78,6 +79,30 @@ Deform::~Deform()
 	glDeleteBuffers(1, &m_vbo);
 	RE_DELETE(m_shTexStamp);
 	RE_DELETE(m_shPDMapper);
+	glDeleteTextures(1, &m_coarseBackup);
+	glDeleteTextures(1, &m_highBackup);
+}
+
+//--------------------------------------------------------
+void
+Deform::init_backups(){
+	glGenTextures(1, &m_coarseBackup);
+	glBindTexture(GL_TEXTURE_2D, m_coarseBackup);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarseDim, m_coarseDim, 0, GL_RED, GL_UNSIGNED_SHORT, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glGenTextures(1, &m_highBackup);
+	glBindTexture(GL_TEXTURE_2D, m_highBackup);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_highDim, m_highDim, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 //--------------------------------------------------------
@@ -94,7 +119,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	matrix2 stampRot	= rotate_tr2(SIRM.z);
 	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
 
-	GLuint	backupTex;
+	GLuint	backupTex	= isCoarse ? m_coarseBackup : m_highBackup;
 	// Stamp controls
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
@@ -119,20 +144,15 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		}
 		else
 		{
-			// Create the pingpong texture
-			glGenTextures(1, &backupTex);
-			glBindTexture(GL_TEXTURE_2D, backupTex);
-			glTexImage2D(GL_TEXTURE_2D, 0, bpp, dim, dim, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			// Bind the texture
 			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 					texdata.heightmap, 0);
 			glBindTexture(GL_TEXTURE_2D, backupTex);
 		}
 
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0, 0, dim, dim, 0);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
+		//glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0,0,dim,dim,0);
+CheckError("here");
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -141,14 +161,12 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		if (!m_initialised && isCoarse)
 		{
 			m_initialised = true;
-			m_coarseBackup = backupTex;
 		}
 	}
 	else
 		backupTex = m_coarseBackup;
 	glFinish();
 	printf("\t\tCopy: %.3fms\n", timer.getElapsed()*1000);
-
 	timer.start();
 	// Acquire current viewport origin and extent
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -254,9 +272,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
 
-	//Delete the created memory if need be
-	if (!isCoarse && copySrcTex == 0)
-		glDeleteTextures(1, &backupTex);
 	glFinish();
 	printf("\t\tEnd: %.3fms\n", timer.getElapsed()*1000);
 }
