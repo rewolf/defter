@@ -124,6 +124,14 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	Stamp stamp			= stampCollection[stampName];
 	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
 
+		int copyW = (int)ceil(2.9f * SIRM.x * dim) ;
+		int copyH = (int)ceil(2.9f * SIRM.x * dim);
+		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
+		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
+
+		// Make sure it's not out of bounds
+		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
+		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 	static reTimer timer;
 	glFinish();
 	timer.start();
@@ -141,18 +149,23 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 					copySrcTex, 0);
 			glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
 			backupTex = copySrcTex;
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
 		}
-		else
+		else if (isCoarse)
 		{
 			// Bind the texture
 			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 					texdata.heightmap, 0);
 			glBindTexture(GL_TEXTURE_2D, backupTex);
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
+			// glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0,0,dim,dim,0);
 		}
-
-		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
-		//glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0,0,dim,dim,0);
-CheckError("here");
+		else{
+			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+					texdata.heightmap, 0);
+			glBindTexture(GL_TEXTURE_2D, backupTex);
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
+		}
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -226,6 +239,7 @@ CheckError("here");
 
 	// Set the draw buffer
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
 	// Bind the VAO
 	glBindVertexArray(m_vao);
 	glFinish();
