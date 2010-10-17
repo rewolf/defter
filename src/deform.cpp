@@ -38,6 +38,13 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
 	m_no_error &= (m_shTexStamp->CompileAndLink() == 1 && m_shPDMapper->CompileAndLink() == 1);
 
+	// Bind constant uniform values
+	glUseProgram(m_shTexStamp->m_programID);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
+	glUseProgram(m_shPDMapper->m_programID);
+	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
+
 	// Create VAO and VBO
 	glGenVertexArrays(1, &m_vao);
 	glBindVertexArray(m_vao);
@@ -106,118 +113,125 @@ Deform::init_backups(){
 }
 
 //--------------------------------------------------------
+// Used to apply deformations to the given heightmap
 void
 Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector4 SIRM,
 	bool isCoarse, GLuint copySrcTex)
 {
-	int 	viewport[4];
-	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
-	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
-	clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
-	clickPos		   += clickOffset;
-	SIRM.x				= 0.5f * SIRM.x * metre_scale;
-	matrix2 stampRot	= rotate_tr2(SIRM.z);
-	GLenum	bpp			= isCoarse ? GL_R16 	 : GL_R8;
+	GLuint	backupTex;
+	GLuint	shaderID;
+	int 	currentViewport[4];
+	int		dim;
+	int		copyX, copyY;
+	int		copyW, copyH;
+	float	metre_scale;
+	matrix2 stampRot;
+	Stamp	stamp;
 
-	GLuint	backupTex	= isCoarse ? m_coarseBackup : m_highBackup;
+	// Setup transforms
+	SIRM.x		= 0.5f * SIRM.x;				// scale in metres
+	stampRot	= rotate_tr2(SIRM.z);			// rotation
+
 	// Stamp controls
-	Stamp stamp			= stampCollection[stampName];
-	GLuint shaderID		= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
+	stamp		= stampCollection[stampName];
+	shaderID	= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
 
-		int copyW = (int)ceil(2.9f * SIRM.x * dim) ;
-		int copyH = (int)ceil(2.9f * SIRM.x * dim);
-		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
-		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
+	// Setup variables dependent on whether it is Coarse or High detail deformation
+	if (isCoarse){
+		dim			= m_coarseDim;
+		metre_scale = m_metre_to_tex;
+		SIRM.x		= SIRM.x * metre_scale;
+		clickPos	= (clickPos * metre_scale) + vector2(0.5f) + clickOffset;
+		backupTex	= m_coarseBackup;
+	}
+	else{
+		dim			= m_highDim;
+		metre_scale	= m_metre_to_detail_tex;
+		SIRM.x		= SIRM.x * metre_scale;
+		clickPos	= (clickPos * metre_scale) + clickOffset;
+		backupTex	= m_highBackup;
+	}
 
-		// Make sure it's not out of bounds
-		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
-		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
-	static reTimer timer;
-	glFinish();
-	timer.start();
-	// check if doing a high detail deform
-	if (!isCoarse || !m_initialised)
-	{
-		// Copy original map into backup
+	// Calculate bounds of the render area as texel coordinates where X,Y in [0, dim-1]
+	copyW 		= (int)ceil(2.9f * SIRM.x * dim) ;
+	copyH 		= (int)ceil(2.9f * SIRM.x * dim);
+	copyX 		= max(0, (int)(dim * clickPos.x) - copyW / 2);
+	copyY 		= max(0, (int)(dim * clickPos.y) - copyH / 2);
+
+	// Make sure it's not out of bounds
+	copyW 		= copyX + copyW > dim-1 ? dim - copyX : copyW;
+	copyH 		= copyY + copyH > dim-1 ? dim - copyY : copyH;
+
+	////// PHASE 1: Copy To Backup
+	//////////////////////////////
+	// For HD textures, we need to copy the heightmap into a double buffer for it to read from
+	// For Coarsemap, we only need to do a copy the first time as it does not share the texture
+	if (!isCoarse || !m_initialised) {
+		// Setup the Read framebuffer
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_heightmap);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-		// if we're setting the tex to have a base of copySrcTex before deforming..
-		if (copySrcTex!=0)
-		{
+		// Set up textures and attachments for the copy
+		if (copySrcTex != 0){
+			// If we're writing to an HD for the first time, we need to fill it with the Zero tex
 			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 					copySrcTex, 0);
 			glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
+			// Use the Zero texture to read the current state from
 			backupTex = copySrcTex;
-			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
-		}
-		else if (isCoarse)
-		{
-			// Bind the texture
+		} 
+		else {
+			// Otherwise copy the current state of the render region into the backup
 			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 					texdata.heightmap, 0);
 			glBindTexture(GL_TEXTURE_2D, backupTex);
-			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
-			// glCopyTexImage2D(GL_TEXTURE_2D, 0, bpp, 0,0,dim,dim,0);
 		}
-		else{
-			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-					texdata.heightmap, 0);
-			glBindTexture(GL_TEXTURE_2D, backupTex);
+
+		// Perform copy
+		if (isCoarse || copySrcTex != 0)
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
+		else
+			//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, dim, dim);
 			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
-		}
+
+		// Unbind FBO, texture and regenerate mipmap
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// set that has been initialised
-		if (!m_initialised && isCoarse)
-		{
-			m_initialised = true;
-		}
+		m_initialised |= isCoarse;
 	}
-	else
-		backupTex = m_coarseBackup;
-	glFinish();
-	printf("\t\tCopy: %.3fms\n", timer.getElapsed()*1000);
-	timer.start();
-	// Acquire current viewport origin and extent
-	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	// Prepare viewport for texture render
+	////// PHASE 2: Render to Texture
+	/////////////////////////////////
+	// First we set up the Framebuffer and it's viewport and bind our target attachment
+	glGetIntegerv(GL_VIEWPORT, currentViewport);
 	glViewport(0, 0, dim, dim);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			texdata.heightmap, 0);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-	// Enable the shader
-	glUseProgram(shaderID);
-	// Bind the textures
+	// Bind the source texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, backupTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	//Bind the stamp texture if it uses one
 	if (stamp.m_isTexStamp)
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, stamp.m_texture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	}
 	
-	// Set the Shader parameters
-	glUniform1i(glGetUniformLocation(shaderID, "in_heightmap"), 0);
+	// Bind the shader and set the uniform values
+	glUseProgram(shaderID);
 
 	glUniform2fv(glGetUniformLocation(shaderID, "clickPos"), 1, clickPos.v);
-	glUniform2f(glGetUniformLocation(shaderID, "stamp_scale"), SIRM.x, SIRM.x);
+	glUniform2f (glGetUniformLocation(shaderID, "stamp_scale"), SIRM.x, SIRM.x);
 	glUniformMatrix2fv(glGetUniformLocation(shaderID, "stamp_rotation"), 1, GL_FALSE, stampRot.m);
 	if (stamp.m_isTexStamp)
 	{
-		glUniform1i(glGetUniformLocation(shaderID, "in_stampmap"), 1);
-
 		// Controls for mirroring the texture
 		vector2 mirror(0.0f, -1.0f);
 		if (SIRM.w != 0)
@@ -231,37 +245,22 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	if (stamp.initShader)
 		stamp.initShader(stamp, clickPos, SIRM.x, SIRM.y);
 
-	// Bind the Framebuffer and set it's color attachment
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
-
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			texdata.heightmap, 0);
-
-	// Set the draw buffer
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-	// Bind the VAO
+	// Bind the Vertex Array Object containing the Render Quad and its texture coordinates
 	glBindVertexArray(m_vao);
-	glFinish();
-	printf("\t\tSetup: %.3fms\n", timer.getElapsed()*1000);
-	timer.start();
-	// Render the new heightmap
+
+	// RENDER to (DEFORM) the heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glFinish();
-	printf("\t\tRender: %.3fms\n", timer.getElapsed()*1000);
-	timer.start();
 
 	// Reset viewport and framebuffer as it was
-	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	
+	glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	
+	////// PHASE 3: Regenerate Mipmap and Copy Backup
+	/////////////////////////////////////////////////
 	glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// If it's the Coarsemap, we must copy these changes into its double buffer (backup texture)
 	if (isCoarse)
 	{
 		// Setup textures to copy heightmap changes to the other map
@@ -269,25 +268,12 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
 				texdata.heightmap, 0);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
-		glBindTexture(GL_TEXTURE_2D, backupTex);
+		glBindTexture(GL_TEXTURE_2D, m_coarseBackup);
 
-		// Setup the regions for copying
-		// Do a slightly larger area than required to allow for rotation
-		int copyW = (int)ceil(2.9f * SIRM.x * dim) ;
-		int copyH = (int)ceil(2.9f * SIRM.x * dim);
-		int copyX = max(0, (int)(dim * clickPos.x) - copyW / 2);
-		int copyY = max(0, (int)(dim * clickPos.y) - copyH / 2);
-
-		// Make sure it's not out of bounds
-		copyW = copyX + copyW > dim-1 ? dim - copyX : copyW;
-		copyH = copyY + copyH > dim-1 ? dim - copyY : copyH;
 		// Copy the changed subimage
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
-
-	glFinish();
-	printf("\t\tEnd: %.3fms\n", timer.getElapsed()*1000);
 }
 
 //--------------------------------------------------------
@@ -300,7 +286,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	if (!init)
 	{
 		clickPos			= isCoarse ? (clickPos * metre_scale) + vector2(0.5f) : (clickPos * metre_scale);
-		scale				= 0.75f * scale * metre_scale;
+		scale				= 0.5f * scale * metre_scale;
 		clickPos += clickOffset;
 	}
 	else
@@ -309,46 +295,29 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 		scale			= 1.0f;
 	}
 
-	// Acquire current viewport origin and extent
+	// First we set up the Framebuffer and it's viewport and bind our target attachment
 	glGetIntegerv(GL_VIEWPORT, viewport);
-
-	// Prepare viewport for texture render
 	glViewport(0, 0, dim, dim);
-	// Enable the shader
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			texdata.pdmap, 0);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+	// Enable the shader and set uniforms
 	glUseProgram(m_shPDMapper->m_programID);
-
-	// Bind the textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	// Set the Shader sampler
-	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
 	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f / dim);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "clickPos"), clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_scale"), scale, scale);
 
-	// Bind the Framebuffer and set it's color attachment
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_heightmap);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-			texdata.pdmap, 0);
+	// Bind the textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texdata.heightmap);
 
-	// Set the draw buffer
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	
-	// Bind the VAO
+	// Bind the Vertex Array Object containing the Render Quad and its texture coordinates
 	glBindVertexArray(m_vao);
 
 	// Render the new heightmap
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	// Reset viewport and framebuffer as it was
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);	

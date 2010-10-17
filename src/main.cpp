@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.0f;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -404,10 +404,6 @@ DefTer::Init()
 	m_pClipmap->init();
 	printf("Done\n");
 
-	// Shader uniforms (Clipmap data)
-	glUseProgram(m_shMain->m_programID);
-	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
-
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex, 1.0f/(HIGH_DIM * HIGH_RES));
@@ -417,6 +413,10 @@ DefTer::Init()
 		return false;
 	}
 	printf("Done\n");
+
+	// Shader uniforms (Clipmap data)
+	glUseProgram(m_shMain->m_programID);
+	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
@@ -869,12 +869,7 @@ DefTer::ProcessInput(float dt)
 
 		if (m_is_hd_stamp)
 		{
-			reTimer timer;
-			glFinish();
-			timer.start();
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIRM);
-			glFinish();
-			printf("Stamp: %.3fms\n", timer.getElapsed() * 1000);
 		}
 		else
 		{
@@ -1186,12 +1181,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			reTimer timer;
-			glFinish();
-			timer.start();
 			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
-			glFinish();
-			printf("Stamp: %.3fms\n", timer.getElapsed() * 1000);
 		}
 	}
 

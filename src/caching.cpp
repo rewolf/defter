@@ -431,16 +431,8 @@ Caching::DeformHighDetail(vector2 clickPos, string stampName, vector4 stampSIRM)
 		if (mapID != 0 && mapID != m_zeroTex.heightmap)
 		{
 			// Displace it here and now
-			static reTimer timer;
-			glFinish();
-			timer.start();
 			m_pDeform->displace_heightmap(tile.m_texdata, clickPos, vector2(0.0f), stampName, stampSIRM, false);
-			glFinish();
-			printf("\tDeform: %.3fms\n", timer.getElapsed()*1000);
-			timer.start();
 			m_pDeform->calculate_pdmap(tile.m_texdata, clickPos, vector2(0.0f), stampSIRM.x, false);
-			glFinish();
-			printf("\tPD Calc: %.3fms\n", timer.getElapsed()*1000);
 		}
 		// If it's only using the Zero texture
 		else if (mapID == m_zeroTex.heightmap)

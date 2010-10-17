@@ -32,9 +32,15 @@ struct Stamp
 
 		m_shader = new ShaderProg(vertPath, "", fragPath);
 		glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
-		glBindAttribLocation(m_shader->m_programID, 0, "vert_TexCoord");
 
-		return (m_shader->CompileAndLink() == 1);
+		if (!m_shader->CompileAndLink())
+			return false;
+
+		glUseProgram(m_shader->m_programID);
+		// Set constant uniforms
+		glUniform1i(glGetUniformLocation(m_shader->m_programID, "in_heightmap"), 0);
+
+		return true;
 	}
 
 	bool LoadTexture(string textureName)
