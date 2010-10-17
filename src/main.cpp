@@ -92,17 +92,29 @@ const float		FRICTION	= 1.8f;
 
 #define DEBUG_ON			(0)
 #if DEBUG_ON
-	#define DEBUG(x)		printf(x)
-	#define DEBUG2(x,y)		printf(x,y)
-	#define DEBUG3(x,y,z)	printf(x,y,z)
+#	define DEBUG(x)			printf(x)
+#	define DEBUG2(x,y)		printf(x,y)
+#	define DEBUG3(x,y,z)	printf(x,y,z)
 #else
-	#define DEBUG(x)		{}
-	#define DEBUG2(x,y)		{}
-	#define DEBUG3(x,y,z)	{}
+#	define DEBUG(x)			{}
+#	define DEBUG2(x,y)		{}
+#	define DEBUG3(x,y,z)	{}
 #endif
 
-//float timeCount = 0;
-//long frameCount = 0;
+#define PROFILE				(1)
+#if PROFILE
+	reTimer g_profiler;
+	float timeCount = 0;
+	long frameCount = 0;
+#	define BEGIN_PROF		{glFinish(); g_profiler.start();}
+#	define END_PROF			{glFinish(); timeCount+=g_profiler.getElapsed(); frameCount++;}
+#	define PRINT_PROF		{printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);}
+#else
+#	define BEGIN_PROF		{}
+#	define END_PROF			{}
+#	define PRINT_PROF		{}
+#endif
+
 
 /******************************************************************************
  * Main 
@@ -130,7 +142,7 @@ int main(int argc, char* argv[])
 	Sleep(sleepTime);
 #endif
 
-	//printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);
+	PRINT_PROF;
 
 	return 0;
 }
@@ -1243,21 +1255,13 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
-	/*
-	static reTimer timer;
-	glFinish();
-	timer.start();
-	*/
+	BEGIN_PROF;
 	m_pClipmap->render();
 	
 	m_pSkybox->render(viewproj);
 
 	m_pCaching->Render();
-	/*
-	glFinish();
-	timeCount += timer.getElapsed();
-	frameCount ++;
-	*/
+	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
