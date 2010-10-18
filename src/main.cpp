@@ -241,7 +241,7 @@ DefTer::InitGL()
 
 	printf("Setting up GL...\t\t");
 	glEnable(GL_CULL_FACE);
-	glClearColor(0.4f, 0.4f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, .0f, 1.0f);
 	if (!CheckError(""))
 		return false;
 	printf("Done\n");
