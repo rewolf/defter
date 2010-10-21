@@ -131,387 +131,53 @@ Clipmap::init()
 	}
 	vcount= 0;
 
-	// Create the LOD regions
-	//////////////////////////////////
-	for (i = 0; i < m_nLevels; i++)
+	// Create a footprint
+	left = -(m_M - 1) * .5f;
+	ffar = -(m_M - 1) * 0.5f;
+	for (i = 0; i < m_M; i++)
 	{
-		quad_size *= 2;
-		texel_size*= 2;
-
-		// Create degnerate triangles around the centre top
-		for (int j = 0; j < (m_N-1) / 2 + 1; j++)
+		for (j = 0; j < m_M; j++)
 		{
 			vector2 v;
 			vector2 tc;
 
-			v.x  = left * quad_size / 2 + j * quad_size;
-			v.y  = ffar * quad_size / 2;
-			tc.x = 0.5f + left * texel_size / 2 + j * texel_size;
-			tc.y = 0.5f + ffar * texel_size / 2;
-
-			if (j > 0)
-			{
-				vector2 vm = v;
-				vm.x -= 0.5f * quad_size;
-				vector2 tcm = tc;
-				tcm.x-= 0.5f * texel_size;
-				vertices.push_back(vm);
-				texcoords.push_back(tcm);
-
-				indices.push_back( vcount );
-				indices.push_back( vcount + 1);
-				indices.push_back( vcount - 1);
-				vcount++;
-			}
+			v.x = left * quad_size + j * quad_size;
+			v.y = ffar * quad_size + i * quad_size;
+			tc.x= 0.5f + left * texel_size + j * texel_size;
+			tc.y= 0.5f + ffar * texel_size + i * texel_size;;
 
 			vertices.push_back(v);
 			texcoords.push_back(tc);
+			if (i > 0 && j > 0)
+			{
+				indices.push_back( vcount-1 );
+				indices.push_back( vcount-m_M );
+				indices.push_back( vcount-m_M-1 );
+
+				indices.push_back( vcount-m_M );
+				indices.push_back( vcount-1 );
+				indices.push_back( vcount );
+			}
 			vcount++;
 		}
-		// Create degnerate triangles around the centre bottom
-		for (int j = 0; j < (m_N - 1) / 2 + 1; j++)
-		{
-			vector2 v;
-			vector2 tc;
-
-			v.x  = left * quad_size / 2 + j * quad_size;
-			v.y  = ffar * quad_size / 2 + (m_N - 1) * quad_size / 2;
-			tc.x = 0.5f + left * texel_size / 2 + j * texel_size;
-			tc.y = 0.5f + ffar * texel_size / 2 + (m_N - 1) * texel_size / 2;
-
-			if (j > 0)
-			{
-				vector2 vm = v;
-				vm.x -= 0.5f * quad_size;
-				vector2 tcm = tc;
-				tcm.x-= 0.5f * texel_size;
-				vertices.push_back(vm);
-				texcoords.push_back(tcm);
-
-				indices.push_back( vcount );
-				indices.push_back( vcount - 1);
-				indices.push_back( vcount + 1);
-				vcount++;
-			}
-
-			vertices.push_back(v);
-			texcoords.push_back(tc);
-			vcount++;
-		}
-		// Create degnerate triangles around the centre left
-		for (int j = 0; j < (m_N - 1) / 2 + 1; j++)
-		{
-			vector2 v;
-			vector2 tc;
-
-			v.x  = left * quad_size / 2;
-			v.y  = ffar * quad_size / 2 + j * quad_size;
-			tc.x = 0.5f + left * texel_size / 2;
-			tc.y = 0.5f + ffar * texel_size / 2 + j * texel_size;
-
-			if (j > 0)
-			{
-				vector2 vm = v;
-				vm.y -= 0.5f * quad_size;
-				vector2 tcm = tc;
-				tcm.y-= 0.5f * texel_size;
-				vertices.push_back(vm);
-				texcoords.push_back(tcm);
-
-				indices.push_back( vcount );
-				indices.push_back( vcount - 1);
-				indices.push_back( vcount + 1);
-				vcount++;
-			}
-
-			vertices.push_back(v);
-			texcoords.push_back(tc);
-			vcount++;
-		}
-		// Create degnerate triangles around the centre right
-		for (int j = 0; j < (m_N - 1) / 2 + 1; j++)
-		{
-			vector2 v;
-			vector2 tc;
-
-			v.x  = left * quad_size / 2 + (m_N - 1) * quad_size / 2;
-			v.y  = ffar * quad_size / 2 + j * quad_size;
-			tc.x = 0.5f + left * texel_size / 2 + (m_N - 1) * texel_size / 2;
-			tc.y = 0.5f + ffar * texel_size / 2 + j * texel_size;
-
-			if (j > 0)
-			{
-				vector2 vm = v;
-				vm.y -= 0.5f * quad_size;
-				vector2 tcm = tc;
-				tcm.y-= 0.5f * texel_size;
-				vertices.push_back(vm);
-				texcoords.push_back(tcm);
-
-				indices.push_back( vcount );
-				indices.push_back( vcount + 1);
-				indices.push_back( vcount - 1);
-				vcount++;
-			}
-
-			vertices.push_back(v);
-			texcoords.push_back(tc);
-			vcount++;
-		}
-		// Construct the L shape top/bottom strip
-		for (int j = 0; j < (m_N - 1) / 2 + 1; j++)
-		{
-			vector2 v1,v2;
-			vector2 tc1,tc2;
-
-			v1.x = left * quad_size / 2 + j * quad_size;;
-			v1.y = ffar * quad_size / 2 - quad_size + (i % 2 == 1 ? (m_N + 1) * quad_size / 2 : 0);
-			v2 = v1;
-			v2.y += quad_size;
-			tc1.x = 0.5f + left * texel_size / 2 + j * texel_size;
-			tc1.y = 0.5f + ffar * texel_size / 2 - texel_size + (i % 2 == 1 ? (m_N + 1) * texel_size / 2 : 0);
-			tc2 = tc1;
-			tc2.y += texel_size;
-
-			if (j > 0)
-			{
-				indices.push_back( vcount - 1);
-				indices.push_back( vcount );
-				indices.push_back( vcount - 2);
-				indices.push_back( vcount - 1);
-				indices.push_back( vcount + 1);
-				indices.push_back( vcount );
-			}
-			vertices.push_back(v1);
-			vertices.push_back(v2);
-			texcoords.push_back(tc1);
-			texcoords.push_back(tc2);
-			vcount += 2;
-		}
-		// Construct the L shape left/right strip
-		for (int j = 0; j < (m_N - 1) / 2 + 2; j++)
-		{
-			vector2 v1,v2;
-			vector2 tc1,tc2;
-
-			v1.x = left * quad_size / 2 - quad_size + (i % 2 == 0 ? (m_N + 1) * quad_size / 2 : 0);
-			v1.y = ffar * quad_size / 2 + j * quad_size - (i % 2 == 0 ? quad_size : 0);
-			v2 = v1;
-			v2.x += quad_size;
-			tc1.x = 0.5f + left * texel_size / 2 - texel_size + (i % 2 == 0 ? (m_N + 1) * texel_size / 2 : 0);
-			tc1.y = 0.5f + ffar * texel_size / 2 + j * texel_size - (i % 2 == 0 ? texel_size : 0);
-			tc2 = tc1;
-			tc2.x += texel_size;
-
-			if (j > 0)
-			{
-				indices.push_back( vcount );
-				indices.push_back( vcount - 1);
-				indices.push_back( vcount - 2);
-				indices.push_back( vcount );
-				indices.push_back( vcount + 1);
-				indices.push_back( vcount - 1);
-			}
-			vertices.push_back(v1);
-			vertices.push_back(v2);
-			texcoords.push_back(tc1);
-			texcoords.push_back(tc2);
-			vcount += 2;
-		}
-
-
-		// Now we're gonna work on the left of this level, so update these variables
-		left = left * 0.5f - (m_M - 1 + i % 2);
-		ffar  = ffar * 0.5f - (m_M - 1 + (i + 1) % 2);
-
-		// Create left column of blocks
-		vmarker = vcount;
-		for (int j = 0; j < m_N; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ k * quad_size;
-				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.x	= 0.5f + left * texel_size + k * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}		
-		create_block(vmarker + m_M * (m_M - 1) * 0,		 m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M - 1) * 1,		 m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M - 1) * 2,		 m_M,   3, vertices, cullable); // fixup
-		create_block(vmarker + m_M * (m_M - 1) * 2 + 2 * m_M, m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M - 1) * 3 + 2 * m_M, m_M, m_M, vertices, cullable);
-
-		// Create right column of blocks
-		vmarker = vcount;
-		for (int j = 0; j < m_N; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + m_N - m_M) * quad_size;
-				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + m_N - m_M) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}		
-		create_block(vmarker + m_M * (m_M-1) * 0,		m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M-1) * 1,		m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M-1) * 2,		m_M,   3, vertices, cullable); // fixup
-		create_block(vmarker + m_M * (m_M-1) * 2 + 2 *  m_M, m_M, m_M, vertices, cullable);
-		create_block(vmarker + m_M * (m_M-1) * 3 + 2 *  m_M, m_M, m_M, vertices, cullable);
-
-		// Create top row of blocks
-		vmarker = vcount;
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + m_M - 1) * quad_size;
-				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}
-		create_block(vmarker, m_M, m_M, vertices, cullable);
-		vmarker = vcount;		
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < 3; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + 2 * m_M - 2) * quad_size;
-				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + 2 * m_M - 2) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}
-		create_block(vmarker, 3, m_M, vertices, cullable);
-		vmarker = vcount;
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + 2 * m_M ) * quad_size;
-				v.y		= ffar * quad_size 	+ j * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + 2 * m_M) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + j * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}
-		create_block(vmarker, m_M, m_M, vertices, cullable);
-
-		// Create bottom row of blocks
-		vmarker = vcount;
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + m_M - 1) * quad_size;
-				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + m_M - 1) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}
-		create_block(vmarker, m_M, m_M, vertices, cullable);
-		vmarker = vcount;		
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < 3; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + 2 * m_M - 2) * quad_size;
-				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + 2 * m_M - 2) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}		
-		create_block(vmarker, 3, m_M, vertices, cullable);
-		vmarker = vcount;
-		for (int j = 0; j < m_M; j++)
-		{
-			for (int k = 0; k < m_M; k++)
-			{
-				vector2 v;
-				vector2 tc;
-
-				v.x 	= left * quad_size 	+ (k + 2 * m_M ) * quad_size;
-				v.y		= ffar * quad_size 	+ (j + m_N - m_M) * quad_size;
-				tc.x	= 0.5f + left * texel_size + (k + 2 * m_M) * texel_size;
-				tc.y	= 0.5f + ffar * texel_size + (j + m_N - m_M) * texel_size;
-				
-				vertices.push_back(v);
-				texcoords.push_back(tc);
-				vcount++;
-			}
-		}
-		create_block(vmarker, m_M, m_M, vertices, cullable);
 	}
 
+
 	m_min_draw_count = indices.size();
-	// Add this offset to all blocks' start indices
-	for (int i = 0; i < (int)blocks.size(); i++)
-		blocks[i].start_index += m_min_draw_count * sizeof(GLuint);
-	// Append the cullable block indices to the base indices
-	indices.insert(indices.end(), cullable.begin(), cullable.end());
 
-	// Add the base indices to the draw list
-	m_draw_count[0]	 = m_min_draw_count;
-	m_draw_starts[0] = 0;
-
+	int nVerts = vertices.size() + vertices_inner.size();
+	int nTex   = texcoords.size() + texcoords_inner.size();
+	int nInds  = indices.size() + indices_inner.size();
+	int bytes = sizeof(vector2) * (nVerts + nTex)
+			  + sizeof(GLuint) * nInds;
 
 	stringstream sstr;
 	sstr.setf(ios::fixed, ios::floatfield);
 	sstr.precision(2);
 	sstr << "Furthest point:\t\t\t" << -ffar*quad_size << "m\n";
-	sstr << "Vertex count:\t\t\t" << (int)vertices.size() << "\n";
-	sstr << "Index count:\t\t\t" << (int)indices.size() << "\n";
-	sstr << "Clipmap Memory:\t\t\t" << (texcoords.size() * 2 + vertices.size() * 3 + indices.size()) * 4 / 1024.0f / 1024.0f << "MiB\n";
+	sstr << "Vertex count:\t\t\t" << nVerts << "\n";
+	sstr << "Index count:\t\t\t" << nInds << "\n";
+	sstr << "Clipmap Memory:\t\t\t" << bytes / 1024.0f / 1024.0f << "MiB\n";
 	m_clipmap_stats += sstr.str();
 
 	// OpenGL STUFF
@@ -558,49 +224,6 @@ Clipmap::setup_vao(std::vector<vector2>& verts, std::vector<vector2>& tcoords,  
 }
 
 
-//--------------------------------------------------------
-void
-Clipmap::create_block(int vertstart, int width, int height, std::vector<vector2> &vertices,
-	std::vector<GLuint> &indices)
-{
-	cull_block block;
-	int idx;
-
-	idx 				= indices.size();	
-	block.start_index	= indices.size() * sizeof(GLuint);	// offset into indexbuffer
-	block.count			= indices.size(); // number of indices
-
-	// Form the triangles and push them onto the index list
-	for (int y = 0; y < height-1; y++)
-	{
-		for (int x = 0; x < width-1; x++)
-		{
-			if (x == 0)
-			{
-				indices.push_back((y + 0) * width + (x + 0)  + vertstart);
-				indices.push_back((y + 1) * width + (x + 0)  + vertstart);
-			}
-			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
-			indices.push_back((y + 1) * width + (x + 1)  + vertstart);
-		}
-		// degens to start new row
-		if (y < height - 2)
-		{
-			indices.push_back((y + 1) * width + (width - 1)  + vertstart);
-			indices.push_back((y + 1) * width + (0) 	 + vertstart);
-		}
-	}
-	block.count = indices.size() - block.count;
-
-
-	int row = (width - 1) * 2 + 2;
-	block.bound[0] = vertices[indices[idx]];
-	block.bound[1] = vertices[indices[idx + row - 2]];
-	block.bound[2] = vertices[indices[idx + block.count + 1 - row]];
-	block.bound[3] = vertices[indices[idx + block.count - 1]];
-
-	blocks.push_back(block);
-}
 
 //--------------------------------------------------------
 void 
@@ -643,12 +266,21 @@ Clipmap::cull(matrix4& mvp, vector2 shift)
 
 //--------------------------------------------------------
 void
-Clipmap::render_levels()
+Clipmap::render_levels(GLuint sh)
 {
+	float shiftX;
+	float shiftZ;
+	float scale;
 	glBindVertexArray(m_vao[0]);
-	glDrawElements(GL_TRIANGLES, m_draw_count[0], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[0]));
-	for (int i = 1; i < m_primcount; i++)
-		glDrawElements(GL_TRIANGLE_STRIP, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
+	for (int p = 0; p < m_nLevels * 0 + 1; p++){
+		scale = float( 1 << p );
+
+		shiftX = .0f;
+		shiftZ = m_quad_size * (m_N /2 + m_M/2)*2;
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+	}
 }
 
 //--------------------------------------------------------

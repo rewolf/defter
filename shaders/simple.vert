@@ -17,6 +17,7 @@ uniform vec4 cam_and_shift;
 uniform float cam_height;
 uniform mat4 projection;
 uniform mat4 view;
+uniform vec3 st;
 
 
 // Shader Input
@@ -56,15 +57,15 @@ void main()
 	camera_world = camera_tex * texToMetre;
 
 	// Compute texture coordinates for vertex and lookup height
-	texCoord = vert_TexCoord + camera_tex + shift * metreToTex;
+	texCoord = vert_TexCoord*st.z + camera_tex + shift * metreToTex;
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= texture(heightmap, texCoord).r;
-	camera_height = -cam_height;//-10;//-texture(heightmap, 0.5 + camera_tex).r * HEIGHT - 2.5;
+	height 	= texture(heightmap, texCoord).r*0;
+	camera_height = -5;//-cam_height;
 
 	// Set vertex position and height from heightmap
-	vec4 pos = vec4(vert_Position.x, height * HEIGHT, vert_Position.y, 1.0);
+	vec4 pos = vec4(vert_Position.x*st.z+st.x, height * HEIGHT, vert_Position.y*st.z+st.y, 1.0);
 
 	// Shift the roaming mesh so that vertices maintain same heights
 	// The following MAD instruction shifts the x and z coordinates by s and t

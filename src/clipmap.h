@@ -25,7 +25,7 @@ public:
 	bool		init			();
 	void		cull			(matrix4& mvp, vector2 shift);
 	void		render_inner	();
-	void		render_levels	();
+	void		render_levels	(GLuint sh);
 private:
 	void		create_block	(int vertstart, int width, int height, 
 									std::vector<vector2> &vertices,

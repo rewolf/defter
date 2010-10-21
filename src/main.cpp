@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.0f;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -295,7 +295,7 @@ DefTer::InitGL()
 	// Init Shaders
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/tester.vert","shaders/tester.geom","shaders/tester.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -1265,7 +1265,7 @@ DefTer::Render(float dt)
 	
 
 	// Cull invisible blocks and render clipmap
-	m_pClipmap->cull(cullviewproj, m_clipmap_shift);
+	//m_pClipmap->cull(cullviewproj, m_clipmap_shift);
 
 	// Block of four tiles where the 0th tile is the top left active tile
 	Tile activeTiles[4];
@@ -1298,7 +1298,7 @@ DefTer::Render(float dt)
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
 	glUseProgram(m_shMain->m_programID);
-	m_pClipmap->render_levels();
+	m_pClipmap->render_levels(m_shMain->m_programID);
 	
 	m_pSkybox->render(viewproj);
 
