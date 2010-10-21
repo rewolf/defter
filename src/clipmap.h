@@ -30,6 +30,8 @@ private:
 	void		create_block	(int vertstart, int width, int height, 
 									std::vector<vector2> &vertices,
 									std::vector<GLuint> &indices);
+	void		setup_vao		(std::vector<vector2>& attribs, std::vector<vector2>& tcoords, std::vector<GLuint>& indices, 
+								GLuint& vao, GLuint* vbo);
 
 public:
 	vector<cull_block> blocks;

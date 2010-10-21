@@ -91,7 +91,7 @@ Clipmap::init()
 	std::vector <vector2>	vertices,  vertices_inner;
 	std::vector <vector2>	texcoords, texcoords_inner;
 	std::vector <GLuint>	indices;
-	std::vector <GLushort>	indices_inner;
+	std::vector <GLuint>	indices_inner;
 	std::vector <GLuint>	cullable;
 
 	quad_size  = m_quad_size;
@@ -524,39 +524,39 @@ Clipmap::init()
 	glGenBuffers(6, m_vbo);
 
 	// OUTER LEVELS
-	glBindVertexArray(m_vao[0]);
-	// Setup the vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-	// Setup the texcoord buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices.size(), &texcoords[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	// Setup the index buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), &indices[0], GL_STATIC_DRAW);
+	setup_vao(vertices, texcoords, indices, m_vao[0], m_vbo);
 
 	// INNER GRID
-	glBindVertexArray(m_vao[1]);
-	// Setup the vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices_inner.size(), &vertices_inner[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-	// Setup the texcoord buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[4]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices_inner.size(), &texcoords_inner[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	// Setup the index buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[5]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices_inner.size(), &indices_inner[0], GL_STATIC_DRAW);
+	setup_vao(vertices_inner, texcoords_inner, indices_inner, m_vao[1], m_vbo+3);
 	m_nInnerIndices = indices_inner.size();
 	return true;
 }
+
+//--------------------------------------------------------
+void 
+Clipmap::setup_vao(std::vector<vector2>& verts, std::vector<vector2>& tcoords,  std::vector<GLuint>& indices, GLuint& vao, GLuint* vbo){
+	int size;
+
+	glBindVertexArray(vao);
+
+	// Setup the vertex buffer
+	size = sizeof(verts[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, size * verts.size(), &verts[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	size = sizeof(tcoords[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, size * tcoords.size(), &tcoords[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	size = sizeof(indices[0]);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * indices.size(), &indices[0], GL_STATIC_DRAW);
+}
+
 
 //--------------------------------------------------------
 void
@@ -655,5 +655,5 @@ Clipmap::render_levels()
 void
 Clipmap::render_inner(){
 	glBindVertexArray(m_vao[1]);
-	glDrawElements(GL_TRIANGLES, m_nInnerIndices, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, m_nInnerIndices, GL_UNSIGNED_INT, 0);
 }
