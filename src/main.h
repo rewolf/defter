@@ -44,6 +44,7 @@ public:
 	GLuint			m_splashmap;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
+	ShaderProg*		m_shInner;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
@@ -91,6 +92,8 @@ public:
 	bool			m_flipFoot;
 	bool			m_drawing_feet;
 
+	// Use the second shader for inner grid
+	bool			m_enableTess;
 };
 
 // thread that retrieves the coarsemap from the PBOs

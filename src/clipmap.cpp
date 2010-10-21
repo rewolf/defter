@@ -77,8 +77,8 @@ Clipmap::~Clipmap()
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
-	glDeleteBuffers(3, m_vbo);
-	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(6, m_vbo);
+	glDeleteVertexArrays(2, m_vao);
 }
 
 //--------------------------------------------------------
@@ -88,9 +88,10 @@ Clipmap::init()
 	int i,j;
 	float quad_size, texel_size, left, ffar;
 	int vmarker, vcount;
-	std::vector <vector2>	vertices;
-	std::vector <vector2>	texcoords;
+	std::vector <vector2>	vertices,  vertices_inner;
+	std::vector <vector2>	texcoords, texcoords_inner;
 	std::vector <GLuint>	indices;
+	std::vector <GLushort>	indices_inner;
 	std::vector <GLuint>	cullable;
 
 	quad_size  = m_quad_size;
@@ -113,21 +114,22 @@ Clipmap::init()
 			tc.x= 0.5f + left * texel_size + j * texel_size;
 			tc.y= 0.5f + ffar * texel_size + i * texel_size;;
 
-			vertices.push_back(v);
-			texcoords.push_back(tc);
+			vertices_inner.push_back(v);
+			texcoords_inner.push_back(tc);
 			if (i > 0 && j > 0)
 			{
-				indices.push_back( vcount-1 );
-				indices.push_back( vcount-m_N );
-				indices.push_back( vcount-m_N-1 );
+				indices_inner.push_back( vcount-1 );
+				indices_inner.push_back( vcount-m_N );
+				indices_inner.push_back( vcount-m_N-1 );
 
-				indices.push_back( vcount-m_N );
-				indices.push_back( vcount-1 );
-				indices.push_back( vcount );
+				indices_inner.push_back( vcount-m_N );
+				indices_inner.push_back( vcount-1 );
+				indices_inner.push_back( vcount );
 			}
 			vcount++;
 		}
 	}
+	vcount= 0;
 
 	// Create the LOD regions
 	//////////////////////////////////
@@ -516,12 +518,13 @@ Clipmap::init()
 	/////////////////////////////////////
 
 	// Create the vertex array
-	glGenVertexArrays(1, &m_vao);
-	glBindVertexArray(m_vao);
+	glGenVertexArrays(2, m_vao);
 
 	// Generate three VBOs for vertices, texture coordinates and indices
-	glGenBuffers(3, m_vbo);
+	glGenBuffers(6, m_vbo);
 
+	// OUTER LEVELS
+	glBindVertexArray(m_vao[0]);
 	// Setup the vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
@@ -535,6 +538,23 @@ Clipmap::init()
 	// Setup the index buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), &indices[0], GL_STATIC_DRAW);
+
+	// INNER GRID
+	glBindVertexArray(m_vao[1]);
+	// Setup the vertex buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices_inner.size(), &vertices_inner[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[4]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * vertices_inner.size(), &texcoords_inner[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[5]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices_inner.size(), &indices_inner[0], GL_STATIC_DRAW);
+	m_nInnerIndices = indices_inner.size();
 	return true;
 }
 
@@ -555,15 +575,6 @@ Clipmap::create_block(int vertstart, int width, int height, std::vector<vector2>
 	{
 		for (int x = 0; x < width-1; x++)
 		{
-			/*		
-			indices.push_back((y + 0) * width + (x + 0)  + vertstart);
-			indices.push_back((y + 1) * width + (x + 0)  + vertstart);
-			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
-
-			indices.push_back((y + 0) * width + (x + 1)  + vertstart);
-			indices.push_back((y + 1) * width + (x + 0)  + vertstart);
-			indices.push_back((y + 1) * width + (x + 1)  + vertstart);
-			*/
 			if (x == 0)
 			{
 				indices.push_back((y + 0) * width + (x + 0)  + vertstart);
@@ -632,10 +643,17 @@ Clipmap::cull(matrix4& mvp, vector2 shift)
 
 //--------------------------------------------------------
 void
-Clipmap::render()
+Clipmap::render_levels()
 {
-	glBindVertexArray(m_vao);
+	glBindVertexArray(m_vao[0]);
 	glDrawElements(GL_TRIANGLES, m_draw_count[0], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[0]));
 	for (int i = 1; i < m_primcount; i++)
 		glDrawElements(GL_TRIANGLE_STRIP, m_draw_count[i], GL_UNSIGNED_INT, (GLvoid*)(m_draw_starts[i]));
+}
+
+//--------------------------------------------------------
+void
+Clipmap::render_inner(){
+	glBindVertexArray(m_vao[1]);
+	glDrawElements(GL_TRIANGLES, m_nInnerIndices, GL_UNSIGNED_SHORT, 0);
 }
