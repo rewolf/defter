@@ -11,8 +11,8 @@
 
 #define emitVert(idx)\
 	frag_TexCoord   = out_tex[idx];     \
-	gl_Position     = out_verts[idx];	\
-	frag_View		= vec3(view * out_verts[idx]); \
+	frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); \
+	gl_Position     = projection * out_verts[idx];	\
 	EmitVertex();
 
 #define prepareVert(idx)			\
@@ -22,9 +22,9 @@
 	temp       = barycentric[idx].x * gl_in[0].gl_Position	\
 			   + barycentric[idx].y * gl_in[1].gl_Position	\
 			   + barycentric[idx].z * gl_in[2].gl_Position;	\
-	temp.y = texture(heightmap, out_tex[idx]).r * HEIGHT + cam_height;\
+	/*temp.y = texture(heightmap, out_tex[idx]).r * HEIGHT + camera_height;*/\
 	temp.w = 1.0;											\
-	out_verts[idx] = projection*view * temp;
+	out_verts[idx] = view * temp;
 
 // Declare the incoming primitive type
 layout(triangles) in;
@@ -36,11 +36,11 @@ layout(triangle_strip, max_vertices=170)  out;
 uniform sampler2D heightmap;
 uniform mat4 projection;
 uniform mat4 view;
-uniform float cam_height;
+uniform float camera_height;
 
 // Incoming from vertex shader
-in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
+in vec4 geom_ProjPos[3];
 in int mustTess[3];
 
 
@@ -51,7 +51,6 @@ out vec2 frag_TexCoord;
 void refine_with_pattern(in int index);
 
 // Globals
-float camera_height;
 const vec2 const_list = vec2(1.0, .0);
 const float HEIGHT = 40.0;
 
@@ -63,9 +62,9 @@ void main()
 	vec3 z;
 	vec3 w;
 	vec4 vertex[3];
-	vertex[0] = gl_in[0].gl_Position;
-	vertex[1] = gl_in[1].gl_Position;
-	vertex[2] = gl_in[2].gl_Position;
+	vertex[0] = geom_ProjPos[0];
+	vertex[1] = geom_ProjPos[1];
+	vertex[2] = geom_ProjPos[2];
 
 	// Gather components for frustum culling below
 	x = abs(vec3(vertex[0].x, vertex[1].x, vertex[2].x));

@@ -27,6 +27,7 @@ in vec2 vert_TexCoord;
 // Shader Output
 out vec3 geom_View;
 out vec2 geom_TexCoord;
+out vec4 geom_ProjPos;
 out int  mustTess;
 
 
@@ -75,14 +76,14 @@ void main()
 	// So gl_Position contains the basic heightfield worldspace coordinate
 	pos = pos + const_list.yxyy * camera_height;
 
+	// Save out the gl_Position
+	gl_Position = pos;
+
 	// Pos contains the transformed coordinate in eye-space.
 	pos = view * pos;
 
-	// Calculate the view vector
-	geom_View = -pos.xyz * (1.0 / pos.w);
+	geom_ProjPos = projection * pos;
 	
-	// Save out the gl_Position
-	gl_Position = projection * pos;
 	
 	// Save out the texCoord
 	geom_TexCoord = texCoord;

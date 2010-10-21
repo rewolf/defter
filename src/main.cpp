@@ -295,7 +295,7 @@ DefTer::InitGL()
 	// Init Shaders
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
