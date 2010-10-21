@@ -16,6 +16,7 @@ uniform vec2 scales;
 uniform vec4 cam_and_shift;
 uniform float cam_height;
 uniform mat4 projection;
+uniform mat4 mvp;
 uniform mat4 view;
 
 
@@ -80,9 +81,8 @@ void main()
 	gl_Position = pos;
 
 	// Pos contains the transformed coordinate in eye-space.
-	pos = view * pos;
 
-	geom_ProjPos = projection * pos;
+	geom_ProjPos = mvp * pos;
 	
 	
 	// Save out the texCoord

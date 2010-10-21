@@ -11,17 +11,19 @@
 
 #define emitVert(idx)\
 	frag_TexCoord   = out_tex[idx];     \
-	frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); \
+	/*frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); */\
 	gl_Position     = projection * out_verts[idx];	\
 	EmitVertex();
 
 #define prepareVert(idx)			\
-	out_tex[idx] = barycentric[idx].x * geom_TexCoord[0]	\
+/*	out_tex[idx] = barycentric[idx].x * geom_TexCoord[0]	\
 			   + barycentric[idx].y * geom_TexCoord[1]		\
 			   + barycentric[idx].z * geom_TexCoord[2];		\
 	temp       = barycentric[idx].x * gl_in[0].gl_Position	\
 			   + barycentric[idx].y * gl_in[1].gl_Position	\
-			   + barycentric[idx].z * gl_in[2].gl_Position;	\
+			   + barycentric[idx].z * gl_in[2].gl_Position;	*/\
+	out_tex[idx] = stuff2 * barycentric[idx].xyz;\
+	temp		= stuff * barycentric[idx].xyz;\
 	/*temp.y = texture(heightmap, out_tex[idx]).r * HEIGHT + camera_height;*/\
 	temp.w = 1.0;											\
 	out_verts[idx] = view * temp;
@@ -54,6 +56,9 @@ void refine_with_pattern(in int index);
 const vec2 const_list = vec2(1.0, .0);
 const float HEIGHT = 40.0;
 
+mat3x4 stuff;
+mat3x2 stuff2;
+
 //------------------------------------------------------------------------------
 void main()
 {
@@ -65,6 +70,9 @@ void main()
 	vertex[0] = geom_ProjPos[0];
 	vertex[1] = geom_ProjPos[1];
 	vertex[2] = geom_ProjPos[2];
+
+	stuff = mat3x4(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
+	stuff2= mat3x2(geom_TexCoord[0], geom_TexCoord[1], geom_TexCoord[2]);
 
 	// Gather components for frustum culling below
 	x = abs(vec3(vertex[0].x, vertex[1].x, vertex[2].x));
@@ -87,20 +95,20 @@ void main()
 //--------------------------------------------------------
 void refine_with_pattern(in int index){
 	vec4 out_verts   [10];
-	vec4 barycentric [10];
+	vec3 barycentric [10];
 	vec2 out_tex[10];
 	vec4 temp;
 
-	barycentric[0] = vec4( 0.0	, 1.0	, 0.0	, 1.0	);
-	barycentric[1] = vec4( 0.0	, 0.667	, 0.333	, 1.0	);
-	barycentric[2] = vec4( 0.0	, 0.333	, 0.667	, 1.0	);
-	barycentric[3] = vec4( 0.0	, 0.0	, 1.0	, 1.0	);
-	barycentric[4] = vec4( 0.333	, 0.667	, 0.0	, 1.0	);
-	barycentric[5] = vec4( 0.3333	, 0.3333, 0.3334, 1.0	);
-	barycentric[6] = vec4( 0.333	, 0.0	, 0.667	, 1.0	);
-	barycentric[7] = vec4( 0.667	, 0.333	, 0.0	, 1.0	);
-	barycentric[8] = vec4( 0.667	, 0.0	, 0.333	, 1.0	);
-	barycentric[9] = vec4( 1.0	, 0.0	, 0.0	, 1.0	);
+	barycentric[0] = vec3( 0.0		, 1.0	, 0.0	);
+	barycentric[1] = vec3( 0.0		, 0.667	, 0.333	);
+	barycentric[2] = vec3( 0.0		, 0.333	, 0.667	);
+	barycentric[3] = vec3( 0.0		, 0.0	, 1.0	);
+	barycentric[4] = vec3( 0.333	, 0.667	, 0.0	);
+	barycentric[5] = vec3( 0.3333	, 0.3333, 0.3334);
+	barycentric[6] = vec3( 0.333	, 0.0	, 0.667	);
+	barycentric[7] = vec3( 0.667	, 0.333	, 0.0	);
+	barycentric[8] = vec3( 0.667	, 0.0	, 0.333	);
+	barycentric[9] = vec3( 1.0		, 0.0	, 0.0	);
 
 	// Interpolate positions and tex coords and then apply viewproj transform
 	prepareVert(9);

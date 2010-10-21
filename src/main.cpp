@@ -1281,6 +1281,8 @@ DefTer::Render(float dt)
 	if (m_enableTess){
 		glUseProgram(m_shInner->m_programID);
 		glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "view"), 1, GL_FALSE, rotate.m);
+		glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "mvp"), 1, GL_FALSE,
+				(m_proj_mat * rotate).m);
 		glUniform2i(glGetUniformLocation(m_shInner->m_programID, "tileOffset"), firstTile[1],
 				firstTile[0]);
 	}
