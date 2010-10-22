@@ -268,15 +268,91 @@ Clipmap::cull(matrix4& mvp, vector2 shift)
 void
 Clipmap::render_levels(GLuint sh)
 {
-	float shiftX;
-	float shiftZ;
+	float shiftX, left;
+	float shiftZ, far;
 	float scale;
-	glBindVertexArray(m_vao[0]);
-	for (int p = 0; p < m_nLevels * 0 + 1; p++){
-		scale = float( 1 << p );
+	left = -m_quad_size * ((m_N-1)+ (m_M - 1)*2)*.5f;
+	far  = -m_quad_size * ((m_N-1)+ (m_M - 1)*2)*.5f;
+	scale  = 1;
 
-		shiftX = .0f;
-		shiftZ = m_quad_size * (m_N /2 + m_M/2)*2;
+	glBindVertexArray(m_vao[0]);
+	for (int p = 0; p < m_nLevels; p++){
+		scale *= 2.0f;
+
+		if (p>0){
+			// shift left and far
+			left -= m_quad_size * (m_M-1 + (m_M-1)*.5f)*.5f*scale;
+			far  -= m_quad_size * (m_M-1 + (m_M-1)*.5f)*.5f*scale;
+		}
+		// on odd levels put L on negative X,Z
+		if (p & 0x1){ 
+			left -= m_quad_size * scale;
+			far  -= m_quad_size * scale;
+		}
+
+		shiftX = left;
+		shiftZ = far;
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1) * scale;	// skip the block
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1 + 2) * scale; // skip the block and fixup
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1) * scale; // skip the block
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		// NEXT ROW
+		shiftZ += m_quad_size * (m_M-1) * scale;
+		shiftX = left;
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * ((m_M-1) * 3 + 2) * scale;	// skip the block
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		// NEXT ROW
+		shiftZ += m_quad_size * (m_M-1 + 2) * scale; 			// skip block + fixup
+		shiftX = left;
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * ((m_M-1) * 3 + 2) * scale;	// skip the block
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		// NEXT ROW
+		shiftZ += m_quad_size * (m_M-1) * scale; 			// skip block
+		shiftX = left;
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1) * scale;	// skip the block
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1 + 2) * scale; // skip the block and fixup
+
+		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
+		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);
+
+		shiftX += m_quad_size * (m_M-1) * scale; // skip the block
 
 		glUniform3f(glGetUniformLocation(sh, "st"), shiftX, shiftZ, scale);
 		glDrawElements(GL_TRIANGLES, m_min_draw_count, GL_UNSIGNED_INT, 0);

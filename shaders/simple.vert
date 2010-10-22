@@ -57,12 +57,12 @@ void main()
 	camera_world = camera_tex * texToMetre;
 
 	// Compute texture coordinates for vertex and lookup height
-	texCoord = vert_TexCoord*st.z + camera_tex + shift * metreToTex;
+	texCoord = vert_TexCoord + camera_tex + shift * metreToTex;
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
 	height 	= texture(heightmap, texCoord).r*0;
-	camera_height = -5;//-cam_height;
+	camera_height = -20;//-cam_height;
 
 	// Set vertex position and height from heightmap
 	vec4 pos = vec4(vert_Position.x*st.z+st.x, height * HEIGHT, vert_Position.y*st.z+st.y, 1.0);
