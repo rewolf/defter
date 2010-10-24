@@ -25,8 +25,8 @@
 	out_tex[idx] = stuff2 * barycentric[idx].xyz;\
 	temp		= stuff * barycentric[idx].xyz;\
 	/*temp.y = texture(heightmap, out_tex[idx]).r * HEIGHT + camera_height;*/\
-	temp.w = 1.0;											\
-	out_verts[idx] = view * temp;
+	//temp.w = 1.0;											\
+	out_verts[idx] = temp;
 
 // Declare the incoming primitive type
 layout(triangles) in;
@@ -71,7 +71,7 @@ void main()
 	vertex[1] = geom_ProjPos[1];
 	vertex[2] = geom_ProjPos[2];
 
-	stuff = mat3x4(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
+	stuff = view*mat3x4(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
 	stuff2= mat3x2(geom_TexCoord[0], geom_TexCoord[1], geom_TexCoord[2]);
 
 	// Gather components for frustum culling below
@@ -126,54 +126,54 @@ void refine_with_pattern(in int index){
 			EndPrimitive();
 			break;
 		case 3:
-			prepareVert(7);
-			prepareVert(4);
 			emitVert(9);
+			prepareVert(7);
 			emitVert(7);
 			emitVert(3);
+			prepareVert(4);
 			emitVert(4);
 			emitVert(0);
 			EndPrimitive();
 			break;
 		case 5:
-			prepareVert(6);
-			prepareVert(8);
 			emitVert(3);
+			prepareVert(6);
 			emitVert(6);
 			emitVert(0);
+			prepareVert(8);
 			emitVert(8);
 			emitVert(9);
 			EndPrimitive();
 			break;
 		case 6:
-			prepareVert(1);
-			prepareVert(2);
 			emitVert(0);
+			prepareVert(1);
 			emitVert(1);
 			emitVert(9);
+			prepareVert(2);
 			emitVert(2);
 			emitVert(3);
 			EndPrimitive();
 			break;
 		case 7:
-			prepareVert(1);
-			prepareVert(2);
-			prepareVert(4);
-			prepareVert(5);
-			prepareVert(6);
-			prepareVert(7);
-			prepareVert(8);
 			emitVert(3);
+			prepareVert(6);
 			emitVert(6);
+			prepareVert(2);
 			emitVert(2);
+			prepareVert(5);
 			emitVert(5);
+			prepareVert(1);
 			emitVert(1);
+			prepareVert(4);
 			emitVert(4);
 			emitVert(0);
 			EndPrimitive();
 			emitVert(6);
+			prepareVert(8);
 			emitVert(8);
 			emitVert(5);
+			prepareVert(7);
 			emitVert(7);
 			emitVert(4);
 			EndPrimitive();
