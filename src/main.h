@@ -48,6 +48,7 @@ public:
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
+	Shockwave*		m_pShockwave;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;

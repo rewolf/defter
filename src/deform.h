@@ -66,6 +66,7 @@ public:
 
 	GLuint			m_coarseBackup;
 	GLuint			m_highBackup;
+	map<string, Stamp> stampCollection;
 private:
 	ShaderProg*		m_shTexStamp;
 	ShaderProg*		m_shPDMapper;
@@ -82,8 +83,6 @@ private:
 	float			m_metre_to_tex;
 	float			m_metre_to_detail_tex;
 	bool			m_initialised;
-
-	map<string, Stamp> stampCollection;
 };
 
 // Functional Stamp setup callbacks

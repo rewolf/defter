@@ -53,6 +53,7 @@ using namespace std;
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
+#include "shockwave.h"
 #include "main.h"
 
 #define PI					(3.14159265358979323846264338327950288f)
@@ -119,8 +120,8 @@ int main(int argc, char* argv[])
 {
 	AppConfig conf;
 	conf.VSync		= false;
-	conf.gl_major	= 3;
-	conf.gl_minor	= 2;
+	conf.gl_major	= 2;
+	conf.gl_minor	= 1;
 	conf.fsaa		= 0;
 	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
@@ -152,6 +153,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
 	m_pSkybox 			  = NULL;
+	m_pShockwave		  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -173,6 +175,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
+	RE_DELETE(m_pShockwave);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -420,6 +423,25 @@ DefTer::Init()
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
 		return false;
 	}
+	printf("Done\n");
+
+	// Create the Shockwave object that will allow shockwaves to happen
+	printf("Creating shockwave...\t\t");
+	fflush(stdout);
+	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2);
+	if (!m_pShockwave->m_no_error)
+	{
+		fprintf(stderr, "Error\n\tCould not create shockwave\n");
+		return false;
+	}
+	Stamp stamp;
+	stamp.m_isTexStamp = true;
+	stamp.m_texture    = m_pShockwave->m_currentTex;
+	m_pDeform->stampCollection["shockwaveAdd"] = stamp;
+	stamp = Stamp();
+	stamp.m_isTexStamp = true;
+	stamp.m_texture    = m_pShockwave->m_previousTex;
+	m_pDeform->stampCollection["shockwaveSubtract"] = stamp;
 	printf("Done\n");
 
 	// Shader uniforms (Clipmap data)
@@ -974,6 +996,10 @@ DefTer::ProcessInput(float dt)
 		delete[] framebuffer;		
 	}
 
+	if (m_input.WasKeyPressed(SDLK_F5)){
+		m_pShockwave->create(vector3(.0f));
+	}
+
 	// Toggle Frustum Culling
 	if (m_input.WasKeyPressed(SDLK_k))
 	{
@@ -1193,6 +1219,22 @@ DefTer::Logic(float dt)
 		}
 	}
 
+	// Update Shockwave
+	m_pShockwave->update(dt);
+	m_pShockwave->update(dt);
+	m_pShockwave->update(dt);
+	m_pShockwave->update(dt);
+	m_pShockwave->update(dt);
+	m_pShockwave->update(dt);
+	if (m_pShockwave->m_state == ACTIVE){
+		vector4 SIRM(400.0f, -.55f, .0f, .0f);
+	//	m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
+	//			"shockwaveSubtract", SIRM, true);
+		SIRM.y *= -1.0f;
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
+				"shockwaveAdd", SIRM, true);
+	}
+
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
@@ -1261,6 +1303,27 @@ DefTer::Render(float dt)
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
+
+// TEST
+	glDisable(GL_BLEND);
+	glEnable(GL_TEXTURE_2D);
+	glUseProgram(0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(-.8f, -.8f, .0f);
+	glScalef(.2f, .2f, 1.0f);
+	glBindTexture(GL_TEXTURE_2D, m_pShockwave->m_previousTex);
+	glBegin(GL_TRIANGLE_STRIP);
+	glTexCoord2f(.0f, 1.0f);
+	glVertex3f(-1.0f, 1.0f, .0f);
+	glTexCoord2f(.0f, .0f);
+	glVertex3f(-1.0f,-1.0f, .0f);
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f( 1.0f, 1.0f, .0f);
+	glTexCoord2f(1.0f, .0f);
+	glVertex3f( 1.0f,-1.0f, .0f);
+	glEnd();
+// TEST
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
