@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -148,6 +148,7 @@ int main(int argc, char* argv[])
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
 	m_shMain  			  = NULL;
+	m_shInner			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
@@ -169,6 +170,7 @@ DefTer::~DefTer()
 	glUseProgram(0);
 	RE_DELETE(m_shSplash);
 	RE_DELETE(m_shMain);
+	RE_DELETE(m_shInner);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
@@ -241,7 +243,7 @@ DefTer::InitGL()
 
 	printf("Setting up GL...\t\t");
 	glEnable(GL_CULL_FACE);
-	glClearColor(0.4f, 0.4f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, .0f, 1.0f);
 	if (!CheckError(""))
 		return false;
 	printf("Done\n");
@@ -280,6 +282,7 @@ DefTer::InitGL()
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
+	m_enableTess	= false;
 
 	// Init the world settings
 	m_gravity_on	= true;
@@ -292,15 +295,18 @@ DefTer::InitGL()
 	// Init Shaders
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	glBindAttribLocation(m_shMain->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shMain->m_programID, 1, "vert_TexCoord");
+	glBindAttribLocation(m_shInner->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shInner->m_programID, 1, "vert_TexCoord");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
-	res = m_shMain->CompileAndLink();
+	res = m_shMain->CompileAndLink() && m_shInner->CompileAndLink();
 	if (!res)
 	{
 		printf("Error\n\tWill not continue without working shaders\n");
@@ -318,6 +324,17 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3"),  6);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+	glUseProgram(m_shInner->m_programID);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "pdmap"), 1);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "colormap"),  2);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail0"),  3);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1"),  4);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2"),  5);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3"),  6);
+	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -425,6 +442,8 @@ DefTer::Init()
 	// Shader uniforms (Clipmap data)
 	glUseProgram(m_shMain->m_programID);
 	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
+	glUseProgram(m_shInner->m_programID);
+	glUniform2f(glGetUniformLocation(m_shInner->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
@@ -458,6 +477,8 @@ DefTer::Init()
 	hdasq_its.y = 1.0f / (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex);
 	glUseProgram(m_shMain->m_programID);
 	glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "hdasq_its"), 1, hdasq_its.v);
+	glUseProgram(m_shInner->m_programID);
+	glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "hdasq_its"), 1, hdasq_its.v);
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
@@ -705,6 +726,8 @@ DefTer::UpdateClickPos(void)
 
 		glUseProgram(m_shMain->m_programID);
 		glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "click_pos"), 1, temp.v);
+		glUseProgram(m_shInner->m_programID);
+		glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "click_pos"), 1, temp.v);
 	}
 }
 
@@ -987,6 +1010,12 @@ DefTer::ProcessInput(float dt)
 		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
+	// Toggle tess shader
+	if (m_input.WasKeyPressed(SDLK_t)){
+		m_enableTess ^= true;
+		printf("Tessellation: %s\n", m_enableTess ? "ON" : "OFF");
+	}
+
 	// Toggle wireframe
 	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
@@ -1010,6 +1039,8 @@ DefTer::ProcessInput(float dt)
 
 		glUseProgram(m_shMain->m_programID);
 		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
 	}
@@ -1202,6 +1233,9 @@ DefTer::Logic(float dt)
 	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
+	glUseProgram(m_shInner->m_programID);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "cam_height"), m_cam_translate.y);
+	glUniform4f(glGetUniformLocation(m_shInner->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
 	m_frameAcceleration.set(.0f);
 }
@@ -1229,9 +1263,6 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
 	
-	// Use the shader program and set the view matrix.
-	glUseProgram(m_shMain->m_programID);
-	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
 
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(cullviewproj, m_clipmap_shift);
@@ -1240,8 +1271,21 @@ DefTer::Render(float dt)
 	Tile activeTiles[4];
 	m_pCaching->GetActiveTiles(activeTiles);
 	int firstTile[2] = {activeTiles[0].m_row, activeTiles[0].m_col};
+
+
+	// Use the shader program and set the view matrix.
+	glUseProgram(m_shMain->m_programID);
+	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
 	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
 			firstTile[0]);
+	if (m_enableTess){
+		glUseProgram(m_shInner->m_programID);
+		glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "view"), 1, GL_FALSE, rotate.m);
+		glUniform2i(glGetUniformLocation(m_shInner->m_programID, "tileOffset"), firstTile[1],
+				firstTile[0]);
+	}
+
+
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE4);
@@ -1252,7 +1296,9 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
 	BEGIN_PROF;
-	m_pClipmap->render();
+	m_pClipmap->render_inner();
+	glUseProgram(m_shMain->m_programID);
+	m_pClipmap->render_levels();
 	
 	m_pSkybox->render(viewproj);
 
