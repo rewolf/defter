@@ -111,6 +111,10 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
+#define PARALLAXSCALE	 0.01120f
+#define PARALLAXBIAS	-0.01066f
+#define PARALLAXITR		 20
+
 
 /******************************************************************************
  * Main 
@@ -294,7 +298,7 @@ DefTer::InitGL()
 
 	// Init Shaders
 	// Get the Shaders to Compile
-	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shMain		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
 	m_shInner		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
@@ -344,6 +348,18 @@ DefTer::InitGL()
 	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "tc_delta"),  1.0f / HIGH_DIM);
 	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+
+	glUseProgram(m_shInner->m_programID);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), PARALLAXBIAS);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), PARALLAXSCALE);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), PARALLAXITR);
+	glUseProgram(m_shMain->m_programID);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), PARALLAXBIAS);
+	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), PARALLAXSCALE);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), PARALLAXITR);
+
+	
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -829,12 +845,78 @@ DefTer::UpdateCoarsemapStreamer(){
 	CheckError("coarsemap streamer\n");
 	DEBUG("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
 }
-static float pscale = -0.0022f;
+static float pscale = PARALLAXSCALE;
+static float pbias	= PARALLAXBIAS;
+static int pitr		= PARALLAXITR;
+static float ttt	= .1f;
 //--------------------------------------------------------
 // Process user input
 void
 DefTer::ProcessInput(float dt)
 {
+	if (m_input.IsKeyPressed(SDLK_y))
+	{
+		pscale += 0.0001f * ttt;
+		printf("%.5f\n", pscale);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), pscale);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), pscale);
+	}
+
+	if (m_input.IsKeyPressed(SDLK_u))
+	{
+		pscale -= 0.0001f * ttt;
+		printf("%.5f\n", pscale);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), pscale);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), pscale);
+	}
+
+	if (m_input.IsKeyPressed(SDLK_v))
+	{
+		pbias += 0.0001f * ttt;
+		printf("%.5f\n", pbias);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pbias);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), pbias);
+	}
+
+	if (m_input.IsKeyPressed(SDLK_b))
+	{
+		pbias -= 0.0001f * ttt;
+		printf("%.5f\n", pbias);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pbias);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), pbias);
+	}
+
+	if (m_input.WasKeyPressed(SDLK_6))
+	{
+		pitr += 1;
+		printf("%d\n", pitr);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), pitr);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), pitr);
+	}
+
+	if (m_input.WasKeyPressed(SDLK_7))
+	{
+		pitr -= 1;
+		pitr = max(pitr, 1);
+		printf("%d\n", pitr);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), pitr);
+		glUseProgram(m_shMain->m_programID);
+		glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), pitr);
+	}
+	
+
+
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
 	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
@@ -1074,7 +1156,7 @@ DefTer::ProcessInput(float dt)
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
-		m_stampSIRM.x = min(m_stampSIRM.x + (20.0f * dt), 200.0f);
+		m_stampSIRM.x = min(m_stampSIRM.x + (20.0f * dt), 800.0f);
 		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
 	}
 	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
@@ -1108,22 +1190,6 @@ DefTer::ProcessInput(float dt)
 		m_gravity_on ^= true;
 		m_velocity.y  = .0f;
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
-	}
-
-	if (m_input.IsKeyPressed(SDLK_y))
-	{
-		pscale += 0.0001f;
-		printf("%.5f\n", pscale);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pscale);
-	}
-
-	if (m_input.IsKeyPressed(SDLK_u))
-	{
-		pscale -= 0.0001f;
-		printf("%.5f\n", pscale);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pscale);
 	}
 
 	// Controls to handle movement of the camera
