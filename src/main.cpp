@@ -74,7 +74,7 @@ const float		FRICTION	= 1.8f;
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
 #define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
-#define CLIPMAP_RES			(.1f)
+#define CLIPMAP_RES			(0.1f)
 #define CLIPMAP_LEVELS		(5)
 #define CACHING_LEVEL		(2)
 #define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
@@ -85,19 +85,19 @@ const float		FRICTION	= 1.8f;
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
 #define EYE_HEIGHT			(2.0f)
-#define STEP_TIME			(.4f)
+#define STEP_TIME			(0.4f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(1)
+#define DEBUG_ON			(0)
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
 #	define DEBUG(x)			{}
 #endif
 
-#define PROFILE				(1)
+#define PROFILE				(0)
 #if PROFILE
 	reTimer g_profiler;
 	float timeCount = 0;
