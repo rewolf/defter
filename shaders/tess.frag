@@ -15,6 +15,10 @@ uniform sampler2D detail0;
 uniform sampler2D detail1;
 uniform sampler2D detail2;
 uniform sampler2D detail3;
+uniform sampler2D detail0N;
+uniform sampler2D detail1N;
+uniform sampler2D detail2N;
+uniform sampler2D detail3N;
 
 uniform vec2 click_pos;
 uniform vec2 scales;
@@ -29,6 +33,7 @@ uniform vec2 hdasq_its;
 // Shader Input
 in vec3 frag_View;
 in vec2 frag_TexCoord;
+in int  tileIndex;
 
 
 // Shader Ouput
@@ -110,31 +115,28 @@ void main()
 	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
-/*
+	
+	/*
+
 	// High-detail maps
-	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
-	vec2 tc		= fract(tile);
-	int t		= int(floor(tile.x) + floor(tile.y) * 6);
-	float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
-	if (factor > .001){
-		vec4 detail;
-		switch(t)
-		{
-			case 0:
-				detail =  texture(detail0, tc).rrrr;
-				break;
-			case 1:
-				detail =  texture(detail1, tc).rrrr;
-				break;
-			case 6:
-				detail =  texture(detail2, tc).rrrr;
-				break;
-			case 7:
-				detail =  texture(detail3, tc).rrrr;
-				break;
-		};
-	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
-	}*/
+	vec3 detailN = vec4(.0, 1.0, .0);
+	switch(tileIndex)
+	{
+		case 0:
+			detail =  texture(detail0N, tc).rrrr;
+			break;                   
+		case 1:                     
+			detail =  texture(detail1N, tc).rrrr;
+			break;                   
+		case 6:                      
+			detail =  texture(detail2N, tc).rrrr;
+			break;                   
+		case 7:                      
+			detail =  texture(detail3N, tc).rrrr;
+			break;
+	};
+*/
+
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }

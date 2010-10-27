@@ -74,7 +74,7 @@ const float		FRICTION	= 1.8f;
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
 #define	SPLASHMAP_TEXTURE	("images/splash.png")
 #define CLIPMAP_DIM			(255)
-#define CLIPMAP_RES			(.1f)
+#define CLIPMAP_RES			(0.1f)
 #define CLIPMAP_LEVELS		(5)
 #define CACHING_LEVEL		(2)
 #define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
@@ -85,19 +85,19 @@ const float		FRICTION	= 1.8f;
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
 #define EYE_HEIGHT			(2.0f)
-#define STEP_TIME			(.4f)
+#define STEP_TIME			(0.4f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(1)
+#define DEBUG_ON			(0)
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
-#	define DEBUG(x)			{}
+#	define DEBUG(...)			{}
 #endif
 
-#define PROFILE				(1)
+#define PROFILE				(0)
 #if PROFILE
 	reTimer g_profiler;
 	float timeCount = 0;
@@ -163,7 +163,7 @@ DefTer::~DefTer()
 	// signal thread to check "isRunning" status
 	SDL_SemPost(m_waitSem);
 
-	SaveCoarseMap("images/last_shit_coarsemap.png");
+	SaveCoarseMap("images/coarsemap.png");
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
@@ -322,6 +322,10 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail1"),  4);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail2"),  5);
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3"),  6);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail0N"),  7);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail1N"),  8);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail2N"),  9);
+	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3N"),  10);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
@@ -333,6 +337,11 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1"),  4);
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2"),  5);
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3"),  6);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail0N"),  7);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1N"),  8);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2N"),  9);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3N"),  10);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "tc_delta"),  1.0f / HIGH_DIM);
 	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
@@ -820,7 +829,7 @@ DefTer::UpdateCoarsemapStreamer(){
 	CheckError("coarsemap streamer\n");
 	DEBUG("Streamer took %.3fms this frame\n", streamerTimer.getElapsed()*1000);
 }
-
+static float pscale = -0.0022f;
 //--------------------------------------------------------
 // Process user input
 void
@@ -1101,6 +1110,22 @@ DefTer::ProcessInput(float dt)
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
+	if (m_input.IsKeyPressed(SDLK_y))
+	{
+		pscale += 0.0001f;
+		printf("%.5f\n", pscale);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pscale);
+	}
+
+	if (m_input.IsKeyPressed(SDLK_u))
+	{
+		pscale -= 0.0001f;
+		printf("%.5f\n", pscale);
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pscale);
+	}
+
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	vector3 moveDirection;
@@ -1296,6 +1321,14 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[2].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
+	glActiveTexture(GL_TEXTURE7);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.pdmap);
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[1].m_texdata.pdmap);
+	glActiveTexture(GL_TEXTURE9);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[2].m_texdata.pdmap);
+	glActiveTexture(GL_TEXTURE10);
+	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.pdmap);
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();

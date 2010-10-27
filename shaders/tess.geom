@@ -11,22 +11,11 @@
 
 #define emitVert(idx)\
 	frag_TexCoord   = out_tex[idx];     \
+	tileIndex		= out_tIndex[idx];	\
 	/*frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); */\
 	gl_Position     = projection * out_verts[idx];	\
 	EmitVertex();
 
-#define prepareVert(idx)			\
-/*	out_tex[idx] = barycentric[idx].x * geom_TexCoord[0]	\
-			   + barycentric[idx].y * geom_TexCoord[1]		\
-			   + barycentric[idx].z * geom_TexCoord[2];		\
-	temp       = barycentric[idx].x * gl_in[0].gl_Position	\
-			   + barycentric[idx].y * gl_in[1].gl_Position	\
-			   + barycentric[idx].z * gl_in[2].gl_Position;	*/\
-	out_tex[idx] = stuff2 * barycentric[idx].xyz;\
-	temp		= stuff * barycentric[idx].xyz;\
-	/*temp.y = texture(heightmap, out_tex[idx]).r * HEIGHT + camera_height;*/\
-	//temp.w = 1.0;											\
-	out_verts[idx] = temp;
 
 // Declare the incoming primitive type
 layout(triangles) in;
@@ -39,6 +28,14 @@ uniform sampler2D heightmap;
 uniform mat4 projection;
 uniform mat4 view;
 uniform float camera_height;
+uniform vec2 hdasq_its;
+uniform ivec2 tileOffset;
+
+// detail maps
+uniform sampler2D detail0;
+uniform sampler2D detail1;
+uniform sampler2D detail2;
+uniform sampler2D detail3;
 
 // Incoming from vertex shader
 in vec2 geom_TexCoord[3];
@@ -49,16 +46,22 @@ in int mustTess[3];
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
+out int  tileIndex;
 
+void prepareVert(in int idx);
 void refine_with_pattern(in int index);
 
 // Globals
-const vec2 const_list = vec2(1.0, .0);
+const vec2 cc = vec2(1.0, .0);
 const float HEIGHT = 40.0;
 
 mat3x4 stuff;
 mat3x2 stuff2;
 
+vec4 out_verts   [10];
+vec3 barycentric [10];
+vec2 out_tex[10];
+int  out_tIndex[10];
 //------------------------------------------------------------------------------
 void main()
 {
@@ -81,11 +84,11 @@ void main()
 	w = vec3(vertex[0].w, vertex[1].w, vertex[2].w);
 
 
-	if (!any(lessThan(x, w)))
+	if (!any(lessThan(x, w*1.1)))
 		return;
-	if (!any(lessThan(y, w)))
+	if (!any(lessThan(y, w*1.1)))
 		return;
-	if (!any(lessThan(z, w)))
+	if (!any(lessThan(z, w*1.1)))
 		return;
 
 	int index = (mustTess[0]<<0) | (mustTess[1] << 1) | (mustTess[2] << 2);
@@ -94,9 +97,6 @@ void main()
 
 //--------------------------------------------------------
 void refine_with_pattern(in int index){
-	vec4 out_verts   [10];
-	vec3 barycentric [10];
-	vec2 out_tex[10];
 	vec4 temp;
 
 	barycentric[0] = vec3( 0.0		, 1.0	, 0.0	);
@@ -120,6 +120,7 @@ void refine_with_pattern(in int index){
 		case 1:
 		case 2:
 		case 4:
+			tileIndex = -1;
 			emitVert(9);
 			emitVert(0);
 			emitVert(3);
@@ -183,8 +184,41 @@ void refine_with_pattern(in int index){
 			EndPrimitive();
 	};
 }
+//--------------------------------------------------------
+void prepareVert(in int idx){
+	vec4 temp;
+	// Interpolat texcoords and vertex position
+	out_tex[idx] = stuff2 * barycentric[idx].xyz;
+	temp		 = stuff * barycentric[idx].xyz;
+
+	// High-detail maps
+	vec2 tile	= out_tex[idx] * hdasq_its.y - tileOffset;
+	vec2 tc		= fract(tile);
+	int t		= int(floor(tile.x) + floor(tile.y) * 6);
+	//float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
+	float detail;
+	switch(t)
+	{
+		case 0:
+			detail =  texture(detail0, tc).r;
+			break;
+		case 1:
+			detail =  texture(detail1, tc).r;
+			break;
+		case 6:
+			detail =  texture(detail2, tc).r;
+			break;
+		case 7:
+			detail =  texture(detail3, tc).r;
+			break;
+	};
+
+	out_tIndex[idx] = t;
+	out_verts[idx] = temp + cc.yxyy * detail * .5; // set w  = 1
+}
 
 //--------------------------------------------------------
+/*
 void refine_with_pattern2(in int index){
 	vec4 out_verts   [10];
 	vec4 barycentric [10];
@@ -281,4 +315,5 @@ void refine_with_pattern2(in int index){
 			emitVert(7);
 			EndPrimitive();
 	};
-}
+}*/
+

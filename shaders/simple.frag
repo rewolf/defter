@@ -95,7 +95,7 @@ void main()
 
 	// Factor in the intensities to the diffuse and specular amounts
 	diffuse	   *= diffuseIntensity;
-	specular   *= specularIntensity * 0.3;
+	specular   *= specularIntensity * 0;
 
 	// Calculate the frag color
 	frag_Color = (ambient + diffuse + specular) * color;
@@ -111,30 +111,6 @@ void main()
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
 
-	// High-detail maps
-	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
-	vec2 tc		= fract(tile);
-	int t		= int(floor(tile.x) + floor(tile.y) * 6);
-	float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
-	if (factor > .001){
-		vec4 detail;
-		switch(t)
-		{
-			case 0:
-				detail =  texture(detail0, tc).rrrr;
-				break;
-			case 1:
-				detail =  texture(detail1, tc).rrrr;
-				break;
-			case 6:
-				detail =  texture(detail2, tc).rrrr;
-				break;
-			case 7:
-				detail =  texture(detail3, tc).rrrr;
-				break;
-		};
-	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
-	}
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }
