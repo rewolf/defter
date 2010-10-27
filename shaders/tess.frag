@@ -105,27 +105,6 @@ void main()
 	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
-	
-	/*
-
-	// High-detail maps
-	vec3 detailN = vec4(.0, 1.0, .0);
-	switch(tileIndex)
-	{
-		case 0:
-			detail =  texture(detail0N, tc).rrrr;
-			break;                   
-		case 1:                     
-			detail =  texture(detail1N, tc).rrrr;
-			break;                   
-		case 6:                      
-			detail =  texture(detail2N, tc).rrrr;
-			break;                   
-		case 7:                      
-			detail =  texture(detail3N, tc).rrrr;
-			break;
-	};
-*/
 
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);

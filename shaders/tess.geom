@@ -12,7 +12,7 @@
 #define emitVert(idx)\
 	frag_TexCoord   = out_tex[idx];     \
 	frag_Normal		= out_norms[idx];	\
-	/*frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); */\
+	frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); \
 	gl_Position     = projection * out_verts[idx];	\
 	EmitVertex();
 
@@ -45,7 +45,7 @@ uniform sampler2D detail3N;
 // Incoming from vertex shader
 in vec2 geom_TexCoord[3];
 in vec4 geom_ProjPos[3];
-in int mustTess[3];
+in float mustTess[3];
 
 
 // Outgoing per-vertex information
@@ -96,7 +96,9 @@ void main()
 	if (!any(lessThan(z, w*1.1)))
 		return;
 
-	int index = (mustTess[0]<<0) | (mustTess[1] << 1) | (mustTess[2] << 2);
+	int index = (int(mustTess[0]<130) << 0) | 
+				(int(mustTess[1]<130) << 1) | 
+				(int(mustTess[2]<130) << 2);
 	refine_with_pattern(index);
 }
 
@@ -188,6 +190,7 @@ void refine_with_pattern(in int index){
 			EndPrimitive();
 	};
 }
+uniform vec4 cam_and_shift;
 //--------------------------------------------------------
 void prepareVert(in int idx){
 	vec4 temp;
@@ -203,28 +206,33 @@ void prepareVert(in int idx){
 	// Read coarsemap normal
 	out_norms[idx] = texture(pdmap, out_tex[idx]).rgg*cc.wyw + cc.zxz;
 
-	float detail;
+	float dist  = barycentric[idx].x * mustTess[0]
+				+ barycentric[idx].y * mustTess[1]
+				+ barycentric[idx].z * mustTess[2];
+	float factor= clamp(1.0 - .1*dist, .0, 1.0);
+	float detail = .0;
+	vec3 add = vec3(.0, .0, .0);
 	switch(t)
 	{
 		case 0:
 			detail =  texture(detail0, tc).r;
-			out_norms[idx].xz += texture(detail0N, tc).rg*2 - 1;
+			add.xz = (texture(detail0N, tc).rg*2 - 1);
 			break;
 		case 1:
 			detail =  texture(detail1, tc).r;
-			out_norms[idx].xz += texture(detail1N, tc).rg*2 - 1;
+			add.xz = (texture(detail1N, tc).rg*2 - 1);
 			break;
 		case 6:
 			detail =  texture(detail2, tc).r;
-			out_norms[idx].xz += texture(detail2N, tc).rg*2 - 1;
+			add.xz = (texture(detail2N, tc).rg*2 - 1);
 			break;
 		case 7:
 			detail =  texture(detail3, tc).r;
-			out_norms[idx].xz += texture(detail3N, tc).rg*2 - 1;
+			add.xz = (texture(detail3N, tc).rg*2 - 1);
 			break;
 	};
-
-	out_verts[idx] = temp + cc.yxyy * detail * .5;
+	out_norms[idx] += add * factor;
+	out_verts[idx] = temp + cc.yxyy * detail * .5 *factor;
 	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
 	//out_verts[idx].w = 1.0;
 }

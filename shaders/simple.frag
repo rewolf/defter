@@ -95,7 +95,7 @@ void main()
 
 	// Factor in the intensities to the diffuse and specular amounts
 	diffuse	   *= diffuseIntensity;
-	specular   *= specularIntensity * 0;
+	specular   *= specularIntensity * 0.3;
 
 	// Calculate the frag color
 	frag_Color = (ambient + diffuse + specular) * color;

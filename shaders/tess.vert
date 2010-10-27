@@ -29,7 +29,7 @@ in vec2 vert_TexCoord;
 out vec3 geom_View;
 out vec2 geom_TexCoord;
 out vec4 geom_ProjPos;
-out int  mustTess;
+out float  mustTess;
 
 
 // Constansts
@@ -61,7 +61,7 @@ void main()
 	// Compute texture coordinates for vertex and lookup height
 	texCoord = vert_TexCoord + camera_tex + shift * metreToTex;
 
-	mustTess = int(dot(vert_Position.xz, vert_Position.xz) < 130);
+	mustTess = dot(vert_Position.xz, vert_Position.xz);
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
