@@ -208,18 +208,24 @@ void prepareVert(in int idx){
 	{
 		case 0:
 			detail =  texture(detail0, tc).r;
+			out_norms[idx].xz += texture(detail0N, tc).rg*2 - 1;
 			break;
 		case 1:
 			detail =  texture(detail1, tc).r;
+			out_norms[idx].xz += texture(detail1N, tc).rg*2 - 1;
 			break;
 		case 6:
 			detail =  texture(detail2, tc).r;
+			out_norms[idx].xz += texture(detail2N, tc).rg*2 - 1;
 			break;
 		case 7:
 			detail =  texture(detail3, tc).r;
+			out_norms[idx].xz += texture(detail3N, tc).rg*2 - 1;
 			break;
 	};
 
-	out_verts[idx] = temp + cc.yxyy * detail * .5; // set w  = 1
+	out_verts[idx] = temp + cc.yxyy * detail * .5;
+	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
+	//out_verts[idx].w = 1.0;
 }
 

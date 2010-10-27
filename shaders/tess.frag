@@ -14,10 +14,6 @@ uniform sampler2D detail0;
 uniform sampler2D detail1;
 uniform sampler2D detail2;
 uniform sampler2D detail3;
-uniform sampler2D detail0N;
-uniform sampler2D detail1N;
-uniform sampler2D detail2N;
-uniform sampler2D detail3N;
 
 uniform vec2 click_pos;
 uniform vec2 scales;
