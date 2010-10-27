@@ -17,11 +17,13 @@ layout(triangle_strip, max_vertices=170)  out;
 in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
 in vec3 geom_Normal[3];
+in vec3 geom_Vert[3];
 
 
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
+out vec3 frag_Tangent;
 
 
 //------------------------------------------------------------------------------
@@ -50,19 +52,49 @@ void main()
 	if (!any(lessThan(z, w)))
 		return;
 
+
+	vec3 tangent;
+
+	vec3 edgeRight		= normalize(geom_Vert[1].xyz - geom_Vert[0].xyz);
+	vec3 edgeLeft		= normalize(geom_Vert[2].xyz - geom_Vert[0].xyz);
+	vec2 texEdgeRight	= normalize(geom_TexCoord[1] - geom_TexCoord[0]);
+	vec2 texEdgeLeft	= normalize(geom_TexCoord[2] - geom_TexCoord[0]);
+
+	float det = (texEdgeRight.x * texEdgeLeft.y) - (texEdgeRight.y * texEdgeLeft.x);
+
+	if (det != 0.0)
+	{
+		tangent.x = 1.0;
+		tangent.y = 0.0;
+		tangent.z = 0.0;
+	}
+	else
+	{
+		det = 1.0 / det;
+		tangent.x = (texEdgeLeft.y * edgeRight.x - texEdgeRight.y * edgeLeft.x) * det;
+		tangent.y = (texEdgeLeft.y * edgeRight.y - texEdgeRight.y * edgeLeft.y) * det;
+		tangent.z = (texEdgeLeft.y * edgeRight.z - texEdgeRight.y * edgeLeft.z) * det;
+	}
+
+	tangent = normalize(tangent);
+
+
 	gl_Position = vertex[0];
 	frag_View = geom_View[0];
 	frag_TexCoord = geom_TexCoord[0];
+	frag_Tangent = tangent;
 	EmitVertex();
 
 	gl_Position = vertex[1];
 	frag_View = geom_View[1];
 	frag_TexCoord = geom_TexCoord[1];
+	frag_Tangent = tangent;
 	EmitVertex();
 
 	gl_Position = vertex[2];
 	frag_View = geom_View[2];
 	frag_TexCoord = geom_TexCoord[2];
+	frag_Tangent = tangent;
 	EmitVertex();
 
 	EndPrimitive();

@@ -40,6 +40,7 @@ uniform vec2 hdasq_its;
 // Shader Input
 in vec3 frag_View;
 in vec2 frag_TexCoord;
+in vec3 frag_Tangent;
 
 
 // Shader Ouput
@@ -85,7 +86,7 @@ void main()
 	viewVec = normalize(frag_View);
 
 	normal = normalize(mat3(view) * vec3(0.0, 1.0, 0.0));
-	vec3 tangent = normalize(mat3(view) * vec3(1.0, 0.0, 0.0));
+	vec3 tangent = normalize(mat3(view) * frag_Tangent);//normalize(vec3(1.0, 0.0, 0.0));
 	vec3 binormal = normalize(cross(normal, tangent));
 
 	mat3 tbn = mat3(tangent.x, binormal.x, normal.x,
@@ -96,18 +97,16 @@ void main()
 	viewVec = tbn * viewVec;
 	
 	vec3 parallaxTexcoords = vec3(frag_TexCoord, 0.0);
-	//vec2 parallaxTexcoords = frag_TexCoord;
 
 	parallaxTexcoords.y = 1.0 - parallaxTexcoords.y;
 
 	//float height2 = (texture(heightmap, parallaxTexcoords.xy).r * parallaxScale) + parallaxBias;
-	//parallaxTexcoords += height2 * viewVec.xy;
-
+	//parallaxTexcoords.xy += height2 * viewVec.xy;
 	for (int i = 0; i < parallaxItr; i++)
 	{
 		vec4 hmap = texture(heightmap, parallaxTexcoords.xy);
 		float height2 = (hmap.r * parallaxScale) + parallaxBias;
-		parallaxTexcoords += (height2 - parallaxTexcoords.z) * 1.0 * viewVec;
+		parallaxTexcoords += (height2 - parallaxTexcoords.z) * viewVec;
 	}
 
 	// creates the vector  <dhdu, 1.0, dhdv> in range [-1,1]
@@ -116,10 +115,7 @@ void main()
 
 	// Read in the noaml from the normal map and calculate in view space
 	//normal = normalize(mat3(view) * pdn);
-	normal = normalize(pdn);
-
-	frag_Color = vec4(normal, 1.0);
-	//return;
+	normal = normalize(vec3(pdn.x, pdn.y, pdn.z));
 
 	// Get the colour value
 	parallaxTexcoords.y = 1.0 - parallaxTexcoords.y;

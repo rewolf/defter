@@ -21,7 +21,7 @@ class Clipmap
 public:
 	Clipmap (int nVerts, float quad_size, int levels, int heightmap_dim);
 	~Clipmap ();
-
+	void		CalculateNormalTangent(int vertCenter, int vertLeft, int vertRight);
 	bool		init			();
 	void		cull			(matrix4& mvp, vector2 shift);
 	void		render_inner	();
@@ -30,7 +30,8 @@ private:
 	void		create_block	(int vertstart, int width, int height, 
 									std::vector<vector2> &vertices,
 									std::vector<GLuint> &indices);
-
+		std::vector <vector2>	vertices,  vertices_inner;
+	std::vector <vector2>	texcoords, texcoords_inner;
 public:
 	vector<cull_block> blocks;
 

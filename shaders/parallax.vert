@@ -27,6 +27,7 @@ in vec2 vert_TexCoord;
 // Shader Output
 out vec3 geom_View;
 out vec2 geom_TexCoord;
+out vec3 geom_Vert;
 
 
 // Constansts
@@ -73,6 +74,7 @@ void main()
 	pos = pos + const_list.yxyy * camera_height;
 
 	// Pos contains the transformed coordinate in eye-space.
+	geom_Vert = pos.xyz;
 	pos = view * pos;
 
 	// Calculate the view vector

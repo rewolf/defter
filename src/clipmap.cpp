@@ -81,6 +81,55 @@ Clipmap::~Clipmap()
 	glDeleteVertexArrays(2, m_vao);
 }
 
+void
+	Clipmap::CalculateNormalTangent(int vertCenter, int vertLeft, int vertRight)
+{
+	//Calculate the two edges and normalize them
+	vector2 edgeRight = vertices_inner.at(vertRight) - vertices_inner.at(vertCenter);
+	vector2 edgeLeft = vertices_inner.at(vertLeft) - vertices_inner.at(vertCenter);
+	edgeRight.Normalize();
+	edgeLeft.Normalize();
+
+	//printf("%.2f\t%.2f|%.2f\t%.2f\n", edgeRight.x, edgeRight.y, edgeLeft.x, edgeLeft.y);
+
+	//Calculate and set the normal
+	vector3 normal = vector3(edgeRight.x, 0.0f, edgeRight.y).Cross(vector3(edgeLeft.x, 0.0f, edgeLeft.y));
+	normal.Normalize();
+	//printf("%.2f\t%.2f\t%.2f\n", normal.x, normal.y, normal.z);
+
+
+	//Calculate the two texture-coordinate edges
+	vector2 texEdgeRight = texcoords_inner.at(vertRight) - texcoords_inner.at(vertCenter);
+	vector2 texEdgeLeft = texcoords_inner.at(vertLeft) - texcoords_inner.at(vertCenter);
+	texEdgeRight.Normalize();
+	texEdgeLeft.Normalize();
+
+	//Calculate the determinant
+	float det = (texEdgeRight.x * texEdgeLeft.y) - (texEdgeRight.y * texEdgeLeft.x);
+
+	vector3 tangent;
+	//If the determinant is close enough to 0, set the tangent explicitly
+	if (close_enough(det, 0.0f))
+	{
+		tangent.x = 1.0f;
+		tangent.y = 0.0f;
+		tangent.z = 0.0f;
+	}
+	else
+	{
+		//Calculate the tangent and normalize
+		det = 1.0f / det;
+		//printf("Det:%.5f\n", det);
+
+		tangent.x = (texEdgeLeft.y * edgeRight.x - texEdgeRight.y * edgeLeft.x) * det;
+		tangent.y = (texEdgeLeft.y * 0.0f - texEdgeRight.y * 0.0f) * det;
+		tangent.z = (texEdgeLeft.y * edgeRight.y - texEdgeRight.y * edgeLeft.y) * det;
+		tangent.Normalize();
+	}
+
+	//printf("%.2f\t%.2f\t%.2f\n", tangent.x, tangent.y, tangent.z);
+}
+
 //--------------------------------------------------------
 bool
 Clipmap::init()
@@ -88,8 +137,7 @@ Clipmap::init()
 	int i,j;
 	float quad_size, texel_size, left, ffar;
 	int vmarker, vcount;
-	std::vector <vector2>	vertices,  vertices_inner;
-	std::vector <vector2>	texcoords, texcoords_inner;
+
 	std::vector <GLuint>	indices;
 	std::vector <GLushort>	indices_inner;
 	std::vector <GLuint>	cullable;
@@ -125,6 +173,8 @@ Clipmap::init()
 				indices_inner.push_back( vcount-m_N );
 				indices_inner.push_back( vcount-1 );
 				indices_inner.push_back( vcount );
+
+				CalculateNormalTangent(vcount-1, vcount-m_N-1, vcount-m_N);
 			}
 			vcount++;
 		}
