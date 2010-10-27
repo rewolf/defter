@@ -61,8 +61,8 @@ void main()
 
 	// Get the height of vertex, and the height at the camera position
 	// Vertex height samples the mipmap level corresponding to this clipmap level
-	height 	= 0.0;//texture(heightmap, texCoord).r;
-	camera_height = -cam_height;//-10;//-texture(heightmap, 0.5 + camera_tex).r * HEIGHT - 2.5;
+	height 	= texture(heightmap, texCoord).r;
+	camera_height = -cam_height;
 
 	// Set vertex position and height from heightmap
 	vec4 pos = vec4(vert_Position.x, height * HEIGHT, vert_Position.y, 1.0);
@@ -76,7 +76,7 @@ void main()
 	// Pos contains the transformed coordinate in eye-space.
 	geom_Vert = pos.xyz;
 	pos = view * pos;
-
+	
 	// Calculate the view vector
 	geom_View = -pos.xyz * (1.0 / pos.w);
 	

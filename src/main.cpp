@@ -298,8 +298,8 @@ DefTer::InitGL()
 
 	// Init Shaders
 	// Get the Shaders to Compile
-	m_shMain		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
-	m_shInner		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
+	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -345,7 +345,6 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1N"),  8);
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2N"),  9);
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3N"),  10);
-	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "tc_delta"),  1.0f / HIGH_DIM);
 	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 

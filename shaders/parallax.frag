@@ -8,7 +8,6 @@
 #pragma optionNV inline all
 
 // Uniforms
-uniform sampler2D heightmap;
 uniform sampler2D colormap;
 uniform sampler2D pdmap;
 
@@ -22,7 +21,6 @@ uniform sampler2D detail1N;
 uniform sampler2D detail2N;
 uniform sampler2D detail3N;
 
-uniform float tc_delta;
 uniform float parallaxBias;
 uniform float parallaxScale;
 uniform int parallaxItr;
@@ -39,8 +37,8 @@ uniform vec2 hdasq_its;
 
 // Shader Input
 in vec3 frag_View;
-in vec2 frag_TexCoord;
 in vec3 frag_Tangent;
+in vec2 frag_TexCoord;
 
 
 // Shader Ouput
@@ -57,9 +55,6 @@ const vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 const vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
 const vec4 light_Specular	= vec4(0.9, 0.9, 0.9, 1.0);
 
-//const float parallaxScale = 0.0006;
-//const float parallaxBias = -0.0;
-//const int parallaxItrNum = 1;
 
 //------------------------------------------------------------------------------
 void main()
@@ -79,47 +74,20 @@ void main()
 	vec4 color, ambient, diffuse, specular;
 	float diffuseIntensity, specularIntensity, fogZ, fogFactor;
 
+	// creates the vector  <dhdu, 1.0, dhdv> in range [-1,1]
+	pdn = texture(pdmap, frag_TexCoord).rrg * cc.wyw + cc.zxz;
+
+	// Read in the noaml from the normal map and calculate in view space
+	normal = normalize(mat3(view) * pdn);
+
 	// Calculate the light in view space and normalize
-	lightDir = normalize(mat3(view) * light.xyz);
+	lightDir = (view * light).xyz;
 
 	//Normalize the incomming view vector
 	viewVec = normalize(frag_View);
 
-	normal = normalize(mat3(view) * vec3(0.0, 1.0, 0.0));
-	vec3 tangent = normalize(mat3(view) * frag_Tangent);//normalize(vec3(1.0, 0.0, 0.0));
-	vec3 binormal = normalize(cross(normal, tangent));
-
-	mat3 tbn = mat3(tangent.x, binormal.x, normal.x,
-					tangent.y, binormal.y, normal.y,
-					tangent.z, binormal.z, normal.z);
-
-	lightDir = tbn * lightDir;
-	viewVec = tbn * viewVec;
-	
-	vec3 parallaxTexcoords = vec3(frag_TexCoord, 0.0);
-
-	parallaxTexcoords.y = 1.0 - parallaxTexcoords.y;
-
-	//float height2 = (texture(heightmap, parallaxTexcoords.xy).r * parallaxScale) + parallaxBias;
-	//parallaxTexcoords.xy += height2 * viewVec.xy;
-	for (int i = 0; i < parallaxItr; i++)
-	{
-		vec4 hmap = texture(heightmap, parallaxTexcoords.xy);
-		float height2 = (hmap.r * parallaxScale) + parallaxBias;
-		parallaxTexcoords += (height2 - parallaxTexcoords.z) * viewVec;
-	}
-
-	// creates the vector  <dhdu, 1.0, dhdv> in range [-1,1]
-	pdn = texture(pdmap, parallaxTexcoords.xy).rrg * cc.wyw + cc.zxz;
-
-
-	// Read in the noaml from the normal map and calculate in view space
-	//normal = normalize(mat3(view) * pdn);
-	normal = normalize(vec3(pdn.x, pdn.y, pdn.z));
-
 	// Get the colour value
-	parallaxTexcoords.y = 1.0 - parallaxTexcoords.y;
-	color = texture(colormap, parallaxTexcoords.xy * 100.0);
+	color = texture(colormap, frag_TexCoord * 100.0);
 
 	// Initial variables and settings
 	ambient		= light_Ambient;
@@ -141,4 +109,87 @@ void main()
 
 	// Calculate the frag color
 	frag_Color = (ambient + diffuse + specular) * color;
+
+	// Add in an overlay for an aura that allows the HD defs in
+	dist = cam_and_shift.xy + 0.5 - frag_TexCoord;
+	if (dot(dist, dist) < hdasq_its.x)
+		frag_Color += 2.0 * is_hd_stamp * (color * vec4(0.0, 0.0, 1.0, 1.0));
+
+
+	// Fog controls
+	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
+	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
+	fogFactor	= clamp(fogFactor, 0.0, 1.0);
+
+	// High-detail maps
+	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
+	vec2 tc		= fract(tile);
+	int t		= int(floor(tile.x) + floor(tile.y) * 6);
+	float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
+	if (factor > .001){
+		vec4 detail;
+		vec3 hdnormal;
+
+		vec3 tangent = normalize(mat3(view) * frag_Tangent);
+		vec3 binormal = normalize(cross(normal, tangent));
+
+		mat3 tbn = mat3(tangent.x, binormal.x, normal.x,
+						tangent.y, binormal.y, normal.y,
+						tangent.z, binormal.z, normal.z);
+
+		lightDir	= tbn * lightDir;
+		viewVec		= tbn * viewVec;
+
+		vec3 parallaxTexcoords = vec3(tc, 0.0);
+
+		switch(t)
+		{
+			case 0:
+				for (int i = 0; i < parallaxItr; i++)
+				{
+					vec4 hmap = texture(detail0, parallaxTexcoords.xy);
+					float height2 = (hmap.r * parallaxScale) + parallaxBias;
+					parallaxTexcoords += (height2 - parallaxTexcoords.z) * viewVec;
+				}
+
+				hdnormal = texture(detail0N, parallaxTexcoords.xy).rrg * cc.wyw + cc.zxz;
+
+				normal = normalize(hdnormal);
+
+				// Initial variables and settings
+				ambient		= light_Ambient;
+				diffuse		= light_Diffuse;
+				specular	= light_Specular;
+
+				// Calculate the reflec vector
+				reflec = -reflect(lightDir, normal);
+
+				// Calculate the diffuse intensity
+				diffuseIntensity = max(0.0, dot(normal, lightDir));
+
+				// Calculate the specular intensity
+				specularIntensity = pow(max(0.0, dot(reflec, viewVec)), 32);
+
+				// Factor in the intensities to the diffuse and specular amounts
+				diffuse	   *= diffuseIntensity;
+				specular   *= specularIntensity * 0.3;
+
+				// Calculate the frag color
+				detail = (ambient + diffuse + specular) * color;
+
+				break;
+			case 1:
+				detail =  texture(detail1, tc).rrrr;
+				break;
+			case 6:
+				detail =  texture(detail2, tc).rrrr;
+				break;
+			case 7:
+				detail =  texture(detail3, tc).rrrr;
+				break;
+		};
+	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
+	}
+	// Mix fog to get the final color
+	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }
