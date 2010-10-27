@@ -9,7 +9,6 @@
 
 // Uniforms
 uniform sampler2D colormap;
-uniform sampler2D pdmap;
 
 uniform sampler2D detail0;
 uniform sampler2D detail1;
@@ -33,8 +32,7 @@ uniform vec2 hdasq_its;
 // Shader Input
 in vec3 frag_View;
 in vec2 frag_TexCoord;
-in int  tileIndex;
-
+in vec3 frag_Normal;
 
 // Shader Ouput
 out vec4 frag_Color;
@@ -65,15 +63,11 @@ void main()
 
 	// Variables
 	vec3 normal, lightDir, viewVec, reflec;
-	vec3 pdn;
 	vec4 color, ambient, diffuse, specular;
 	float diffuseIntensity, specularIntensity, fogZ, fogFactor;
 
-	// creates the vector  <dhdu, 1.0, dhdv> in range [-1,1]
-	pdn = texture(pdmap, frag_TexCoord).rrg * cc.wyw + cc.zxz;
-
 	// Read in the noaml from the normal map and calculate in view space
-	normal = normalize(mat3(view) * pdn);
+	normal = normalize(mat3(view) * frag_Normal);
 
 	// Calculate the light in view space and normalize
 	lightDir = (view * light).xyz;

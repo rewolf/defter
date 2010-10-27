@@ -11,7 +11,7 @@
 
 #define emitVert(idx)\
 	frag_TexCoord   = out_tex[idx];     \
-	tileIndex		= out_tIndex[idx];	\
+	frag_Normal		= out_norms[idx];	\
 	/*frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); */\
 	gl_Position     = projection * out_verts[idx];	\
 	EmitVertex();
@@ -25,6 +25,7 @@ layout(triangle_strip, max_vertices=170)  out;
 
 // Uniforms
 uniform sampler2D heightmap;
+uniform sampler2D pdmap;
 uniform mat4 projection;
 uniform mat4 view;
 uniform float camera_height;
@@ -36,6 +37,10 @@ uniform sampler2D detail0;
 uniform sampler2D detail1;
 uniform sampler2D detail2;
 uniform sampler2D detail3;
+uniform sampler2D detail0N;
+uniform sampler2D detail1N;
+uniform sampler2D detail2N;
+uniform sampler2D detail3N;
 
 // Incoming from vertex shader
 in vec2 geom_TexCoord[3];
@@ -46,13 +51,13 @@ in int mustTess[3];
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
-out int  tileIndex;
+out vec3 frag_Normal;
 
 void prepareVert(in int idx);
 void refine_with_pattern(in int index);
 
 // Globals
-const vec2 cc = vec2(1.0, .0);
+const vec4 cc = vec4(1.0, .0, -1.0, 2.0);
 const float HEIGHT = 40.0;
 
 mat3x4 stuff;
@@ -61,7 +66,7 @@ mat3x2 stuff2;
 vec4 out_verts   [10];
 vec3 barycentric [10];
 vec2 out_tex[10];
-int  out_tIndex[10];
+vec3 out_norms[10];
 //------------------------------------------------------------------------------
 void main()
 {
@@ -120,7 +125,6 @@ void refine_with_pattern(in int index){
 		case 1:
 		case 2:
 		case 4:
-			tileIndex = -1;
 			emitVert(9);
 			emitVert(0);
 			emitVert(3);
@@ -195,7 +199,10 @@ void prepareVert(in int idx){
 	vec2 tile	= out_tex[idx] * hdasq_its.y - tileOffset;
 	vec2 tc		= fract(tile);
 	int t		= int(floor(tile.x) + floor(tile.y) * 6);
-	//float factor= clamp(0.5 + fogZ * 0.018, 0.0, 1.0);
+
+	// Read coarsemap normal
+	out_norms[idx] = texture(pdmap, out_tex[idx]).rgg*cc.wyw + cc.zxz;
+
 	float detail;
 	switch(t)
 	{
@@ -213,107 +220,6 @@ void prepareVert(in int idx){
 			break;
 	};
 
-	out_tIndex[idx] = t;
 	out_verts[idx] = temp + cc.yxyy * detail * .5; // set w  = 1
 }
-
-//--------------------------------------------------------
-/*
-void refine_with_pattern2(in int index){
-	vec4 out_verts   [10];
-	vec4 barycentric [10];
-	vec2 out_tex[10];
-	vec4 temp;
-
-	barycentric[0] = vec4( 0.0	, 1.0	, 0.0	, 1.0	);
-	barycentric[1] = vec4( 0.0	, 0.75	, 0.25	, 1.0	);
-	barycentric[2] = vec4( 0.0	, 0.5	, 0.5	, 1.0	);
-	barycentric[3] = vec4( 0.0	, 0.25	, 0.75	, 1.0	);
-	barycentric[4] = vec4( 0.0	, 0.0	, 1.0	, 1.0	);
-
-	barycentric[5] = vec4( 0.25	, 0.75	, 0.0	, 1.0	);
-	barycentric[6] = vec4( 0.25	, 0.5	, 0.25	, 1.0	);
-	barycentric[7] = vec4( 0.25	, 0.25	, 0.5	, 1.0	);
-	barycentric[8] = vec4( 0.25	, 0.0	, 0.75	, 1.0	);
-
-	barycentric[8] = vec4( 0.5	, 0.333	, 0.0	, 1.0	);
-	barycentric[8] = vec4( 0.5	, 0.0	, 0.333	, 1.0	);
-	barycentric[8] = vec4( 0.5	, 0.0	, 0.333	, 1.0	);
-	barycentric[8] = vec4( 0.75	, 0.0	, 0.333	, 1.0	);
-	barycentric[8] = vec4( 0.75	, 0.0	, 0.333	, 1.0	);
-	barycentric[9] = vec4( 1.0	, 0.0	, 0.0	, 1.0	);
-
-	// Interpolate positions and tex coords and then apply viewproj transform
-	prepareVert(9);
-	prepareVert(0);
-	prepareVert(3);
-	// Form the triangles
-	switch(index){
-		case 0:
-		case 1:
-		case 2:
-		case 4:
-			emitVert(9);
-			emitVert(0);
-			emitVert(3);
-			EndPrimitive();
-			break;
-		case 3:
-			prepareVert(7);
-			prepareVert(4);
-			emitVert(9);
-			emitVert(7);
-			emitVert(3);
-			emitVert(4);
-			emitVert(0);
-			EndPrimitive();
-			break;
-		case 5:
-			prepareVert(6);
-			prepareVert(8);
-			emitVert(3);
-			emitVert(6);
-			emitVert(0);
-			emitVert(8);
-			emitVert(9);
-			EndPrimitive();
-			break;
-		case 6:
-			prepareVert(1);
-			prepareVert(2);
-			emitVert(0);
-			emitVert(1);
-			emitVert(9);
-			emitVert(2);
-			emitVert(3);
-			EndPrimitive();
-			break;
-		case 7:
-			prepareVert(1);
-			prepareVert(2);
-			prepareVert(4);
-			prepareVert(5);
-			prepareVert(6);
-			prepareVert(7);
-			prepareVert(8);
-			emitVert(3);
-			emitVert(6);
-			emitVert(2);
-			emitVert(5);
-			emitVert(1);
-			emitVert(4);
-			emitVert(0);
-			EndPrimitive();
-			emitVert(6);
-			emitVert(8);
-			emitVert(5);
-			emitVert(7);
-			emitVert(4);
-			EndPrimitive();
-			emitVert(8);
-			emitVert(9);
-			emitVert(7);
-			EndPrimitive();
-	};
-}*/
 
