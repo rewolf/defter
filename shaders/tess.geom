@@ -209,7 +209,7 @@ void prepareVert(in int idx){
 	float dist  = barycentric[idx].x * mustTess[0]
 				+ barycentric[idx].y * mustTess[1]
 				+ barycentric[idx].z * mustTess[2];
-	float factor= clamp(1.0 - .1*dist, .0, 1.0);
+	float factor= 1.0;//clamp(1.0 - .1*dist, .0, 1.0);
 	float detail = .0;
 	vec3 add = vec3(.0, .0, .0);
 	switch(t)
