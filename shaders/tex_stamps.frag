@@ -25,5 +25,5 @@ out float height;
 void main()
 {
 	height	 = texture(in_heightmap, frag_TexCoord).r;
-	height	+= (texture(in_stampmap, stamp_TexCoord).r * 0.1 * intensity);
+	height	+= (texture(in_stampmap, stamp_TexCoord).r * intensity);
 }

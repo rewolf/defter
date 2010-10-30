@@ -21,10 +21,9 @@ in vec3 geom_Vert[3];
 
 
 // Outgoing per-vertex information
-out vec3 frag_View;
-out vec2 frag_TexCoord;
 out vec3 frag_Tangent;
-
+out vec2 frag_TexCoord;
+out vec3 frag_View;
 
 //------------------------------------------------------------------------------
 void main()
@@ -76,25 +75,22 @@ void main()
 		tangent.z = (texEdgeLeft.y * edgeRight.z - texEdgeRight.y * edgeLeft.z) * det;
 	}
 
-	tangent = normalize(tangent);
-
-
-	gl_Position = vertex[0];
-	frag_View = geom_View[0];
-	frag_TexCoord = geom_TexCoord[0];
-	frag_Tangent = tangent;
+	gl_Position		= vertex[0];
+	frag_Tangent	= tangent;
+	frag_TexCoord	= geom_TexCoord[0];
+	frag_View		= geom_View[0];
 	EmitVertex();
 
-	gl_Position = vertex[1];
-	frag_View = geom_View[1];
-	frag_TexCoord = geom_TexCoord[1];
-	frag_Tangent = tangent;
+	gl_Position		= vertex[1];
+	frag_Tangent	= tangent;
+	frag_TexCoord	= geom_TexCoord[1];
+	frag_View		= geom_View[1];
 	EmitVertex();
 
-	gl_Position = vertex[2];
-	frag_View = geom_View[2];
-	frag_TexCoord = geom_TexCoord[2];
-	frag_Tangent = tangent;
+	gl_Position		= vertex[2];
+	frag_Tangent	= tangent;
+	frag_TexCoord	= geom_TexCoord[2];
+	frag_View		= geom_View[2];
 	EmitVertex();
 
 	EndPrimitive();

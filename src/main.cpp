@@ -62,8 +62,8 @@ using namespace std;
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
 
-extern const int SCREEN_W	= 1024;
-extern const int SCREEN_H	=  768;
+extern const int SCREEN_W	= 800;
+extern const int SCREEN_H	=  600;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 const vector3 	GRAVITY		= vector3(0.0f, -9.81f, 0.0f);
 const float		ACCELERATION= 3.5f;
@@ -111,9 +111,9 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
-#define PARALLAXSCALE	 0.01120f
-#define PARALLAXBIAS	-0.01066f
-#define PARALLAXITR		 20
+#define PARALLAXSCALE	 0.00128f
+#define PARALLAXBIAS	-0.00100f
+#define PARALLAXITR		 4
 
 
 /******************************************************************************
@@ -299,7 +299,7 @@ DefTer::InitGL()
 	// Init Shaders
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -1305,7 +1305,7 @@ DefTer::Logic(float dt)
 	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
 	{ 
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
-			vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+			vector4 stampSIRM= vector4(0.5f, -1.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
 			m_footprintDT 	 = 0.0f;

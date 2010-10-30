@@ -74,7 +74,7 @@ void main()
 	pos = pos + const_list.yxyy * camera_height;
 
 	// Pos contains the transformed coordinate in eye-space.
-	geom_Vert = pos.xyz;
+	geom_Vert = -pos.xyz;
 	pos = view * pos;
 	
 	// Calculate the view vector
