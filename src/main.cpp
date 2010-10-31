@@ -62,8 +62,8 @@ using namespace std;
 #define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
 							( p >  b * .5f ? p - b : p))
 
-extern const int SCREEN_W	= 800;
-extern const int SCREEN_H	=  600;
+extern const int SCREEN_W	= 1024;
+extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
 const vector3 	GRAVITY		= vector3(0.0f, -9.81f, 0.0f);
 const float		ACCELERATION= 3.5f;
@@ -97,7 +97,7 @@ const float		FRICTION	= 1.8f;
 #	define DEBUG(x)			{}
 #endif
 
-#define PROFILE				(0)
+#define PROFILE				(1)
 #if PROFILE
 	reTimer g_profiler;
 	float timeCount = 0;
@@ -112,7 +112,7 @@ const float		FRICTION	= 1.8f;
 #endif
 
 #define PARALLAXSCALE	 0.00128f
-#define PARALLAXBIAS	-0.00100f
+#define PARALLAXBIAS	-0.00000f
 #define PARALLAXITR		 4
 
 
@@ -167,7 +167,7 @@ DefTer::~DefTer()
 	// signal thread to check "isRunning" status
 	SDL_SemPost(m_waitSem);
 
-	SaveCoarseMap("images/coarsemap.png");
+	SaveCoarseMap("images/last_shit_coarsemap.png");
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
@@ -286,7 +286,7 @@ DefTer::InitGL()
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
-	m_enableTess	= false;
+	m_enableTess	= true;
 
 	// Init the world settings
 	m_gravity_on	= true;
