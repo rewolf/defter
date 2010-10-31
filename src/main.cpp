@@ -282,7 +282,7 @@ DefTer::InitGL()
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
-	m_enableTess	= false;
+	m_enableTess	= true;
 
 	// Init the world settings
 	m_gravity_on	= true;
