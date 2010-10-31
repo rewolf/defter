@@ -163,7 +163,7 @@ DefTer::~DefTer()
 	// signal thread to check "isRunning" status
 	SDL_SemPost(m_waitSem);
 
-	SaveCoarseMap("images/coarsemap.png");
+	//SaveCoarseMap("images/coarsemap.png");
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
