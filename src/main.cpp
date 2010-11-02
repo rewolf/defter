@@ -90,11 +90,11 @@ const float		FRICTION	= 1.8f;
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(0)
+#define DEBUG_ON			(1)
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
-#	define DEBUG(...)			{}
+#	define DEBUG(x)			{}
 #endif
 
 #define PROFILE				(1)
@@ -963,24 +963,13 @@ DefTer::ProcessInput(float dt)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
 
-			printf("\nDeform at : %.2fm\n----\n", m_stampSIRM.x);
-			static reTimer ttt;
-			glFinish();
-			ttt.start();
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampName, stampSIRM, true);
-			glFinish();
-			printf("Deform time: %.3fms\n", ttt.getElapsed()*1000);
 
-
-			glFinish();
-			ttt.start();
 			// Calculate the normals
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
-			glFinish();
-			printf("PDmap time: %.3fms\n", ttt.getElapsed()*1000);
 			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
