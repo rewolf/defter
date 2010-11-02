@@ -73,8 +73,8 @@ public:
 	bool			m_is_super_speed;
 
 	// Coarsemap continuous unpacking stuff
-	float*			m_elevationData;
-	float*			m_elevationDataBuffer;
+	GLushort*		m_elevationData;
+	GLushort*		m_elevationDataBuffer;
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
 	SDL_Thread*		m_retrieverThread;

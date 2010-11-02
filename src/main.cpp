@@ -88,7 +88,7 @@ const float		FRICTION	= 1.8f;
 #define STEP_TIME			(.4f)
 
 #define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
+#define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
 #define DEBUG_ON			(1)
 #if DEBUG_ON
@@ -111,6 +111,7 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
+	reTimer tt;
 
 /******************************************************************************
  * Main 
@@ -642,12 +643,16 @@ DefTer::LoadCoarseMap(string filename)
 
 	// Create elevationData for camera collisions
 	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
-	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
-	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
-	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++)
-	{
-		m_elevationData[i] = bits[i] * scale;
+	m_elevationData 	  = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	if (bitdepth==8){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] = (GLushort)(USHRT_MAX * (bits[i] * 1.0f/255.0f));
+		}
+	}
+	else{
+		memcpy(m_elevationData, 		bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
+		memcpy(m_elevationDataBuffer, 	bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
 	}
 	SDL_mutexV(m_elevationDataMutex);
 
@@ -736,6 +741,7 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
+	const float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
@@ -746,10 +752,10 @@ DefTer::InterpHeight(vector2 worldPos)
 	int y1  = y0 < m_coarsemap_dim - 1 ? y0 + 1 : 0;
 	
 	SDL_mutexP(m_elevationDataMutex);
-	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	];
-	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	];
+	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] * scale 
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	] * scale;
+	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] * scale
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
 	SDL_mutexV(m_elevationDataMutex);
 
 	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
@@ -772,6 +778,7 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
+		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -1334,18 +1341,16 @@ map_retriever(void* defter)
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		for (int i = 0; i < dim * dim; i++)
-		{
-			main->m_elevationDataBuffer[i] = main->m_bufferPtr[i] * scale;
-		}
+		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(GLushort));
 
 		// finally lock the data array, and swap the pointers
 		SDL_mutexP(main->m_elevationDataMutex);
-		float * temp 				= main->m_elevationData;
+		GLushort * temp 			= main->m_elevationData;
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
+		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 
