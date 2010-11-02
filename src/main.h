@@ -66,7 +66,7 @@ public:
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
 	vector2			m_clipmap_shift;
-	vector3			m_velocity;
+	vector3			m_lastPosition;
 	vector3			m_frameAcceleration;
 	bool			m_hit_ground;
 	bool			m_gravity_on;

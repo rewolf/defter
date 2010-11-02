@@ -66,10 +66,12 @@ using namespace std;
 extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
-const vector3 	GRAVITY		= vector3(0.0f, -9.81f, 0.0f);
+const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 const float		ACCELERATION= 3.5f;
 const float		AIR_DRAG	= 0.6f;
 const float		FRICTION	= 1.8f;
+const float 	DT 			= 0.005f;
+const float 	invDT   	= 1.0f/DT;
 
 #define COARSEMAP_FILENAME	("images/coarsemap.png")
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
@@ -275,8 +277,9 @@ DefTer::InitGL()
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
 	// Init the cameras position such that it is in the middle of a tile
-	float halfTile = HIGH_DIM * HIGH_RES * 0.5f;
+	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
 	m_cam_translate.set(-halfTile, 0.0f, -halfTile);
+	m_lastPosition  = m_cam_translate;
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
@@ -1128,7 +1131,7 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_g))
 	{
 		m_gravity_on ^= true;
-		m_velocity.y  = .0f;
+		m_lastPosition = m_cam_translate;	// velocity = 0
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
@@ -1165,12 +1168,14 @@ DefTer::ProcessInput(float dt)
 	{
 		// Only jump if on the ground
 		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
-			m_velocity.y = 8.0f;
+			m_lastPosition.y -= 8.0f * DT;
+	//		m_velocity.y = 8.0f;
 	}
 	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on)
 	{
 		// Float if gravity off
 		m_cam_translate.y += 5.0f * dt;
+		m_lastPosition.y  += 5.0f * dt;
 	}
 	// Controls for crouching (Sinking)
 	if (m_input.IsKeyPressed(SDLK_c))
@@ -1179,12 +1184,14 @@ DefTer::ProcessInput(float dt)
 	   if (!m_gravity_on)
 	   {
 			m_cam_translate.y -= 5.0f * dt;
+			m_lastPosition.y  -= 5.0f * dt;
 	   }
 	   // Crouch - Drop camera down
-	   else
+	   else if (!m_is_crouching)
 	   {
 		   m_is_crouching = true;
-		   m_cam_translate.y -= terrain_height;
+		   m_cam_translate.y -= EYE_HEIGHT * .5f;
+		   m_lastPosition.y   = m_cam_translate.y;
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
@@ -1209,36 +1216,62 @@ DefTer::Logic(float dt)
 	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
-	// Perform camera physics
-	if (m_gravity_on)
-		m_frameAcceleration += GRAVITY;
-	if (m_hit_ground)
-		m_frameAcceleration += - FRICTION * vector3(m_velocity.x, .0f, m_velocity.z);
-	else
-		m_frameAcceleration += - AIR_DRAG * m_velocity;
+	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
+	static float compoundDT = .0f;
+	compoundDT += dt;
+	while (compoundDT > DT){
+		// Perform camera physics
+		vector3 accel 	= m_frameAcceleration;
+		vector3 velocity= (m_cam_translate - m_lastPosition) * invDT; // (f(t)-f(t-1))/(dt)
+		if (m_gravity_on)
+			accel += GRAVITY;
+		if (m_hit_ground)
+			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
+		else
+			accel += - AIR_DRAG * velocity;
 
-	m_velocity 		+= m_frameAcceleration * dt;
-	m_cam_translate	+= m_velocity * dt;
-	speed2			 = m_velocity.Mag2();
+		//m_velocity 		+= accel * DT;
+		vector3 temp 	= m_cam_translate;
+		m_cam_translate	+= m_cam_translate - m_lastPosition + accel * DT * DT;
+		velocity		= (m_cam_translate - m_lastPosition) * invDT * .5f; // (f(t+1)-f(t-1))/(2dt)
+		m_lastPosition 	= temp;
+		speed2			= velocity.Mag2();
 
-	// If the camera is moving we may need to drag the selection to within the HD Aura
-	if (speed2 > 1.0e-5)
-		UpdateClickPos();
+		// If the camera is moving we may need to drag the selection to within the HD Aura
+		if (speed2 > 1.0e-5)
+			UpdateClickPos();
 
-	// Boundary check for wrapping position
-	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
-	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
-	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
+		// Boundary check for wrapping position
+		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
+		if (m_cam_translate.x > boundary){
+			m_cam_translate.x -= boundary * 2.0f;
+			m_lastPosition.x  -= boundary * 2.0f;
+		}
+		else if (m_cam_translate.x < -boundary){
+			m_cam_translate.x += boundary * 2.0f;
+			m_lastPosition.x  += boundary * 2.0f;
+		}
+		if (m_cam_translate.z > boundary){
+			m_cam_translate.z -= boundary * 2.0f;
+			m_lastPosition.z  -= boundary * 2.0f;
+		}
+		else if (m_cam_translate.z < -boundary){
+			m_cam_translate.z += boundary * 2.0f;
+			m_lastPosition.z  += boundary * 2.0f;
+		}
 
-	// Don't let player go under the terrain
-	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-	if (m_cam_translate.y < terrain_height)
-	{
-		m_cam_translate.y 	= terrain_height;
-		m_velocity.y 		= .0f;
-		m_hit_ground		= true;
-	} else{
-		m_hit_ground		= false;
+		// Don't let player go under the terrain
+		terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+
+		if (m_cam_translate.y < terrain_height)
+		{
+			m_lastPosition.y	= 
+			m_cam_translate.y 	= terrain_height;
+			m_hit_ground		= true;
+		} else{
+			m_hit_ground		= false;
+		}
+		compoundDT -= DT;
 	}
 
 	// Create footprints
