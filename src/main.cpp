@@ -1176,6 +1176,7 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
+	const float DT = 0.005f;
 	float speed2, terrain_height;
 
 	// Increase game speed
@@ -1185,36 +1186,43 @@ DefTer::Logic(float dt)
 	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
-	// Perform camera physics
-	if (m_gravity_on)
-		m_frameAcceleration += GRAVITY;
-	if (m_hit_ground)
-		m_frameAcceleration += - FRICTION * vector3(m_velocity.x, .0f, m_velocity.z);
-	else
-		m_frameAcceleration += - AIR_DRAG * m_velocity;
+	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
+	static float compoundDT = .0f;
+	compoundDT += dt;
+	while (compoundDT > DT){
+		// Perform camera physics
+		vector3 accel = m_frameAcceleration;
+		if (m_gravity_on)
+			accel += GRAVITY;
+		if (m_hit_ground)
+			accel += - FRICTION * vector3(m_velocity.x, .0f, m_velocity.z);
+		else
+			accel += - AIR_DRAG * m_velocity;
 
-	m_velocity 		+= m_frameAcceleration * dt;
-	m_cam_translate	+= m_velocity * dt;
-	speed2			 = m_velocity.Mag2();
+		m_velocity 		+= accel * DT;
+		m_cam_translate	+= m_velocity * DT;
+		speed2			 = m_velocity.Mag2();
 
-	// If the camera is moving we may need to drag the selection to within the HD Aura
-	if (speed2 > 1.0e-5)
-		UpdateClickPos();
+		// If the camera is moving we may need to drag the selection to within the HD Aura
+		if (speed2 > 1.0e-5)
+			UpdateClickPos();
 
-	// Boundary check for wrapping position
-	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
-	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
-	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
+		// Boundary check for wrapping position
+		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
+		m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
+		m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
 
-	// Don't let player go under the terrain
-	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-	if (m_cam_translate.y < terrain_height)
-	{
-		m_cam_translate.y 	= terrain_height;
-		m_velocity.y 		= .0f;
-		m_hit_ground		= true;
-	} else{
-		m_hit_ground		= false;
+		// Don't let player go under the terrain
+		terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+		if (m_cam_translate.y < terrain_height)
+		{
+			m_cam_translate.y 	= terrain_height;
+			m_velocity.y 		= .0f;
+			m_hit_ground		= true;
+		} else{
+			m_hit_ground		= false;
+		}
+		compoundDT -= DT;
 	}
 
 	// Create footprints
