@@ -87,7 +87,7 @@ const float		FRICTION	= 1.8f;
 #define EYE_HEIGHT			(2.0f)
 #define STEP_TIME			(.4f)
 
-#define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
+#define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
 #define DEBUG_ON			(1)
