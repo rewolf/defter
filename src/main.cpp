@@ -91,14 +91,14 @@ const float		FRICTION	= 1.8f;
 #define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(1)
+#define DEBUG_ON			(0)
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
-#	define DEBUG(x)			{}
+#	define DEBUG(...)			{}
 #endif
 
-#define PROFILE				(1)
+#define PROFILE				(0)
 #if PROFILE
 	reTimer g_profiler;
 	float timeCount = 0;
@@ -112,7 +112,6 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
-	reTimer tt;
 
 /******************************************************************************
  * Main 
@@ -120,7 +119,7 @@ const float		FRICTION	= 1.8f;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= false;
+	conf.VSync		= true;
 	conf.gl_major	= 2;
 	conf.gl_minor	= 1;
 	conf.fsaa		= 0;
@@ -800,7 +799,6 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
-		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -1262,9 +1260,9 @@ DefTer::Logic(float dt)
 	m_pShockwave->update(dt);
 	m_pShockwave->update(dt);
 	m_pShockwave->update(dt);
-	m_pShockwave->update(dt);
-	m_pShockwave->update(dt);
 	if (m_pShockwave->m_state == ACTIVE){
+		m_otherState = READY;
+
 		vector4 SIRM(400.0f, -.55f, .0f, .0f);
 	//	m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
 	//			"shockwaveSubtract", SIRM, true);
@@ -1413,7 +1411,6 @@ map_retriever(void* defter)
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
-		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 
