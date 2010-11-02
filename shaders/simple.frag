@@ -110,7 +110,8 @@ void main()
 	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
-
+	
+	/*
 	// High-detail maps
 	vec2 tile	= frag_TexCoord * hdasq_its.y - tileOffset;
 	vec2 tc		= fract(tile);
@@ -134,7 +135,7 @@ void main()
 				break;
 		};
 	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
-	}
+	}*/
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }

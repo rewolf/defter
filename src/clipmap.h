@@ -24,7 +24,8 @@ public:
 
 	bool		init			();
 	void		cull			(matrix4& mvp, vector2 shift);
-	void		render			();
+	void		render_inner	();
+	void		render_levels	();
 private:
 	void		create_block	(int vertstart, int width, int height, 
 									std::vector<vector2> &vertices,
@@ -33,8 +34,8 @@ private:
 public:
 	vector<cull_block> blocks;
 
-	GLuint		m_vbo[3];
-	GLuint		m_vao;
+	GLuint		m_vbo[6];
+	GLuint		m_vao[2];
 
 	int			m_min_draw_count;
 	int			m_primcount;
@@ -45,6 +46,8 @@ public:
 	int			m_M;		// block size
 	int			m_nLevels;
 	int			m_heightmap_dim;
+
+	int			m_nInnerIndices;
 
 	float		m_quad_size;
 	float		m_texel_size;

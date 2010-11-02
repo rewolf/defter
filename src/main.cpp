@@ -88,8 +88,8 @@ const float		FRICTION	= 1.8f;
 #define EYE_HEIGHT			(2.0f)
 #define STEP_TIME			(.4f)
 
-#define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
+#define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
+#define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
 #define DEBUG_ON			(1)
 #if DEBUG_ON
@@ -112,6 +112,7 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
+	reTimer tt;
 
 /******************************************************************************
  * Main 
@@ -123,7 +124,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 2;
 	conf.gl_minor	= 1;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -149,6 +150,7 @@ int main(int argc, char* argv[])
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
 	m_shMain  			  = NULL;
+	m_shInner			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
@@ -171,6 +173,7 @@ DefTer::~DefTer()
 	glUseProgram(0);
 	RE_DELETE(m_shSplash);
 	RE_DELETE(m_shMain);
+	RE_DELETE(m_shInner);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
@@ -283,6 +286,7 @@ DefTer::InitGL()
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
+	m_enableTess	= false;
 
 	// Init the world settings
 	m_gravity_on	= true;
@@ -295,15 +299,18 @@ DefTer::InitGL()
 	// Init Shaders
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	glBindAttribLocation(m_shMain->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shMain->m_programID, 1, "vert_TexCoord");
+	glBindAttribLocation(m_shInner->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shInner->m_programID, 1, "vert_TexCoord");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
-	res = m_shMain->CompileAndLink();
+	res = m_shMain->CompileAndLink() && m_shInner->CompileAndLink();
 	if (!res)
 	{
 		printf("Error\n\tWill not continue without working shaders\n");
@@ -321,6 +328,17 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3"),  6);
 	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+	glUseProgram(m_shInner->m_programID);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "pdmap"), 1);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "colormap"),  2);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail0"),  3);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1"),  4);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2"),  5);
+	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3"),  6);
+	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -447,6 +465,8 @@ DefTer::Init()
 	// Shader uniforms (Clipmap data)
 	glUseProgram(m_shMain->m_programID);
 	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
+	glUseProgram(m_shInner->m_programID);
+	glUniform2f(glGetUniformLocation(m_shInner->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
@@ -480,6 +500,8 @@ DefTer::Init()
 	hdasq_its.y = 1.0f / (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex);
 	glUseProgram(m_shMain->m_programID);
 	glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "hdasq_its"), 1, hdasq_its.v);
+	glUseProgram(m_shInner->m_programID);
+	glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "hdasq_its"), 1, hdasq_its.v);
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
@@ -643,12 +665,16 @@ DefTer::LoadCoarseMap(string filename)
 
 	// Create elevationData for camera collisions
 	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
-	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
-	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
-	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++)
-	{
-		m_elevationData[i] = bits[i] * scale;
+	m_elevationData 	  = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	if (bitdepth==8){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] = (GLushort)(USHRT_MAX * (bits[i] * 1.0f/255.0f));
+		}
+	}
+	else{
+		memcpy(m_elevationData, 		bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
+		memcpy(m_elevationDataBuffer, 	bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
 	}
 	SDL_mutexV(m_elevationDataMutex);
 
@@ -727,6 +753,8 @@ DefTer::UpdateClickPos(void)
 
 		glUseProgram(m_shMain->m_programID);
 		glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "click_pos"), 1, temp.v);
+		glUseProgram(m_shInner->m_programID);
+		glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "click_pos"), 1, temp.v);
 	}
 }
 
@@ -735,6 +763,7 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
+	const float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
@@ -745,10 +774,10 @@ DefTer::InterpHeight(vector2 worldPos)
 	int y1  = y0 < m_coarsemap_dim - 1 ? y0 + 1 : 0;
 	
 	SDL_mutexP(m_elevationDataMutex);
-	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	];
-	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	];
+	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] * scale 
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	] * scale;
+	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] * scale
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
 	SDL_mutexV(m_elevationDataMutex);
 
 	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
@@ -771,6 +800,7 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
+		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -1013,6 +1043,12 @@ DefTer::ProcessInput(float dt)
 		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
+	// Toggle tess shader
+	if (m_input.WasKeyPressed(SDLK_t)){
+		m_enableTess ^= true;
+		printf("Tessellation: %s\n", m_enableTess ? "ON" : "OFF");
+	}
+
 	// Toggle wireframe
 	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
@@ -1036,6 +1072,8 @@ DefTer::ProcessInput(float dt)
 
 		glUseProgram(m_shMain->m_programID);
 		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+		glUseProgram(m_shInner->m_programID);
+		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
 
 		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
 	}
@@ -1244,6 +1282,9 @@ DefTer::Logic(float dt)
 	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
+	glUseProgram(m_shInner->m_programID);
+	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "cam_height"), m_cam_translate.y);
+	glUniform4f(glGetUniformLocation(m_shInner->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
 	m_frameAcceleration.set(.0f);
 }
@@ -1271,9 +1312,6 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
 	
-	// Use the shader program and set the view matrix.
-	glUseProgram(m_shMain->m_programID);
-	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
 
 	// Cull invisible blocks and render clipmap
 	m_pClipmap->cull(cullviewproj, m_clipmap_shift);
@@ -1282,8 +1320,21 @@ DefTer::Render(float dt)
 	Tile activeTiles[4];
 	m_pCaching->GetActiveTiles(activeTiles);
 	int firstTile[2] = {activeTiles[0].m_row, activeTiles[0].m_col};
+
+
+	// Use the shader program and set the view matrix.
+	glUseProgram(m_shMain->m_programID);
+	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
 	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
 			firstTile[0]);
+	if (m_enableTess){
+		glUseProgram(m_shInner->m_programID);
+		glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "view"), 1, GL_FALSE, rotate.m);
+		glUniform2i(glGetUniformLocation(m_shInner->m_programID, "tileOffset"), firstTile[1],
+				firstTile[0]);
+	}
+
+
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE4);
@@ -1294,7 +1345,9 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
 	BEGIN_PROF;
-	m_pClipmap->render();
+	m_pClipmap->render_inner();
+	glUseProgram(m_shMain->m_programID);
+	m_pClipmap->render_levels();
 	
 	m_pSkybox->render(viewproj);
 
@@ -1351,18 +1404,16 @@ map_retriever(void* defter)
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		for (int i = 0; i < dim * dim; i++)
-		{
-			main->m_elevationDataBuffer[i] = main->m_bufferPtr[i] * scale;
-		}
+		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(GLushort));
 
 		// finally lock the data array, and swap the pointers
 		SDL_mutexP(main->m_elevationDataMutex);
-		float * temp 				= main->m_elevationData;
+		GLushort * temp 			= main->m_elevationData;
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
+		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 

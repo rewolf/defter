@@ -44,6 +44,7 @@ public:
 	GLuint			m_splashmap;
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
+	ShaderProg*		m_shInner;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
@@ -73,8 +74,8 @@ public:
 	bool			m_is_super_speed;
 
 	// Coarsemap continuous unpacking stuff
-	float*			m_elevationData;
-	float*			m_elevationDataBuffer;
+	GLushort*		m_elevationData;
+	GLushort*		m_elevationDataBuffer;
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
 	SDL_Thread*		m_retrieverThread;
@@ -92,6 +93,8 @@ public:
 	bool			m_flipFoot;
 	bool			m_drawing_feet;
 
+	// Use the second shader for inner grid
+	bool			m_enableTess;
 };
 
 // thread that retrieves the coarsemap from the PBOs
