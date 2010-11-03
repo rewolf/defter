@@ -1114,6 +1114,21 @@ DefTer::ProcessInput(float dt)
 		m_stampName = "leftfoot";
 		printf("Stamp: Left Foot\n");
 	}
+	else if (m_input.WasKeyPressed(SDLK_4))
+	{
+		m_stampName = "smiley";
+		printf("Stamp: Smiley\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_5))
+	{
+		m_stampName = "smiley2";
+		printf("Stamp: Smiley2\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_6))
+	{
+		m_stampName = "pedobear";
+		printf("Stamp: Pedobear\n");
+	}
 
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
