@@ -88,6 +88,8 @@ const float 	invDT   	= 1.0f/DT;
 #define VERT_SCALE			(40.0f)
 #define EYE_HEIGHT			(2.0f)
 #define STEP_TIME			(.4f)
+#define SCREENSHOT_W		(8192)
+#define SCREENSHOT_H		(4096)
 
 #define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
@@ -124,7 +126,7 @@ int main(int argc, char* argv[])
 	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 0;
+	conf.fsaa		= 4;
 	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
@@ -184,10 +186,13 @@ DefTer::~DefTer()
 		delete [] m_elevationDataBuffer;
 	glDeleteBuffers(NUM_PBOS, m_pbo);
 	glDeleteFramebuffers(1,&m_fboTransfer);
+	glDeleteFramebuffers(1,&m_screenshotFBO);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_splashmap);
+	glDeleteTextures(1, &m_screenshotTex);
+	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
 }
@@ -504,6 +509,21 @@ DefTer::Init()
 
 	// start the retriever thread
 	m_retrieverThread	 = SDL_CreateThread(&map_retriever, this);
+
+	// Create stuff for awesome screenshot
+	glGenTextures(1, &m_screenshotTex);
+	glBindTexture(GL_TEXTURE_2D, m_screenshotTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENSHOT_W, SCREENSHOT_H, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glGenRenderbuffers(1, &m_screenshotDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_screenshotDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, SCREENSHOT_W, SCREENSHOT_H);
+	glGenFramebuffers(1, &m_screenshotFBO);
+	float asprat = float(SCREENSHOT_W)/SCREENSHOT_H;
+	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	return true;
 }
@@ -993,17 +1013,40 @@ DefTer::ProcessInput(float dt)
 	static int lastScreenshot = 1;
 	if (m_input.WasKeyPressed(SDLK_F12))
 	{
-		char filename[256];
-		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
-		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
+		char  filename[256];
+		int   currentViewport[4];
+		glGetIntegerv(GL_VIEWPORT, currentViewport);
+		glViewport(0, 0, SCREENSHOT_W, SCREENSHOT_H);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_screenshotFBO);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+				m_screenshotTex, 0);
+		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+				m_screenshotDepth);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		matrix4 temp = m_proj_mat;
+		m_proj_mat = m_screenshotProj;
+
+		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		Render(.0f);
+		m_proj_mat = temp;
+		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		
+		GLubyte* framebuffer = new GLubyte[3 * SCREENSHOT_W * SCREENSHOT_H];
+
+		glBindTexture(GL_TEXTURE_2D, m_screenshotTex);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, framebuffer);
 		mkdir("screenshots");
 		sprintf(filename, "screenshots/screenshot%05d.png", lastScreenshot++);
-		if (SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false))
+		if (SavePNG(filename, framebuffer, 8, 3, SCREENSHOT_W, SCREENSHOT_H, false))
 			printf("Wrote screenshot to %s\n", filename);
 		else
 			fprintf(stderr, "Failed to write screenshot\n");
 
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 		delete[] framebuffer;		
 	}
 
@@ -1342,7 +1385,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
-	m_pCaching->Render();
+	//m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame

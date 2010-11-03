@@ -94,6 +94,13 @@ public:
 
 	// Use the second shader for inner grid
 	bool			m_enableTess;
+
+	// Stuff for awesome screenshot
+	matrix4			m_screenshotProj;
+	GLuint			m_screenshotTex;
+	GLuint			m_screenshotDepth;
+	GLuint			m_screenshotFBO;
+
 };
 
 // thread that retrieves the coarsemap from the PBOs
