@@ -1405,7 +1405,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
-	//m_pCaching->Render();
+	m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
