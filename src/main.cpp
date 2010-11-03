@@ -94,7 +94,7 @@ const float		FRICTION	= 1.8f;
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
-#	define DEBUG(x)			{}
+#	define DEBUG(...)			{}
 #endif
 
 #define PROFILE				(1)
@@ -1395,7 +1395,7 @@ DefTer::Render(float dt)
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
-	glUseProgram(m_shMain->m_programID);
+	//glUseProgram(m_shMain->m_programID);
 	m_pClipmap->render_levels();
 	
 	m_pSkybox->render(viewproj);

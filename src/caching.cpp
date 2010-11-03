@@ -159,7 +159,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	//--------------------------------------------------------
 
 	// Create the default Zero-texture
-	GLubyte* zeroData = new GLubyte[highDim * highDim];
+	GLushort* zeroData = new GLushort[highDim * highDim];
 	glGenTextures(1, &m_zeroTex.heightmap);
 	glGenTextures(1, &m_zeroTex.pdmap);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.heightmap);
@@ -168,7 +168,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	memset(zeroData, 0, highDim*highDim);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, highDim, highDim, 0, GL_RED, GL_UNSIGNED_SHORT, zeroData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.pdmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -190,7 +190,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, highDim, highDim, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, highDim, highDim, 0, GL_RED, GL_UNSIGNED_SHORT, NULL);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, m_cachePDTex[i]);
@@ -1175,7 +1175,7 @@ Caching::SaveTextureData(CacheRequest unload)
 	sprintf(filename, "cache/tile%02d_%02d.png", unload.tile->m_row, unload.tile->m_col);
 
 	mkdir("cache");
-	image = FreeImage_Allocate(m_highDim, m_highDim, 8);
+	image = FreeImage_Allocate(m_highDim, m_highDim, 16);
 
 	bits = (BYTE*) FreeImage_GetBits(image);
 	memcpy(bits, unload.ptr, m_highDim * m_highDim);
