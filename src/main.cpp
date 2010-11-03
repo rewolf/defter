@@ -1129,6 +1129,11 @@ DefTer::ProcessInput(float dt)
 		m_stampName = "pedobear";
 		printf("Stamp: Pedobear\n");
 	}
+	else if (m_input.WasKeyPressed(SDLK_7))
+	{
+		m_stampName = "mess";
+		printf("Stamp: Mess\n");
+	}
 
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
