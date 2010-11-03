@@ -1142,6 +1142,11 @@ DefTer::ProcessInput(float dt)
 		m_stampName = "pedobear";
 		printf("Stamp: Pedobear\n");
 	}
+	else if (m_input.WasKeyPressed(SDLK_7))
+	{
+		m_stampName = "mess";
+		printf("Stamp: Mess\n");
+	}
 
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
@@ -1439,7 +1444,7 @@ DefTer::Render(float dt)
 	
 	m_pSkybox->render(viewproj);
 
-	//m_pCaching->Render();
+	m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
