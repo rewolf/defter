@@ -82,7 +82,7 @@ const float 	invDT   	= 1.0f/DT;
 #define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
 #define HIGH_DIM			(1024 * CACHING_LEVEL)
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
-#define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
+#define HD_AURA				((HIGH_DIM * HIGH_RES * .9f)/2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
