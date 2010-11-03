@@ -38,7 +38,7 @@ out vec4 frag_Color;
 // Constansts
 const vec4 light		= normalize(vec4(0.0, 4.0, -10.0, 0.0));
 const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
-const float log2_fog_den= -0.0001442695;
+const float log2_fog_den= -0.0000942695;
 const vec4 cc			= vec4(1.0, 0.0, -1.0, 2.0);
 
 const vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
@@ -110,7 +110,6 @@ void main()
 	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
-
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }

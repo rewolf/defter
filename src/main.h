@@ -65,7 +65,7 @@ public:
 	vector3			m_cam_rotate;
 	vector3			m_cam_translate;
 	vector2			m_clipmap_shift;
-	vector3			m_velocity;
+	vector3			m_lastPosition;
 	vector3			m_frameAcceleration;
 	bool			m_hit_ground;
 	bool			m_gravity_on;
@@ -73,8 +73,8 @@ public:
 	bool			m_is_super_speed;
 
 	// Coarsemap continuous unpacking stuff
-	float*			m_elevationData;
-	float*			m_elevationDataBuffer;
+	GLushort*		m_elevationData;
+	GLushort*		m_elevationDataBuffer;
 	GLuint			m_pbo[NUM_PBOS];
 	GLuint			m_fboTransfer;
 	SDL_Thread*		m_retrieverThread;
@@ -94,6 +94,13 @@ public:
 
 	// Use the second shader for inner grid
 	bool			m_enableTess;
+
+	// Stuff for awesome screenshot
+	matrix4			m_screenshotProj;
+	GLuint			m_screenshotTex;
+	GLuint			m_screenshotDepth;
+	GLuint			m_screenshotFBO;
+
 };
 
 // thread that retrieves the coarsemap from the PBOs
