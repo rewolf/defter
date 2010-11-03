@@ -24,6 +24,7 @@ Shockwave::Shockwave(TexData coarsemap, int dimension){
 	m_no_error		= true;
 	m_coarsemap		= coarsemap;
 	m_dimension		= dimension;
+	m_height		= 1.0f;
 
 	// Setup shader
 	m_shWave = new ShaderProg("shaders/shockwave.vert", "", "shaders/shockwave.frag");
@@ -31,10 +32,6 @@ Shockwave::Shockwave(TexData coarsemap, int dimension){
 	m_no_error &= m_shWave->CompileAndLink();
 
 	glUseProgram(m_shWave->m_programID);
-	glUniform1i(glGetUniformLocation(m_shWave->m_programID, "previous"), 0);
-	glUniform1i(glGetUniformLocation(m_shWave->m_programID, "current"),  1);
-
-	glUniform2f(glGetUniformLocation(m_shWave->m_programID, "factors"), .5f, 1.0f/m_dimension);
 
 	// Initialise Render Quad
 	glGenVertexArrays(1, &m_vao);
@@ -48,47 +45,24 @@ Shockwave::Shockwave(TexData coarsemap, int dimension){
 	glEnableVertexAttribArray(0);
 
 	// Create textures
-	glGenTextures(1, &m_nextTex);
-	glGenTextures(1, &m_currentTex);
-	glGenTextures(1, &m_previousTex);
-	glGenTextures(1, &m_initialTex);
+	glGenTextures(1, &m_stampTex);
 
 	// Create texture for initial state
 	float* initialData =	new float[dimension * dimension];
 	for (int y = 0; y < dimension; y++){
 		for (int x = 0; x < dimension; x++){
 			int i = y * dimension +x;
-			int dx = dimension/2 - x;
-			int dy = dimension/2 - y;
-			initialData[i] = expf(-(dx*dx + dy*dy) * .0009f);
+			initialData[i] = .0f;
 
 		}
 	}
-	glBindTexture(GL_TEXTURE_2D, m_initialTex);
+	glBindTexture(GL_TEXTURE_2D, m_stampTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, dimension, dimension, 0, GL_RED, GL_FLOAT,
 			initialData);
-	glBindTexture(GL_TEXTURE_2D, m_nextTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, dimension, dimension, 0, GL_RED, GL_FLOAT, NULL);
-	glBindTexture(GL_TEXTURE_2D, m_currentTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, dimension, dimension, 0, GL_RED, GL_FLOAT, NULL);
-	glBindTexture(GL_TEXTURE_2D, m_previousTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, dimension, dimension, 0, GL_RED, GL_FLOAT, NULL);
 	delete[] initialData;
 
 	// Setup framebuffer
@@ -99,10 +73,7 @@ Shockwave::Shockwave(TexData coarsemap, int dimension){
 Shockwave::~Shockwave(){
 	glDeleteBuffers(1, &m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
-	glDeleteTextures(1, &m_nextTex);
-	glDeleteTextures(1, &m_currentTex);
-	glDeleteTextures(1, &m_previousTex);
-	glDeleteTextures(1, &m_initialTex);
+	glDeleteTextures(1, &m_stampTex);
 }
 
 //--------------------------------------------------------
@@ -117,49 +88,33 @@ Shockwave::update(float dt){
 	glViewport(0, 0, m_dimension, m_dimension);
 	// Bind shader, framebuffer and VAO
 	glUseProgram(m_shWave->m_programID);
+	glUniform1f(glGetUniformLocation(m_shWave->m_programID, "R"),  m_radius);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_nextTex, 0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_stampTex, 0);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	glBindVertexArray(m_vao);
-
-	// Bind textures
-	if (m_state == INIT){
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_initialTex);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, m_initialTex);
-		m_state = SECOND;
-	}
-	else if (m_state == SECOND){
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_initialTex);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, m_currentTex);
-		m_state = ACTIVE;
-
-	}else{
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_previousTex);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, m_currentTex);
-	}
 
 	// write to currentTex
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	// swap pointers to buffers
-	GLuint temp   = m_nextTex;
-	m_nextTex	  = m_previousTex;
-	m_previousTex = m_currentTex;
-	m_currentTex  = temp;
+
+	// Move wave
+	m_radius += .2*dt;
+	// if its large enough, start decaying
+	if (m_radius > .2f)
+		m_height *= .99f;
+	if (m_height < .05f)
+		m_state = IDLE;
 }
 
 //--------------------------------------------------------
 void
 Shockwave::create(vector3 position){
-	m_state = INIT;
+	m_state = ACTIVE;
+	m_radius= .0f;
+	m_height= 1.0f;
 }
 
 

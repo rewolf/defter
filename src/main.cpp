@@ -121,7 +121,7 @@ const float 	invDT   	= 1.0f/DT;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= true;
+	conf.VSync		= false;
 	conf.gl_major	= 2;
 	conf.gl_minor	= 1;
 	conf.fsaa		= 0;
@@ -456,12 +456,8 @@ DefTer::Init()
 	}
 	Stamp stamp;
 	stamp.m_isTexStamp = true;
-	stamp.m_texture    = m_pShockwave->m_currentTex;
+	stamp.m_texture    = m_pShockwave->m_stampTex;
 	m_pDeform->stampCollection["shockwaveAdd"] = stamp;
-	stamp = Stamp();
-	stamp.m_isTexStamp = true;
-	stamp.m_texture    = m_pShockwave->m_previousTex;
-	m_pDeform->stampCollection["shockwaveSubtract"] = stamp;
 	printf("Done\n");
 
 	// Shader uniforms (Clipmap data)
@@ -1289,17 +1285,16 @@ DefTer::Logic(float dt)
 	}
 
 	// Update Shockwave
-	m_pShockwave->update(dt);
-	m_pShockwave->update(dt);
-	m_pShockwave->update(dt);
-	m_pShockwave->update(dt);
 	if (m_pShockwave->m_state == ACTIVE){
 		m_otherState = READY;
 
-		vector4 SIRM(400.0f, -.55f, .0f, .0f);
-	//	m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
-	//			"shockwaveSubtract", SIRM, true);
-		SIRM.y *= -1.0f;
+		vector4 SIRM;
+		SIRM.x = 400.0f;
+		SIRM.y = -.75f * m_pShockwave->m_height;
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
+				"shockwaveAdd", SIRM, true);
+		m_pShockwave->update(dt);
+		SIRM.y = .75f * m_pShockwave->m_height;
 		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
 				"shockwaveAdd", SIRM, true);
 	}
@@ -1396,7 +1391,7 @@ DefTer::Render(float dt)
 	glLoadIdentity();
 	glTranslatef(-.8f, -.8f, .0f);
 	glScalef(.2f, .2f, 1.0f);
-	glBindTexture(GL_TEXTURE_2D, m_pShockwave->m_previousTex);
+	glBindTexture(GL_TEXTURE_2D, m_pShockwave->m_stampTex);
 	glBegin(GL_TRIANGLE_STRIP);
 	glTexCoord2f(.0f, 1.0f);
 	glVertex3f(-1.0f, 1.0f, .0f);

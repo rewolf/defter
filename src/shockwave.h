@@ -2,7 +2,7 @@
 #ifndef _SHOCKWAVE_H_
 #define _SHOCKWAVE_H_
 
-enum State {INIT, SECOND, ACTIVE, IDLE};
+enum State {ACTIVE, IDLE};
 
 class Shockwave{
 public:
@@ -18,15 +18,13 @@ public:
 	GLuint		m_fbo;
 	GLuint		m_vao;
 	GLuint		m_vbo;
-	GLuint		m_nextTex;
-	GLuint		m_currentTex;
-	GLuint		m_previousTex;
-	GLuint		m_initialTex;
+	GLuint		m_stampTex;
 	TexData		m_coarsemap;
 	State		m_state;
 	bool		m_no_error;
 	int			m_dimension;
-
+	float		m_radius;
+	float		m_height;
 };
 
 
