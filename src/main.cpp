@@ -865,6 +865,8 @@ static float pscale = -0.0022f;
 void
 DefTer::ProcessInput(float dt)
 {
+	// Toggle wireframe
+	static bool wireframe = false;
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
 	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
@@ -885,6 +887,8 @@ DefTer::ProcessInput(float dt)
 			m_cam_rotate.x = PI * 0.5f;
 	}
 
+	if (wireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	// Change the selected deformation location
 	if (m_input.IsButtonPressed(3))
 	{
@@ -1017,6 +1021,8 @@ DefTer::ProcessInput(float dt)
 			m_otherState = READY;
 		}
 	}
+	if (wireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// Take screenshot
 	static int lastScreenshot = 1;
@@ -1078,8 +1084,6 @@ DefTer::ProcessInput(float dt)
 		printf("Tessellation: %s\n", m_enableTess ? "ON" : "OFF");
 	}
 
-	// Toggle wireframe
-	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
 		wireframe ^= true;

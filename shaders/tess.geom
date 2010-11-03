@@ -53,7 +53,7 @@ out vec3 frag_View;
 out vec2 frag_TexCoord;
 out vec3 frag_Normal;
 
-int prepareVert(in int idx);
+bool prepareVert(in int idx);
 void refine_with_pattern();
 
 // Globals
@@ -115,13 +115,13 @@ void refine_with_pattern(){
 	barycentric[9] = vec3( 1.0		, 0.0	, 0.0	);
 
 	// Interpolate positions and tex coords and then apply viewproj transform
-	int mustTess[3];
-	mustTess[0]=prepareVert(9);
-	mustTess[1]=prepareVert(0);
-	mustTess[2]=prepareVert(3);
-	int index = (mustTess[0] << 0) | 
-				(mustTess[1] << 1) | 
-				(mustTess[2] << 2);
+	int hasDetail[3];
+	hasDetail[0]=int(prepareVert(9) && mustTess[0]<130);
+	hasDetail[1]=int(prepareVert(0) && mustTess[1]<130);
+	hasDetail[2]=int(prepareVert(3) && mustTess[2]<130);
+	int index = (hasDetail[0] << 0) | 
+				(hasDetail[1] << 1) | 
+				(hasDetail[2] << 2);
 	// Form the triangles
 	switch(index){
 		case 0:
@@ -193,7 +193,7 @@ void refine_with_pattern(){
 }
 uniform vec4 cam_and_shift;
 //--------------------------------------------------------
-int prepareVert(in int idx){
+bool prepareVert(in int idx){
 	vec4 temp;
 	// Interpolat texcoords and vertex position
 	out_tex[idx] = stuff2 * barycentric[idx].xyz;
@@ -232,10 +232,11 @@ int prepareVert(in int idx){
 			add.xz = (texture(detail3N, tc).rg*2 - 1);
 			break;
 	};
+	add.y*=-1.0;
 	out_norms[idx] += add * factor;
-	out_verts[idx] = temp + cc.yxyy * detail * .5 *factor;
+	out_verts[idx] = temp - cc.yxyy * detail * .5 *factor;
 	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
 	//out_verts[idx].w = 1.0;
-	return int(detail > .0f);
+	return (detail > .0f);
 }
 
