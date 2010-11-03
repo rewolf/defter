@@ -84,7 +84,7 @@ public:
 	GLushort*		m_bufferPtr;
 	
 	XferState		m_XferState;
-	XferState		m_otherState;
+	XferState		m_XferWaitState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 

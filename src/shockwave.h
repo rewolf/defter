@@ -23,6 +23,7 @@ public:
 	State		m_state;
 	bool		m_no_error;
 	int			m_dimension;
+	vector2		m_origin;
 	float		m_radius;
 	float		m_height;
 };

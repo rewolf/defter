@@ -122,8 +122,8 @@ int main(int argc, char* argv[])
 {
 	AppConfig conf;
 	conf.VSync		= false;
-	conf.gl_major	= 2;
-	conf.gl_minor	= 1;
+	conf.gl_major	= 3;
+	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
 	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
@@ -457,7 +457,7 @@ DefTer::Init()
 	Stamp stamp;
 	stamp.m_isTexStamp = true;
 	stamp.m_texture    = m_pShockwave->m_stampTex;
-	m_pDeform->stampCollection["shockwaveAdd"] = stamp;
+	m_pDeform->stampCollection["shockwave"] = stamp;
 	printf("Done\n");
 
 	// Shader uniforms (Clipmap data)
@@ -503,7 +503,7 @@ DefTer::Init()
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
-	m_otherState		 = CHILLED;
+	m_XferWaitState		 = CHILLED;
 	m_cyclesPassed		 = -1;
 
 	// Init the PBOs
@@ -789,9 +789,9 @@ DefTer::UpdateCoarsemapStreamer(){
 	streamerTimer.start();
 	
 	// Check if there has been a deform while transferring
-	if (m_otherState != CHILLED && m_XferState <= READY){
+	if (m_XferWaitState != CHILLED && m_XferState <= READY){
 		m_XferState = READY;
-		m_otherState = CHILLED;
+		m_XferWaitState = CHILLED;
 	}
 
 
@@ -1001,7 +1001,7 @@ DefTer::ProcessInput(float dt)
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
-			m_otherState = READY;
+			m_XferWaitState = READY;
 		}
 	}
 
@@ -1286,17 +1286,20 @@ DefTer::Logic(float dt)
 
 	// Update Shockwave
 	if (m_pShockwave->m_state == ACTIVE){
-		m_otherState = READY;
+		static int i = 0;
+		// Tell collision streamer to update data
+		m_XferWaitState = READY;
 
 		vector4 SIRM;
 		SIRM.x = 400.0f;
 		SIRM.y = -.75f * m_pShockwave->m_height;
 		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
-				"shockwaveAdd", SIRM, true);
+				"shockwave", SIRM, true);
 		m_pShockwave->update(dt);
 		SIRM.y = .75f * m_pShockwave->m_height;
 		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f),
-				"shockwaveAdd", SIRM, true);
+				"shockwave", SIRM, true);
+		i++;
 	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
@@ -1382,27 +1385,6 @@ DefTer::Render(float dt)
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
-
-// TEST
-	glDisable(GL_BLEND);
-	glEnable(GL_TEXTURE_2D);
-	glUseProgram(0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(-.8f, -.8f, .0f);
-	glScalef(.2f, .2f, 1.0f);
-	glBindTexture(GL_TEXTURE_2D, m_pShockwave->m_stampTex);
-	glBegin(GL_TRIANGLE_STRIP);
-	glTexCoord2f(.0f, 1.0f);
-	glVertex3f(-1.0f, 1.0f, .0f);
-	glTexCoord2f(.0f, .0f);
-	glVertex3f(-1.0f,-1.0f, .0f);
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f, 1.0f, .0f);
-	glTexCoord2f(1.0f, .0f);
-	glVertex3f( 1.0f,-1.0f, .0f);
-	glEnd();
-// TEST
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);

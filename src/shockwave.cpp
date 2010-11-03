@@ -101,10 +101,10 @@ Shockwave::update(float dt){
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	// Move wave
-	m_radius += .2*dt;
+	m_radius += .4*dt;
 	// if its large enough, start decaying
 	if (m_radius > .2f)
-		m_height *= .99f;
+		m_height *= .98f;
 	if (m_height < .05f)
 		m_state = IDLE;
 }
@@ -113,6 +113,7 @@ Shockwave::update(float dt){
 void
 Shockwave::create(vector3 position){
 	m_state = ACTIVE;
+	m_origin= vector2(position.x, position.z);
 	m_radius= .0f;
 	m_height= 1.0f;
 }
