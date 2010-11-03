@@ -90,6 +90,11 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	newStamp = Stamp();
 	m_no_error &= newStamp.LoadTexture("images/stamps/pedobear.png");
 	stampCollection["pedobear"] = newStamp;
+
+	// mess
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/mess.png");
+	stampCollection["mess"] = newStamp;
 }
 
 //--------------------------------------------------------
