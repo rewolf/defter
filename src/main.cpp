@@ -97,7 +97,7 @@ const float		FRICTION	= 1.8f;
 #	define DEBUG(...)			{}
 #endif
 
-#define PROFILE				(1)
+#define PROFILE				(0)
 #if PROFILE
 	reTimer g_profiler;
 	float timeCount = 0;
