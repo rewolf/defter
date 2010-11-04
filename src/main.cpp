@@ -45,6 +45,7 @@ class Deform;
 #include "FreeImage.h"
 #include "re_math.h"
 using namespace reMath;
+#include "re_model.h"
 #include <map>
 using namespace std;
 #include "re_shader.h"
@@ -524,6 +525,11 @@ DefTer::Init()
 	glGenFramebuffers(1, &m_screenshotFBO);
 	float asprat = float(SCREENSHOT_W)/SCREENSHOT_H;
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
+
+	// Test model
+	reModel model("greyRoom.reMo");
+	if (!model.m_loaded)
+		printf("\n\n\n----FUUUU\n\n");
 
 	return true;
 }
