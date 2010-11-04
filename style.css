@@ -35,6 +35,7 @@ body {
 
 #content {
 	display: table;
+	margin: 0 8px;
 }
 
 	#mainContent {
