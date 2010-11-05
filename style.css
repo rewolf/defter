@@ -45,6 +45,7 @@ p {
 
 #container {
 	background-color: #222;
+	padding-bottom: 20px;
 }
 
 /************************************
@@ -125,7 +126,7 @@ nav {
 	}
 
 	#teaser h2 {
-		font-weight: 	normal
+		font-weight: 	normal;
 		color: 				#fff;
 		padding: 			0 0 22px 0;
 	}
@@ -173,18 +174,24 @@ nav {
  ************************************/
 
 /* originally used a class .pageText, but there's only one article anyway*/
-.sectText header p, .sectText header p a {
+#sectGroup section header p, #sectGroup section header p a {
 	font-size: 		12px;
 	font-style: 	italic;
 	color: 				#777;
-	margin:				0 8px;
+	margin:				0 10px;
 }
-		.sectText header p a:hover {
+		#sectGroup section header p a:hover {
 			text-decoration: 	none;
 			color: 						#000;
 		}
 
-.sectText div {
+#sectGroup section img {
+	margin: 						22px 0;
+	-webkit-box-shadow: 3px 3px 7px #777;
+}
+
+/* Class can be used to apply two-column layout to a div or section */
+.twocolumn {
 	column-count: 	2;
 	column-gap: 		22px;
 	/* Column-count not implemented yet */
@@ -196,11 +203,6 @@ nav {
 	-webkit-column-gap: 	22px;
 }
 	
-.sectText img {
-	margin: 						22px 0;
-	-webkit-box-shadow: 3px 3px 7px #777;
-}
-
 /************************************
  *  SIDEBAR CONTENT
  ************************************/
