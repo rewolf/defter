@@ -1,0 +1,56 @@
+# #'s are comments
+# $'s denote extra detail. First title then caption
+#
+# Structure
+# FileName
+# $Title
+# $Caption
+#
+
+tessellation.ogv
+$Surface Tessellation (Dev)
+$Dev Vid (08 June):: Wire-frame triangle and quad being tessellated by the geometry shader
+
+clipmap.ogv
+$Clipmap (Dev)
+$Dev Vid (30 June):: Wire-frame version showing the different levels of the clipmap
+
+terrain-first.ogv
+$Terrain 1 (Dev)
+$Dev Vid (30 June):: First-look at editable terrain
+
+normal-parallax-mapping.mp4
+$Normal/Parallax Mapping (Dev)
+$Dev Vid (07 Aug):: Normal and parallax mapping on a cube
+
+normal-parallax-displacement-mapping.mp4
+$Normal/Parallax/Dispalcement Mapping (Dev)
+$Dev Vid (27 Aug):: Normal, parallax and displacement mapping on a cube
+
+terrain-update.mp4
+$Terrain 2 (Dev)
+$Dev Vid (07 Sept):: Updated version of terrain showing wire-frame with improved deformations
+
+frustum-culling.mp4
+$Frustum Culling (Dev)
+$Dev Vid (26 Sep):: Demo of how the pre-rendering frustum culling is perfromed to remove unnecessary blocks
+
+caching-system-demo.mp4
+$Caching Demo (Dev)
+$Dev Vid (13 Oct):: Demo of the caching system. Focus on the radar HUD. Red: Inactive, White: Active, Green: Current
+
+deform-basics-coarsemap.mp4
+$Deformation Demo 1 (Dev)
+$Dev Vid (13 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
+
+first-high-def.mp4
+$High-detail (Dev)
+$Dev Vid (15 Oct):: First time rendering high-detail texture data to screen by adding colour.
+
+deform-gravity-stamps-coarse-detail.mp4
+$Deformation Demo 2 (Dev)
+$Dev Vid (20 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
+
+shockwave.mp4
+$Shockwave (Dev)
+$Dev Vid (25 Oct):: Example of dynamic stamp. BETA not included in final version.

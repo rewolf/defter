@@ -1,0 +1,31 @@
+# #'s are comments
+# $'s denote extra detail. First title then caption
+#
+# Structure
+# FileName
+# $Title
+# $Caption
+#
+
+1.jpg
+$DefTer Mascot
+$Samantha Flower: The official DefTer Mascot
+
+2.jpg
+$Team Work
+$3 PC's, 2 Members, 1 Camera Guy
+
+3.jpg
+
+4.jpg
+$Vision Interface
+$Point of view shot of drawing on the screen
+
+5.jpg
+6.jpg
+7.jpg
+
+8.jpg
+$
+$The GitHub network graph
+
