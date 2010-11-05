@@ -1,31 +1,81 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!doctype html>
 <html>
-	<head>
-		<title>jQuery lightbox clone - prettyPhoto - by Stephane Caron</title>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<head>
+	<title>Real-Time Deformable Terrain</title>
+	<link rel="stylesheet" href="style.css" type="text/css" media="screen" /> 
+</head>
+<body>
+<div id="container">
+  <!------------------------------------------------------------->
+  <!---- BANNER ---->
+  <!------------------------------------------------------------->
+	<header>
+		<h1>BRUCE BANNER</h1>
+	</header>
+  <!------------------------------------------------------------->
+  <!---- NAVIGATION ---->
+  <!------------------------------------------------------------->
+  <nav>
+    <ul>
+      <li><a href="index.html">		Home			</a></li>
+      <li><a href="gallery.html">	Gallery		</a></li>
+      <li><a href="details.html">	Details		</a></li>
+      <li><a href="#">						Downloads	</a></li>
+      <li><a href="#">						Contact		</a></li>
+    </ul>
+	</nav>
 
-		<script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>
-		<link rel="stylesheet" href="css/prettyPhoto.css" type="text/css" media="screen" title="prettyPhoto main stylesheet" charset="utf-8" />
-		<script src="js/jquery.prettyPhoto.js" type="text/javascript" charset="utf-8"></script>
-	</head>
-	<body>
+  <!------------------------------------------------------------->
+  <!---- TEASER ---->
+  <!------------------------------------------------------------->
+	<section id="teaser">
+    <header>
+      <h2>Image of terrain</h2>
+    </header>
+	</section>
+  
+  <!-- start content -->
+	<div id="content">
+  
+    <!------------------------------------------------------------->
+    <!---- MAIN CONTENT ---->
+    <!------------------------------------------------------------->
+  	<div id="mainContent">
+    	<section id="sectGroup">
+        <section class="sectText">
+          <header>
+            <h2>Welcome Title</h2>
+            <p>
+              Subtitle
+            </p>
+          </header>
+          <div>
+            <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod tellus eu orci imperdiet nec rutrum lacus blandit. Cras enim nibh, sodales ultricies elementum vel, fermentum id tellus. Proin metus odio, ultricies eu pharetra dictum, laoreet id odio. Curabitur in odio augue. Morbi congue auctor interdum. Phasellus sit amet metus justo. Phasellus vitae tellus orci, at elementum ipsum. In in quam eget diam adipiscing condimentum. Maecenas gravida diam vitae nisi convallis vulputate quis sit amet nibh. Nullam ut velit tortor. Curabitur ut elit id nisl volutpat consectetur ac ac lorem. Quisque non elit et elit lacinia lobortis nec a velit. Sed ac nisl sed enim consequat porttitor.
+            </p>
+            <p>
+            Pellentesque ut sapien arcu, egestas mollis massa. Fusce lectus leo, fringilla at aliquet sit amet, volutpat non erat. Aenean molestie nibh vitae turpis venenatis vel accumsan nunc tincidunt. Suspendisse id purus vel felis auctor mattis non ac erat. Pellentesque sodales venenatis condimentum. Aliquam sit amet nibh nisi, ut pulvinar est. Sed ullamcorper nisi vel tortor volutpat eleifend. Vestibulum iaculis ullamcorper diam consectetur sagittis. Quisque vitae mauris ut elit semper condimentum varius nec nisl. Nulla tempus porttitor dolor ac eleifend. Proin vitae purus lectus, a hendrerit ipsum. Aliquam mattis lacinia risus in blandit.
+            </p>
+            <p>
+            Vivamus vitae nulla dolor. Suspendisse eu lacinia justo. Vestibulum a felis ante, non aliquam leo. Aliquam eleifend, est viverra semper luctus, metus purus commodo elit, a elementum nisi lectus vel magna. Praesent faucibus leo sit amet arcu vehicula sed facilisis eros aliquet. Etiam sodales, enim sit amet mollis vestibulum, ipsum sapien accumsan lectus, eget ultricies arcu velit ut diam. Aenean fermentum luctus nulla, eu malesuada urna consequat in. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque massa lacus, sodales id facilisis ac, lobortis sed arcu. Donec hendrerit fringilla ligula, ac rutrum nulla bibendum id. Cras sapien ligula, tincidunt eget euismod nec, ultricies eu augue. Nulla vitae velit sollicitudin magna mattis eleifend. Nam enim justo, vulputate vitae pretium ac, rutrum at turpis. Aenean id magna neque. Sed rhoncus aliquet viverra.
+            </p>
+          </div>
+        </section>
+      </section>
+      </div> <!-- end mainContent -->
+      
+      <!------------------------------------------------------------->
+      <!---- SIDEBAR CONTENT ---->
+      <!------------------------------------------------------------->
+      <aside>
+      	
+      </aside>
+  </div> <!-- end content -->
+	<footer>
+		<!-- Footer -->
+	</footer>
 
-		<h4>Gallery</h4>
-		<ul class="gallery clearfix">
-			<li><a href="images/fullscreen/1.jpg" rel="prettyPhoto[gallery1]" title="You can add caption to pictures. You can add caption to pictures. You can add caption to pictures."><img src="images/thumbnails/t_1.jpg" width="150" height="150" alt="Red round shape" /></a></li>
-			<li><a href="images/fullscreen/2.jpg" rel="prettyPhoto[gallery1]"><img src="images/thumbnails/t_2.jpg" width="100" height="100" alt="Nice building" /></a></li>
-			<li><a href="images/fullscreen/3.jpg" rel="prettyPhoto[gallery1]"><img src="images/thumbnails/t_3.jpg" width="60" height="60" alt="Fire!" /></a></li>
-			<li><a href="images/fullscreen/4.jpg" rel="prettyPhoto[gallery1]"><img src="images/thumbnails/t_4.jpg" width="60" height="60" alt="Rock climbing" /></a></li>
-			<li><a href="images/fullscreen/5.jpg" rel="prettyPhoto[gallery1]"><img src="images/thumbnails/t_5.jpg" width="60" height="60" alt="Fly kite, fly!" /></a></li>
-            <li><a href="images/fullscreen/6.jpg" rel="prettyPhoto[gallery1]"><img src="images/fullscreen/6.jpg" width="80" height="80" alt="Perdy" /></a></li>
-		</ul>
+</div> <!-- end container -->
 
-		<script type="text/javascript" charset="utf-8">
-		$(document).ready(function(){
-			$("a[rel^='prettyPhoto']").prettyPhoto({animationSpeed:'slow',theme:'light_square',slideshow:4000, autoplay_slideshow: true});
-		});
-		</script>
-		
-	</body>
+</body>
 </html>
