@@ -104,8 +104,10 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	char		b_string[256];
 	vector3*	vertices;
 	vector3*	normals;
-	vector3*	tcoords;
+	vector2*	tcoords;
 	GLuint*		indices;
+	GLuint*		vao;
+	GLuint*		vbo;
 
 	// Transform
 	__fscanF(fp, "%f %f %f", &translate.x, &translate.y, &translate.z);
@@ -121,9 +123,17 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	__fscanF(fp, "%s", b_string);
 	
 	__fscanF(fp, "%d %d %d %d", &nVertices, &nNormals, &nTexCoords, &nIndices);
+	if (nNormals != 0 && nNormals != nVertices){
+		fprintf(stderr, "\nERROR: Number of vertices and normals differ");
+		return false;
+	}
+	if (nTexCoords != 0 && nTexCoords != nVertices){
+		fprintf(stderr, "\nERROR: Number of vertices and texture coordinates differ");
+		return false;
+	}
 	vertices	= new vector3[nVertices];
 	normals		= new vector3[nNormals];
-	tcoords		= new vector3[nTexCoords];
+	tcoords		= new vector2[nTexCoords];
 	indices		= new GLuint[nIndices];
 	
 	// Read in vertices
@@ -138,6 +148,35 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	// Read in indices
 	for (int i = 0 ; i < nIndices; i++)
 		__fscanF(fp, "%d", &indices[i]);
+
+	// Create the VAO and VBOs
+	vao = m_vao_list + m_nMeshes; 
+	vbo = m_vbo_list + m_nMeshes * 4;
+	glGenVertexArrays(1, vao);
+	glGenBuffers(4, vbo);
+
+	glBindVertexArray(vao[0]);
+	// Fill the Vertex Buffer
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * nVertices, vertices, GL_STATIC_READ);
+	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// Fill the Normal Buffer
+	if (nNormals > 0){
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * nVertices, normals, GL_STATIC_READ);
+		glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+	// Fill the Texture Coordinate Buffer
+	if (nTexCoords > 0){
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * nVertices, tcoords, GL_STATIC_READ);
+		glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+	// Fill the Index Buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * nIndices, indices, GL_STATIC_READ);
+			
+
 
 	delete[] vertices;
 	delete[] normals;

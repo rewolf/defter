@@ -528,8 +528,10 @@ DefTer::Init()
 
 	// Test model
 	reModel model("greyRoom.reMo");
-	if (!model.m_loaded)
+	if (!model.m_loaded){
 		printf("\n\n\n----FUUUU\n\n");
+		return false;
+	}
 
 	return true;
 }
