@@ -1,145 +1,280 @@
+
+/************************************
+ *  GENERAL
+ ************************************/
+
 /* Makeshift CSS Reset */
-{
-	margin: 0;
-	padding: 0;
+* {
+	margin: 		0;
+	padding: 		0;
 }
 
 /* Tell the browser to render HTML 5 elements as block */
-header, footer, aside, nav, article {
-	display: block;
-}
-
-.blogPost div {
-	column-count: 2;
-	column-gap: 22px;
-	/* Column-count not implemented yet */
-	-moz-column-count: 2;
-	-webkit-column-count: 2;
-	
-	/* Column-gap not implemented yet */
-	-moz-column-gap: 22px;
-	-webkit-column-gap: 22px;
+header, footer, section, aside, nav, article {
+	display: 		block;
 }
 
 body {
-	margin: 0 auto;
-	width: 940px;
-	font: 13px/22px Helvetica, Arial, sans-serif;
-	color: #05f;
 	background: #000;
+	color: 			#05f;
+	font: 			13px/22px Helvetica, Arial, sans-serif;
+	width: 			940px;
+	margin: 		0 auto;
+	padding: 		22px 0;
+}
+
+h1, h2 {
+	font-size: 	28px;
+	line-height:44px;
+	padding: 		22px 0;
+}
+
+h3 {
+	font-size: 	18px;
+	line-height:22px;
+	padding: 		11px 0;
+}
+
+p {
+	padding-bottom: 22px;
 }
 
 #container {
 	background-color: #a00;
 }
 
+/************************************
+ *  NAVIGATION
+ ************************************/
+
+nav {
+	background: url("nav_background");
+	position: 	absolute;
+	left: 			0;
+	width: 			100%;
+}
+
+
+	nav ul {
+		margin: 		0 auto;
+		width: 			940px;
+		list-style: none;
+	}
+		nav ul li {
+			/*
+				List items will float to the left of the next item
+			*/
+			float: left;
+		}
+			nav ul li a {
+				display: 					block;
+				color: 						#9f0;
+				font-size: 				14px;
+				text-align: 			center;
+				text-decoration: 	none;
+				line-height: 			44px;
+				width: 						140px;
+				margin-right: 		20px;
+			}
+		
+				nav ul li a:hover {
+					color: 					#fff;
+				}
+		
+				nav ul li.selected a {
+					color: 					#fff;
+				}
+		
+				nav ul li.subscribe a {
+					background: 		url("rss.png") left center no-repeat;
+					text-align: 		left;
+					margin-left: 		22px;
+					padding-left: 	33px;
+				}
+
+/************************************
+ *  TEASER IMAGE
+ ************************************/
+ 
+#teaser {
+	background: 			#467612 url("intro_background.png") repeat-x;
+	background-size:	100%;
+	position: 				relative;
+	height:						250px;
+	margin-top: 			66px;
+	padding: 					44px;
+	border-radius: 		22px;
+	
+	/* Background-size not implemented yet */
+	-webkit-background-size: 	100%;
+	-o-background-size: 			100%;
+	-khtml-background-size: 	100%;
+	/* Border-radius not implemented yet */
+ 	-moz-border-radius: 			22px;
+	-webkit-border-radius: 		22px;
+}
+
+	#teaser h2, #teaser p {
+		position: relative;
+		z-index: 	9999;
+		width: 		336px;
+	}
+
+	#teaser h2 {
+		font-weight: 	normal
+		color: 				#fff;
+		padding: 			0 0 22px 0;
+	}
+
+	#teaser p {
+		color: 		#d9f499;
+		padding: 	0;
+	}
+	#teaser img {
+		position: absolute;
+		top: 			0;
+		right: 		0;
+		width: 		653px;
+		height: 	100%;
+	
+		/* Border-radius not implemented yet */
+		-moz-border-radius: 		22px;
+		-webkit-border-radius: 	22px;
+	}
+
+ 
+/************************************
+ *  CONTENT  LAYOUT
+ ************************************/
+ 
 #content {
-	display: table;
-	margin: 0 8px;
+	display: 	table;
+	margin: 	0 8px;
 }
 
 	#mainContent {
-		display: table-cell;
-		width: 620px;
-		padding-right: 22px;
+		display: 				table-cell;
+		width: 					620px;
+		padding-right:	22px;
 	}
-
+	
 	aside {
-		display: table-cell;
-		width: 300px;
+		display: 				table-cell;
+		background: 		url("images/sidebar_background.png") top left;
+		width: 					300px;
 	}
 
-h2 {
-	font-size: 28px;
-	line-height: 44px;
-	padding: 22px 0;
+/************************************
+ *  MAIN CONTENT
+ ************************************/
+
+/* originally used a class .pageText, but there's only one article anyway*/
+.sectTex header p, .sectTex header p a {
+	font-size: 		14px;
+	font-style: 	italic;
+	color: 				#777;
+}
+		.sectTex header p a:hover {
+			text-decoration: 	none;
+			color: 						#000;
+		}
+
+.sectTex div {
+	column-count: 	2;
+	column-gap: 		22px;
+	/* Column-count not implemented yet */
+	-moz-column-count: 		2;
+	-webkit-column-count: 2;
+	
+	/* Column-gap not implemented yet */
+	-moz-column-gap: 			22px;
+	-webkit-column-gap: 	22px;
+}
+	
+.sectTex img {
+	margin: 						22px 0;
+	-webkit-box-shadow: 3px 3px 7px #777;
 }
 
-h3 {
-	font-size: 18px;
-	line-height: 22px;
-	padding: 11px 0;
-}
-
-#intro {
-	margin-top: 66px;
-	padding: 44px;
-	background: #467612;
-	background-size: 100%;
-	border-radius: 22px;
-	height:250px;
-	/* Background-size not implemented yet */
-	-webkit-background-size: 100%;
-	-o-background-size: 100%;
-	-khtml-background-size: 100%;
-
+/************************************
+ *  SIDEBAR CONTENT
+ ************************************/
+ 
+aside section {
+	background: 			url("images/sidebar_section_background.png") repeat-x;
+	margin: 					22px 0 0 22px;
+	padding: 					11px 22px;
+	
 	/* Border-radius not implemented yet */
- 	-moz-border-radius: 22px;
-	-webkit-border-radius: 22px;
+	-moz-border-radius: 	11px;
+	-webkit-border-radius:11px;
 }
 
-#intro h2, #intro p {
-	width: 336px;
-}
-
-#intro h2 {
-	padding: 0 0 22px 0;
-	font-weight: normal
-	color: #fff;
-}
-
-#intro p {
-	padding: 0;
-	color: #d9f499;
-}
-
-nav {
-	position: absolute;
-	left: 0;
-	width: 100%;
-	background: url("nav_background");
-}
-
-nav ul li {
-	/*
-		List items will float to the left of the next item
-	*/
-	float: left;
-}
-
-	nav ul li a {
-		display: block;
-		margin-right: 20px;
-		width: 140px;
-		font-size: 14px;
-		line-height: 44px;
-		text-align: center;
-		text-decoration: none;
-		color: #9f0;
+	aside section ul {
+		margin: 		0 0 0 22px;
+		list-style: none;
 	}
-
-		nav ul li a:hover {
-			color: #fff;
+	
+		aside section ul li a {
+			display: 					block;
+			text-decoration: 	none;
+			color: 						#000;
 		}
-
-		nav ul li.selected a {
-			color: #fff;
-		}
-
-		nav ul li.subscribe a {
-			margin-left: 22px;
-			padding-left: 33px;
-			text-align: left;
-			background: url("rss.png") left center no-repeat;
-		}
+		
+			aside section ul li a:hover {
+				text-decoration: underline;
+			}
+			
 
 
-nav ul {
-	margin: 0 auto;
-	width: 940px;
-	list-style: none;
+/************************************
+ *  FOOTER
+ ************************************/
+
+
+footer {
+	background: #222;
+	position: 	absolute;
+	left: 			0;
+	width: 			100%;
 }
 
-p {
-	padding-bottom: 22px;
-}
+	footer div {
+		display: 	table;
+		color: 		#777;
+		margin: 	0 auto;
+		padding: 	44px 0;
+		width: 		940px;
+	}
+	
+		footer div section {
+			display: 	table-cell;
+			width: 		300px;
+		}
+		
+		footer div #about, footer div #blogroll {
+			padding-right: 20px;
+		}
+		
+	footer h3 {
+		color: #FFF;
+	}
+	
+	footer a {
+		color: #999;
+	}
+	
+		footer a:hover {
+			color: 						#FFF;
+			text-decoration: 	none;
+		}
+	
+	footer ul {
+		margin: 		0 0 0 40px;
+		list-style: square;
+		color:			#565656;
+	}
+	
+		footer ul li a {
+			display: 	block;
+		}
