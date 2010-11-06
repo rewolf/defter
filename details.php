@@ -118,7 +118,7 @@
         </section>  <!-- end interface -->
         
       </section>  <!-- end sectGroup -->
-      </div> <!-- end mainContent -->
+    </div> <!-- end mainContent -->
       
       <!------------------------------------------------------------->
       <!---- SIDEBAR CONTENT ---->
