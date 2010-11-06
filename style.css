@@ -184,6 +184,10 @@ nav {
 			text-decoration: 	none;
 			color: 						#000;
 		}
+		
+#sectGroup section div ul li {
+	margin:				0px 40px;
+}
 
 #sectGroup section img {
 	margin: 						22px 0;

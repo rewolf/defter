@@ -17,11 +17,11 @@
   <!------------------------------------------------------------->
   <nav>
     <ul>
-      <li><a href="index.php">		Home			</a></li>
-      <li><a href="gallery.php">	Gallery		</a></li>
-      <li><a href="details.php">	Details		</a></li>
-      <li><a href="#">						Downloads	</a></li>
-      <li><a href="#">						Contact		</a></li>
+      <li><a href="index.php">      Home        </a></li>
+      <li><a href="gallery.php">    Gallery     </a></li>
+      <li><a href="details.php">    Details     </a></li>
+      <li><a href="downloads.php">  Downloads   </a></li>
+      <li><a href="#">              Contact     </a></li>
     </ul>
 	</nav>
 
