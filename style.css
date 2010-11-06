@@ -234,6 +234,47 @@ aside section {
 				text-decoration: underline;
 			}
 			
+/************************************
+ *  IMAGE LIST (for gallery)
+ ************************************/
+ 
+	.imgList {
+		margin: 		0 auto;
+		width: 			940px;
+		list-style: none;
+	}
+		.imgList li {
+			/*
+				List items will float to the left of the next item
+			*/
+			float: left;
+		}
+			.imgList li a {
+				display: 					block;
+				color: 						#9f0;
+				font-size: 				14px;
+				text-align: 			center;
+				text-decoration: 	none;
+				line-height: 			44px;
+				width: 						140px;
+				margin-right: 		20px;
+			}
+		
+				.imgList li a:hover {
+					color: 					#fff;
+				}
+		
+				.imgList li.selected a {
+					color: 					#fff;
+				}
+		
+				.imgList li.subscribe a {
+					background: 		url("rss.png") left center no-repeat;
+					text-align: 		left;
+					margin-left: 		22px;
+					padding-left: 	33px;
+				}
+ 
 
 /************************************
  *  FOOTER

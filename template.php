@@ -58,7 +58,7 @@
           </div>
         </section>
       </section>
-      </div> <!-- end mainContent -->
+    </div> <!-- end mainContent -->
       
       <!------------------------------------------------------------->
       <!---- SIDEBAR CONTENT ---->
