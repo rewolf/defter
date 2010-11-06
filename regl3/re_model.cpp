@@ -44,9 +44,8 @@ reModel::reModel(string filename){
 		return;
 	}
 	__fscanf(fp, "%s %s %s %s", b_string, a_string, b_string, b_string);
-	if (strcmp(a_string, "1.0b") != 0){
-		fprintf(stderr, "\nERROR: Only support version 1.0b of model loader\n");
-		return;
+	if (strcmp(a_string, "1.1a") != 0){
+		fprintf(stderr, "\nERROR: Only support version 1.1a of model loader\n");
 	}
 
 	// ignore materials for now
@@ -160,23 +159,28 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * nVertices, vertices, GL_STATIC_READ);
 	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
 	// Fill the Normal Buffer
 	if (nNormals > 0){
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * nVertices, normals, GL_STATIC_READ);
 		glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(1);
 	}
 	// Fill the Texture Coordinate Buffer
 	if (nTexCoords > 0){
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vector2) * nVertices, tcoords, GL_STATIC_READ);
 		glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(2);
 	}
 	// Fill the Index Buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * nIndices, indices, GL_STATIC_READ);
 			
-
+	// Setup the reset of the mesh struct
+	pMesh->vao 		= vao[0];
+	pMesh->nIndices = nIndices;
 
 	delete[] vertices;
 	delete[] normals;

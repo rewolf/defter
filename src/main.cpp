@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 4;
-	conf.sleepTime	= 0.0f;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -155,6 +155,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
 	m_shMain  			  = NULL;
 	m_shInner			  = NULL;
+	m_shModel			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
@@ -176,6 +177,7 @@ DefTer::~DefTer()
 	glUseProgram(0);
 	RE_DELETE(m_shSplash);
 	RE_DELETE(m_shMain);
+	RE_DELETE(m_shModel);
 	RE_DELETE(m_shInner);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
@@ -196,6 +198,8 @@ DefTer::~DefTer()
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
+	//Test model
+	delete m_pModel;
 }
 
 //--------------------------------------------------------
@@ -282,7 +286,8 @@ DefTer::InitGL()
 
 	// Init the cameras position such that it is in the middle of a tile
 	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
-	m_cam_translate.set(-halfTile, 0.0f, -halfTile);
+	//m_cam_translate.set(-halfTile, 0.0f, -halfTile);
+	m_cam_translate.set(.0f, .0f, .0f);
 	m_lastPosition  = m_cam_translate;
 
 	// Set the initial stamp mode and clicked state
@@ -306,6 +311,7 @@ DefTer::InitGL()
 	// Get the Shaders to Compile
 	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 	m_shInner		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shModel		= new ShaderProg("shaders/model.vert", "", "shaders/model.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -313,10 +319,15 @@ DefTer::InitGL()
 	glBindAttribLocation(m_shMain->m_programID, 1, "vert_TexCoord");
 	glBindAttribLocation(m_shInner->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shInner->m_programID, 1, "vert_TexCoord");
+	glBindAttribLocation(m_shModel->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shModel->m_programID, 1, "vert_Normal");
+	glBindAttribLocation(m_shModel->m_programID, 2, "vert_TexCoord");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
-	res = m_shMain->CompileAndLink() && m_shInner->CompileAndLink();
+	res =  m_shMain->CompileAndLink() 
+		&& m_shInner->CompileAndLink() 
+		&& m_shModel->CompileAndLink();
 	if (!res)
 	{
 		printf("Error\n\tWill not continue without working shaders\n");
@@ -345,6 +356,10 @@ DefTer::InitGL()
 	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3"),  6);
 	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+
+	glUseProgram(m_shModel->m_programID);
+	glUniform1i(glGetUniformLocation(m_shModel->m_programID, "colormap"),  0);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -527,11 +542,15 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	// Test model
-	reModel model("greyRoom.reMo");
-	if (!model.m_loaded){
+	m_pModel = new reModel("greyRoom.reMo");
+	if (!m_pModel->m_loaded){
 		printf("\n\n\n----FUUUU\n\n");
 		return false;
 	}
+
+	glDisable(GL_CULL_FACE);
+	m_modelPosition = vector3(.0f);
+	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
 
 	return true;
 }
@@ -789,7 +808,8 @@ DefTer::InterpHeight(vector2 worldPos)
 		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
 	SDL_mutexV(m_elevationDataMutex);
 
-	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
+	//return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
+	return .0f;
 }
 
 //--------------------------------------------------------
@@ -1407,13 +1427,15 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
 	BEGIN_PROF;
-	m_pClipmap->render_inner();
+	//m_pClipmap->render_inner();
 	glUseProgram(m_shMain->m_programID);
-	m_pClipmap->render_levels();
+	//m_pClipmap->render_levels();
 	
-	m_pSkybox->render(viewproj);
+	//m_pSkybox->render(viewproj);
 
-	m_pCaching->Render();
+	//m_pCaching->Render();
+
+	RenderModel(m_pModel, translate_tr(m_cam_translate) * rotate);
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1460,3 +1482,22 @@ map_retriever(void* defter)
 
 	return 0;
 }
+
+//--------------------------------------------------------
+void
+DefTer::RenderModel(reModel* pModel, matrix4 view){
+	matrix4 mvp;
+	
+	glUseProgram(m_shModel->m_programID);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
+
+	for (int i = 0; i < pModel->m_nMeshes; i++){
+		mvp = m_proj_mat * view * pModel->m_mesh_list[i].transform ;
+
+		glBindVertexArray(pModel->m_mesh_list[i].vao);
+		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
+
+		glDrawElements(GL_TRIANGLES, pModel->m_mesh_list[i].nIndices, GL_UNSIGNED_INT, 0);
+	}
+}
+

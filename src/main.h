@@ -37,6 +37,8 @@ private:
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
 
+	void		RenderModel		(reModel* model, matrix4 view);
+
 public:
 	ShaderProg*		m_shSplash;
 	GLuint			m_vbo[3];
@@ -45,6 +47,7 @@ public:
 
 	ShaderProg*		m_shMain;	// use the provided shader program class
 	ShaderProg*		m_shInner;
+	ShaderProg*		m_shModel;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
@@ -101,6 +104,9 @@ public:
 	GLuint			m_screenshotDepth;
 	GLuint			m_screenshotFBO;
 
+	// Test model
+	reModel*		m_pModel;
+	vector3			m_modelPosition;
 };
 
 // thread that retrieves the coarsemap from the PBOs
