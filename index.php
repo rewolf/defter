@@ -17,9 +17,9 @@
   <!------------------------------------------------------------->
   <nav>
     <ul>
-      <li><a href="index.html">		Home			</a></li>
-      <li><a href="gallery.html">	Gallery		</a></li>
-      <li><a href="details.html">	Details		</a></li>
+      <li><a href="index.php">		Home			</a></li>
+      <li><a href="gallery.php">	Gallery		</a></li>
+      <li><a href="details.php">	Details		</a></li>
       <li><a href="#">						Downloads	</a></li>
       <li><a href="#">						Contact		</a></li>
     </ul>
@@ -30,7 +30,6 @@
   <!------------------------------------------------------------->
 	<section id="teaser">
     <header>
-      <h2>Image of terrain</h2>
     </header>
 	</section>
   
