@@ -89,7 +89,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	}
 
 	// Calculate the band values
-	m_BandWidth		= (m_TileSize - (clipDim * clipRes)) * 0.9f;
+	m_BandWidth		= highDim * highRes * .1f;
 	m_BandPercent	= m_BandWidth / m_TileSize;
 
 	// Calculate the offset value for the coarsemap to allow determining of tile index

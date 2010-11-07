@@ -65,10 +65,12 @@ using namespace std;
 extern const int SCREEN_W	= 1024;
 extern const int SCREEN_H	=  768;
 extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
-const vector3 	GRAVITY		= vector3(0.0f, -9.81f, 0.0f);
+const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 const float		ACCELERATION= 3.5f;
 const float		AIR_DRAG	= 0.6f;
 const float		FRICTION	= 1.8f;
+const float 	DT 			= 0.005f;
+const float 	invDT   	= 1.0f/DT;
 
 #define COARSEMAP_FILENAME	("images/coarsemap.png")
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
@@ -80,15 +82,18 @@ const float		FRICTION	= 1.8f;
 #define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
 #define HIGH_DIM			(1024 * CACHING_LEVEL)
 #define HIGH_RES			(CLIPMAP_RES / 3.0f)
-#define HD_AURA				(CACHING_DIM * CLIPMAP_RES / 2.0f)
+#define HD_AURA				((HIGH_DIM * HIGH_RES * .9f)/2.0f)
 #define HD_AURA_SQ			(HD_AURA * HD_AURA)
 #define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
 #define VERT_SCALE			(40.0f)
 #define EYE_HEIGHT			(2.0f)
 #define STEP_TIME			(0.4f)
 
-#define MAP_TRANSFER_WAIT	(.02f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(2)	// After commencing download, wait a few cycles before mapping
+#define SCREENSHOT_W		(8192)
+#define SCREENSHOT_H		(4096)
+
+#define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
+#define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
 #define DEBUG_ON			(0)
 #if DEBUG_ON
@@ -111,9 +116,13 @@ const float		FRICTION	= 1.8f;
 #	define PRINT_PROF		{}
 #endif
 
+
 #define PARALLAXSCALE	 0.00128f
 #define PARALLAXBIAS	-0.00000f
 #define PARALLAXITR		 4
+
+
+reTimer tt;
 
 
 /******************************************************************************
@@ -125,7 +134,7 @@ int main(int argc, char* argv[])
 	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 0;
+	conf.fsaa		= 4;
 	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
@@ -185,10 +194,13 @@ DefTer::~DefTer()
 		delete [] m_elevationDataBuffer;
 	glDeleteBuffers(NUM_PBOS, m_pbo);
 	glDeleteFramebuffers(1,&m_fboTransfer);
+	glDeleteFramebuffers(1,&m_screenshotFBO);
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_splashmap);
+	glDeleteTextures(1, &m_screenshotTex);
+	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
 }
@@ -276,8 +288,9 @@ DefTer::InitGL()
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
 	// Init the cameras position such that it is in the middle of a tile
-	float halfTile = HIGH_DIM * HIGH_RES * 0.5f;
+	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
 	m_cam_translate.set(-halfTile, 0.0f, -halfTile);
+	m_lastPosition  = m_cam_translate;
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
@@ -525,6 +538,21 @@ DefTer::Init()
 	// start the retriever thread
 	m_retrieverThread	 = SDL_CreateThread(&map_retriever, this);
 
+	// Create stuff for awesome screenshot
+	glGenTextures(1, &m_screenshotTex);
+	glBindTexture(GL_TEXTURE_2D, m_screenshotTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENSHOT_W, SCREENSHOT_H, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glGenRenderbuffers(1, &m_screenshotDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_screenshotDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, SCREENSHOT_W, SCREENSHOT_H);
+	glGenFramebuffers(1, &m_screenshotFBO);
+	float asprat = float(SCREENSHOT_W)/SCREENSHOT_H;
+	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
+
 	return true;
 }
 
@@ -666,12 +694,16 @@ DefTer::LoadCoarseMap(string filename)
 
 	// Create elevationData for camera collisions
 	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
-	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
-	float scale = VERT_SCALE * (bitdepth == 8 ? 1.0f/255 : 1.0f/USHRT_MAX);
-	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++)
-	{
-		m_elevationData[i] = bits[i] * scale;
+	m_elevationData 	  = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	if (bitdepth==8){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] = (GLushort)(USHRT_MAX * (bits[i] * 1.0f/255.0f));
+		}
+	}
+	else{
+		memcpy(m_elevationData, 		bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
+		memcpy(m_elevationDataBuffer, 	bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
 	}
 	SDL_mutexV(m_elevationDataMutex);
 
@@ -760,6 +792,7 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
+	const float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
@@ -770,10 +803,10 @@ DefTer::InterpHeight(vector2 worldPos)
 	int y1  = y0 < m_coarsemap_dim - 1 ? y0 + 1 : 0;
 	
 	SDL_mutexP(m_elevationDataMutex);
-	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	];
-	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	];
+	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] * scale 
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	] * scale;
+	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] * scale
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
 	SDL_mutexV(m_elevationDataMutex);
 
 	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
@@ -796,6 +829,7 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
+		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -1073,17 +1107,40 @@ DefTer::ProcessInput(float dt)
 	static int lastScreenshot = 1;
 	if (m_input.WasKeyPressed(SDLK_F12))
 	{
-		char filename[256];
-		GLubyte* framebuffer = new GLubyte[3 * SCREEN_W * SCREEN_H];
-		glReadPixels(0, 0, SCREEN_W, SCREEN_H, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)framebuffer);
+		char  filename[256];
+		int   currentViewport[4];
+		glGetIntegerv(GL_VIEWPORT, currentViewport);
+		glViewport(0, 0, SCREENSHOT_W, SCREENSHOT_H);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_screenshotFBO);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+				m_screenshotTex, 0);
+		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+				m_screenshotDepth);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		matrix4 temp = m_proj_mat;
+		m_proj_mat = m_screenshotProj;
+
+		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		Render(.0f);
+		m_proj_mat = temp;
+		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		
+		GLubyte* framebuffer = new GLubyte[3 * SCREENSHOT_W * SCREENSHOT_H];
+
+		glBindTexture(GL_TEXTURE_2D, m_screenshotTex);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, framebuffer);
 		mkdir("screenshots");
 		sprintf(filename, "screenshots/screenshot%05d.png", lastScreenshot++);
-		if (SavePNG(filename, framebuffer, 8, 3, SCREEN_W, SCREEN_H, false))
+		if (SavePNG(filename, framebuffer, 8, 3, SCREENSHOT_W, SCREENSHOT_H, false))
 			printf("Wrote screenshot to %s\n", filename);
 		else
 			fprintf(stderr, "Failed to write screenshot\n");
 
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 		delete[] framebuffer;		
 	}
 
@@ -1151,6 +1208,26 @@ DefTer::ProcessInput(float dt)
 		m_stampName = "leftfoot";
 		printf("Stamp: Left Foot\n");
 	}
+	else if (m_input.WasKeyPressed(SDLK_4))
+	{
+		m_stampName = "smiley";
+		printf("Stamp: Smiley\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_5))
+	{
+		m_stampName = "smiley2";
+		printf("Stamp: Smiley2\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_6))
+	{
+		m_stampName = "pedobear";
+		printf("Stamp: Pedobear\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_7))
+	{
+		m_stampName = "mess";
+		printf("Stamp: Mess\n");
+	}
 
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
@@ -1187,7 +1264,7 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_g))
 	{
 		m_gravity_on ^= true;
-		m_velocity.y  = .0f;
+		m_lastPosition = m_cam_translate;	// velocity = 0
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
@@ -1224,12 +1301,14 @@ DefTer::ProcessInput(float dt)
 	{
 		// Only jump if on the ground
 		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
-			m_velocity.y = 8.0f;
+			m_lastPosition.y -= 8.0f * DT;
+	//		m_velocity.y = 8.0f;
 	}
 	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on)
 	{
 		// Float if gravity off
 		m_cam_translate.y += 5.0f * dt;
+		m_lastPosition.y  += 5.0f * dt;
 	}
 	// Controls for crouching (Sinking)
 	if (m_input.IsKeyPressed(SDLK_c))
@@ -1238,12 +1317,14 @@ DefTer::ProcessInput(float dt)
 	   if (!m_gravity_on)
 	   {
 			m_cam_translate.y -= 5.0f * dt;
+			m_lastPosition.y  -= 5.0f * dt;
 	   }
 	   // Crouch - Drop camera down
-	   else
+	   else if (!m_is_crouching)
 	   {
 		   m_is_crouching = true;
-		   m_cam_translate.y -= terrain_height;
+		   m_cam_translate.y -= EYE_HEIGHT * .5f;
+		   m_lastPosition.y   = m_cam_translate.y;
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
@@ -1268,36 +1349,62 @@ DefTer::Logic(float dt)
 	// Update the caching system
 	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
 
-	// Perform camera physics
-	if (m_gravity_on)
-		m_frameAcceleration += GRAVITY;
-	if (m_hit_ground)
-		m_frameAcceleration += - FRICTION * vector3(m_velocity.x, .0f, m_velocity.z);
-	else
-		m_frameAcceleration += - AIR_DRAG * m_velocity;
+	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
+	static float compoundDT = .0f;
+	compoundDT += dt;
+	while (compoundDT > DT){
+		// Perform camera physics
+		vector3 accel 	= m_frameAcceleration;
+		vector3 velocity= (m_cam_translate - m_lastPosition) * invDT; // (f(t)-f(t-1))/(dt)
+		if (m_gravity_on)
+			accel += GRAVITY;
+		if (m_hit_ground)
+			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
+		else
+			accel += - AIR_DRAG * velocity;
 
-	m_velocity 		+= m_frameAcceleration * dt;
-	m_cam_translate	+= m_velocity * dt;
-	speed2			 = m_velocity.Mag2();
+		//m_velocity 		+= accel * DT;
+		vector3 temp 	= m_cam_translate;
+		m_cam_translate	+= m_cam_translate - m_lastPosition + accel * DT * DT;
+		velocity		= (m_cam_translate - m_lastPosition) * invDT * .5f; // (f(t+1)-f(t-1))/(2dt)
+		m_lastPosition 	= temp;
+		speed2			= velocity.Mag2();
 
-	// If the camera is moving we may need to drag the selection to within the HD Aura
-	if (speed2 > 1.0e-5)
-		UpdateClickPos();
+		// If the camera is moving we may need to drag the selection to within the HD Aura
+		if (speed2 > 1.0e-5)
+			UpdateClickPos();
 
-	// Boundary check for wrapping position
-	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size;
-	m_cam_translate.x = WRAP_POS(m_cam_translate.x, boundary);
-	m_cam_translate.z = WRAP_POS(m_cam_translate.z, boundary);
+		// Boundary check for wrapping position
+		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
+		if (m_cam_translate.x > boundary){
+			m_cam_translate.x -= boundary * 2.0f;
+			m_lastPosition.x  -= boundary * 2.0f;
+		}
+		else if (m_cam_translate.x < -boundary){
+			m_cam_translate.x += boundary * 2.0f;
+			m_lastPosition.x  += boundary * 2.0f;
+		}
+		if (m_cam_translate.z > boundary){
+			m_cam_translate.z -= boundary * 2.0f;
+			m_lastPosition.z  -= boundary * 2.0f;
+		}
+		else if (m_cam_translate.z < -boundary){
+			m_cam_translate.z += boundary * 2.0f;
+			m_lastPosition.z  += boundary * 2.0f;
+		}
 
-	// Don't let player go under the terrain
-	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
-	if (m_cam_translate.y < terrain_height)
-	{
-		m_cam_translate.y 	= terrain_height;
-		m_velocity.y 		= .0f;
-		m_hit_ground		= true;
-	} else{
-		m_hit_ground		= false;
+		// Don't let player go under the terrain
+		terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+
+		if (m_cam_translate.y < terrain_height)
+		{
+			m_lastPosition.y	= 
+			m_cam_translate.y 	= terrain_height;
+			m_hit_ground		= true;
+		} else{
+			m_hit_ground		= false;
+		}
+		compoundDT -= DT;
 	}
 
 	// Create footprints
@@ -1432,18 +1539,16 @@ map_retriever(void* defter)
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		for (int i = 0; i < dim * dim; i++)
-		{
-			main->m_elevationDataBuffer[i] = main->m_bufferPtr[i] * scale;
-		}
+		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(GLushort));
 
 		// finally lock the data array, and swap the pointers
 		SDL_mutexP(main->m_elevationDataMutex);
-		float * temp 				= main->m_elevationData;
+		GLushort * temp 			= main->m_elevationData;
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
+		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 

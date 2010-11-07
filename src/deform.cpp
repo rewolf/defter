@@ -75,7 +75,26 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	newStamp = Stamp();
 	m_no_error &= newStamp.LoadTexture("images/stamps/leftfoot.png");
 	stampCollection["leftfoot"] = newStamp;
-	// Add other stamps...
+
+	// Smiley stamp 1
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/smiley.png");
+	stampCollection["smiley"] = newStamp;
+	
+	// Smiley stamp 1
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/smiley2.png");
+	stampCollection["smiley2"] = newStamp;
+
+	// Smiley stamp 1
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/pedobear.png");
+	stampCollection["pedobear"] = newStamp;
+
+	// mess
+	newStamp = Stamp();
+	m_no_error &= newStamp.LoadTexture("images/stamps/mess.png");
+	stampCollection["mess"] = newStamp;
 }
 
 //--------------------------------------------------------
