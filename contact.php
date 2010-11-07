@@ -55,7 +55,7 @@
       <li><a href="details.php">    Details  </a></li>
       <li><a href="gallery.php">    Gallery  </a></li>
       <li><a href="downloads.php">  Downloads</a></li>
-      <li><a href="contact.php">		Contact  </a></li>
+      <li><a href="contact.php">    Contact  </a></li>
     </ul>
   </nav>
 

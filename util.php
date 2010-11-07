@@ -34,6 +34,7 @@ function insert_gallery($dir){
 		else{
 			if ($cur_item != NULL)
 				$items[] = $cur_item;
+			
 			$cur_item = new Item();
 			$cur_item->filename = trim($line);
 			$data_ctr = 0;
@@ -58,7 +59,8 @@ function insert_gallery($dir){
 		if (	 substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "mp4"
 				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "ogv"
 				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "ogm"
-				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "flv")
+				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "flv"
+				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "f4v")
 			$thumbname = substr($item->filename, 0, strlen($item->filename)-3) . "jpg";
 		else
 			$thumbname = $item->filename;
