@@ -196,8 +196,7 @@ nav {
 
 
 #sectGroup section img {
-	margin:                       22px 0;
-	-webkit-box-shadow:           3px 3px 7px #777;
+	margin:												15px auto;
 }
 
 /* Class can be used to apply two-column layout to a div or section */
@@ -279,7 +278,9 @@ aside section#sublinks{
 			}
 				
 				.imgList li img {
-					width:        100px;
+					width:        				100px;
+					margin:               22px 0;
+					-webkit-box-shadow:   3px 3px 7px #777;
 				}
  
 /************************************
