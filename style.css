@@ -21,6 +21,8 @@ body {
 	width: 			940px;
 	margin: 		0 auto;
 	padding: 		22px 0;
+	
+	background-color:	#000;
 }
 
 a {
@@ -44,10 +46,24 @@ p {
 }
 
 #container {
-	background-color: #222;
-	padding-bottom: 20px;
+	padding-bottom: 	20px;
+	background-color:	#000;
+	
+	background-image: 			url("images/background.jpg");
+	background-attachment:	fixed;
+	background-repeat:			no-repeat;
+	background-position:		center 0px;
 }
 
+/************************************
+ *  BANNER
+ ************************************/
+ 
+ #banner {
+	 background:			url("images/banner.jpg");
+	 height:					160px;
+ }
+ 
 /************************************
  *  NAVIGATION
  ************************************/
@@ -135,17 +151,6 @@ nav {
 		color: 		#d9f499;
 		padding: 	0;
 	}
-	#teaser img {
-		position: absolute;
-		top: 			0;
-		right: 		0;
-		width: 		653px;
-		height: 	100%;
-	
-		/* Border-radius not implemented yet */
-		-moz-border-radius: 		22px;
-		-webkit-border-radius: 	22px;
-	}
 
  
 /************************************
@@ -154,7 +159,7 @@ nav {
  
 #content {
 	display: 	table;
-	margin: 	0 12px;
+	margin: 	0 20px;
 }
 
 	#mainContent {
@@ -166,7 +171,6 @@ nav {
 	
 	aside {
 		display: 				table-cell;
-		background: 		url("images/sidebar_background.png") top left;
 		width: 					270px;
 	}
 
@@ -218,7 +222,7 @@ nav {
  ************************************/
  
 aside section {
-	background: 			url("images/sidebar_section_background.png") repeat-x;
+	background: 			repeat-x;
 	margin: 					22px 0 0 22px;
 	padding: 					11px 22px;
 	
@@ -325,22 +329,30 @@ aside section {
 		-webkit-box-shadow: none;
 	}
 
-#contactBox {
-	min-height:		200px;
-	background:		#111;
-	padding:			0 12px;
-	border:				solid 2px #039;
-	border-top:				none;
-	/* Border-radius not implemented yet */
- 	-moz-border-radius: 			10px;
-	-webkit-border-radius: 		10px;
-}
-
 #contactImgBox {
 	display:			table;
 	width:				600px;
 	padding:			0 10px;
 }
+
+#contactInfoBox {
+	min-height:		200px;
+	background:		#111;
+	padding:			5px 20px;
+	border:				solid 2px #039;
+	border-top:		none;
+	/* Border-radius not implemented yet */
+ 	-moz-border-radius: 			10px;
+	-webkit-border-radius: 		10px;
+}
+	#contactInfoBox h3{
+		padding:				0px 0px;
+	}
+	#contactInfoBox p.role{
+		padding-bottom:	11px 0px;
+		font-style:			italic;
+	}
+
 
 /************************************
  *  FOOTER
