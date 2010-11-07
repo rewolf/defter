@@ -148,7 +148,6 @@ nav {
 
 	#mainContent {
 		display:                  table-cell;
-		padding-right:            22px;
 		vertical-align:           top;
 	}
 	
@@ -163,7 +162,7 @@ nav {
 
 #sectGroup section{
 	background:                   rgba(0,0,0,.5);
-	padding:                      10px 20px;
+	padding:                      20px 20px;
 	margin:                       20px 0px;
 	border-radius:                8px;
 	/* Border-radius not implemented yet */
@@ -337,7 +336,7 @@ aside section#sublinks{
 #contactInfoBox {
 	min-height:                   200px;
 	background:                   rgba(0,0,100,.4);
-	padding:                      5px 20px;
+	padding:                      20px 20px;
 	border:                       solid 2px #039;
 	border-top:                   none;
 	/* Border-radius not implemented yet */
