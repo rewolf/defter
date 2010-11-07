@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="css/prettyPhoto.css" type="text/css" media="screen" title="prettyPhoto main stylesheet" charset="utf-8" />
   <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
   
-  <script type='text/javascript' src='jw/swfobject.js'></script>
-  
   <?php
     // Include code used to insert gallery images
     include("util.php");
