@@ -120,6 +120,21 @@
           </div>
         </section>
 
+        <!-- Production Shots -->
+        <section>
+          <header>
+            <h2>Final Production</h2>
+            <p>
+              A set of images taken from the final product
+            </p>
+          </header>
+          <div>
+            <?php
+              insert_gallery("final");
+            ?>
+          </div>
+        </section>
+
         <!-- Videos -->
         <section>
           <header>

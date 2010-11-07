@@ -1,0 +1,9 @@
+# #'s are comments
+# $'s denote extra detail. First title then caption
+#
+# Structure
+# FileName
+# $Title
+# $Caption
+#
+
