@@ -5,54 +5,54 @@
 
 /* Makeshift CSS Reset */
 * {
-	margin: 		0;
-	padding: 		0;
+	margin:                       0;
+	padding:                      0;
 }
 
 /* Tell the browser to render HTML 5 elements as block */
 header, footer, section, aside, nav, article {
-	display: 		block;
+	display:                      block;
 }
 
 body {
-	background: #000;
-	color: 			#999;
-	font: 			13px/22px Helvetica, Arial, sans-serif;
-	width: 			940px;
-	margin: 		0 auto;
-	padding: 		22px 0;
+	background:                   #000;
+	color:                        #FFF;
+	font:                         13px/22px Helvetica, Arial, sans-serif;
+	width:                        940px;
+	margin:                       0 auto;
+	padding:                      22px 0;
 	
-	background-color:	#000;
+	background-color:             #000;
 }
 
 a {
-	text-decoration:		none;
+	text-decoration:              none;
 }
 
 h1, h2 {
-	font-size: 	28px;
-	line-height:34px;
-	padding: 		10px 0px 20px 0px;
+	font-size:                    28px;
+	line-height:                  34px;
+	padding:                      10px 0px 20px 0px;
 }
 
 h3 {
-	font-size: 	18px;
-	line-height:22px;
-	padding: 		11px 0;
+	font-size:                    18px;
+	line-height:                  22px;
+	padding:                      11px 0;
 }
 
 p {
-	padding-bottom: 22px;
+	padding-bottom:               22px;
 }
 
 #container {
-	padding-bottom: 	5px;
-	background-color:	#000;
+	padding-bottom:               5px;
+	background-color:             #000;
 	
-	background-image: 			url("images/background.jpg");
-	background-attachment:	fixed;
-	background-repeat:			no-repeat;
-	background-position:		center 0px;
+	background-image:             url("images/background.jpg");
+	background-attachment:        fixed;
+	background-repeat:            repeat-y;
+	background-position:          center 0px;
 }
 
 /************************************
@@ -60,8 +60,8 @@ p {
  ************************************/
  
  #banner {
-	 background:			url("images/banner.jpg");
-	 height:					160px;
+	 background:                  url("images/banner.jpg");
+	 height:                      160px;
  }
  
 /************************************
@@ -69,87 +69,71 @@ p {
  ************************************/
 
 nav {
-	background: url("nav_background");
-	position: 	absolute;
-	left: 			0;
-	width: 			100%;
+	background:                   url("nav_background");
+	position:                     absolute;
+	left:                         0;
+	width:                        100%;
 }
 
 
 	nav ul {
-		margin: 		0 auto;
-		width: 			940px;
-		list-style: none;
+		margin:                   0 auto;
+		width:                    940px;
+		list-style:               none;
 	}
 		nav ul li {
 			/*
 				List items will float to the left of the next item
 			*/
-			float: left;
+			float:                left;
 		}
-			nav ul li a {
-				display: 					block;
-				color: 						#9f0;
-				font-size: 				14px;
-				text-align: 			center;
-				text-decoration: 	none;
-				line-height: 			44px;
-				width: 						140px;
-				margin-right: 		20px;
+			nav ul li a img {
+				display:          block;
+				color:            transparent;
+				font-size:        14px;
+				text-align:       center;
+				text-decoration:  none;
+				line-height:      44px;
+				width:            163px;
+				margin-right:     20px;
 			}
-		
-				nav ul li a:hover {
-					color: 					#fff;
-				}
-		
-				nav ul li.selected a {
-					color: 					#fff;
-				}
-		
-				nav ul li.subscribe a {
-					background: 		url("rss.png") left center no-repeat;
-					text-align: 		left;
-					margin-left: 		22px;
-					padding-left: 	33px;
-				}
 
 /************************************
  *  TEASER IMAGE
  ************************************/
  
 #teaser {
-	background: 			#467612 url("images/teaser.png") repeat-x;
-	background-size:	100%;
-	position: 				relative;
-	height:						250px;
-	margin-top: 			66px;
-	padding: 					44px;
-	border-radius: 		22px;
+	background:                   url("images/teaser.jpg");
+	background-size:              100%;
+	position:                     relative;
+	margin-top:                   66px;
+	height:                       200px;
+	border-radius: 		          15px;
 	
 	/* Background-size not implemented yet */
-	-webkit-background-size: 	100%;
-	-o-background-size: 			100%;
-	-khtml-background-size: 	100%;
+	-webkit-background-size:      100%;
+	-o-background-size:           100%;
+	-khtml-background-size:       100%;
 	/* Border-radius not implemented yet */
- 	-moz-border-radius: 			22px;
-	-webkit-border-radius: 		22px;
+ 	-moz-border-radius:           15px;
+	-webkit-border-radius:        15px;
 }
 
 	#teaser h2, #teaser p {
-		position: relative;
-		z-index: 	9999;
-		width: 		336px;
+		position:                 relative;
+		z-index:                  9999;
+		width:                    336px;
 	}
 
 	#teaser h2 {
-		font-weight: 	normal;
-		color: 				#fff;
-		padding: 			0 0 22px 0;
+		font-weight:              normal;
+		color:                    #fff;
+		padding:                  0 0 22px 0;
 	}
 
 	#teaser p {
-		color: 		#d9f499;
-		padding: 	0;
+		color:                    #d9f499;
+		padding:                  0;
 	}
 
  
@@ -158,19 +142,19 @@ nav {
  ************************************/
  
 #content {
-	display: 	table;
-	margin: 	10px 10px;
+	display:                      table;
+	margin:                       10px 10px;
 }
 
 	#mainContent {
-		display: 				table-cell;
-		padding-right:	22px;
-		vertical-align:	top;
+		display:                  table-cell;
+		padding-right:            22px;
+		vertical-align:           top;
 	}
 	
 	aside {
-		display: 				table-cell;
-		width: 					270px;
+		display:                  table-cell;
+		width:                    270px;
 	}
 
 /************************************
@@ -178,48 +162,48 @@ nav {
  ************************************/
 
 #sectGroup section{
-	background:		rgba(0,0,0,.5);
-	padding:			10px 20px;
-	margin:				20px 0px;
-	border-radius:8px;
+	background:                   rgba(0,0,0,.5);
+	padding:                      10px 20px;
+	margin:                       20px 0px;
+	border-radius:                8px;
 	/* Border-radius not implemented yet */
- 	-moz-border-radius: 			8px;
-	-webkit-border-radius: 		8px;
+ 	-moz-border-radius:           8px;
+	-webkit-border-radius:        8px;
 }
 
 #sectGroup section header p, #sectGroup section header p a {
-	font-size: 		12px;
-	font-style: 	italic;
-	color: 				#777;
-	margin:				0 30px;
+	font-size:                    12px;
+	font-style:                   italic;
+	color:                        #BBB;
+	margin:                       0 30px;
 }
 		#sectGroup section header p a:hover {
-			text-decoration: 	none;
-			color: 						#000;
+			text-decoration:      none;
+			color:                #000;
 		}
 
 	
 #sectGroup section div p{
-	text-align:		justify;
+	text-align:                   justify;
 }
 
 
 #sectGroup section img {
-	margin: 						22px 0;
-	-webkit-box-shadow: 3px 3px 7px #777;
+	margin:                       22px 0;
+	-webkit-box-shadow:           3px 3px 7px #777;
 }
 
 /* Class can be used to apply two-column layout to a div or section */
 .twocolumn {
-	column-count: 	2;
-	column-gap: 		22px;
+	column-count:                 2;
+	column-gap:                   22px;
 	/* Column-count not implemented yet */
-	-moz-column-count: 		2;
-	-webkit-column-count: 2;
+	-moz-column-count:            2;
+	-webkit-column-count:         2;
 	
 	/* Column-gap not implemented yet */
-	-moz-column-gap: 			22px;
-	-webkit-column-gap: 	22px;
+	-moz-column-gap:              22px;
+	-webkit-column-gap:           22px;
 }
 	
 /************************************
@@ -227,34 +211,34 @@ nav {
  ************************************/
  
 aside section {
-	background: 			repeat-x;
-	margin: 					22px 0 0 22px;
-	padding: 					11px 22px;
+	background:                   repeat-x;
+	margin:                       22px 0 0 22px;
+	padding:                      11px 22px;
 	
 	/* Border-radius not implemented yet */
-	-moz-border-radius: 	11px;
-	-webkit-border-radius:11px;
+	-moz-border-radius:           11px;
+	-webkit-border-radius:        11px;
 }
 
 	aside section ul {
-		margin: 		0 0 0 22px;
-		list-style: none;
+		margin:                   0 0 0 22px;
+		list-style:               none;
 	}
 	
 		aside section ul li a {
-			display: 					block;
-			text-decoration: 	none;
-			color: 						#00d;
-			font-size:				18px;
-			text-shadow: 			#000 2px -2px 2px;
+			display:              block;
+			text-decoration:      none;
+			color:                #00d;
+			font-size:            18px;
+			text-shadow:          #000 2px -2px 2px;
 		}
 		
 			aside section ul li a:hover {
-				text-decoration: underline;
+				text-decoration:  underline;
 			}
 
 aside section#sublinks{
-	background:			rgba(0, 0, 0, .5);
+	background:                   rgba(0, 0, 0, .5);
 }
 			
 /************************************
@@ -262,41 +246,41 @@ aside section#sublinks{
  ************************************/
  
 	.imgList {
-		display:		block;
-		margin: 		0 auto;
+		display:                  block;
+		margin:                   0 auto;
 
-		list-style: none;
-		float:			none;
+		list-style:               none;
+		float:                    none;
 	}
 		.imgList li {
 			/*
 				List items will float to the left of the next item
 			*/
-			display:		inline;
-			display:		inline-block;
-      display: 		-moz-inline-box; /* mozilla only */
-			margin:		0px 20px;
+			display:              inline;
+			display:              inline-block;
+            display:              -moz-inline-box; /* mozilla only */
+			margin:               0px 20px;
 		}
 			.imgList li a {
-				display: 					block;
-				color: 						#9f0;
-				font-size: 				14px;
-				text-align: 			center;
-				text-decoration: 	none;
-				line-height: 			44px;
-				margin-right: 		0px;
+				display:          block;
+				color:            #9f0;
+				font-size:        14px;
+				text-align:       center;
+				text-decoration:  none;
+				line-height:      44px;
+				margin-right:     0px;
 			}
 		
 				.imgList li a:hover {
-					color: 					#fff;
+					color:        #fff;
 				}
 		
 				.imgList li.selected a {
-					color: 					#fff;
+					color:        #fff;
 				}
 				
 				.imgList li img {
-					width:					100px;
+					width:        100px;
 				}
  
 /************************************
@@ -304,65 +288,65 @@ aside section#sublinks{
  ************************************/
 
 .contactInfo {
-	visibility:		hidden;
-	position:			absolute;
+	visibility:                   hidden;
+	position:                     absolute;
 }
 
 .imgOnBox{
-	display:						table-cell;
-	background:					rgba(0,0,100,.4);
-	text-align:					center;
-	border:				solid 2px #039;
-	border-bottom:				none;
+	display:                      table-cell;
+	background:                   rgba(0,0,100,.4);
+	text-align:                   center;
+	border:                       solid 2px #039;
+	border-bottom:                none;
 	/* Border-radius not implemented yet */
-	border-top-left-radius:		10px;
-	border-top-right-radius:	10px;
+	border-top-left-radius:       10px;
+	border-top-right-radius:      10px;
 }
 	.imgOnBox img {
-		width: 				120px;
-		opacity:			1.0;
-		filter:				alpha(opacity=100);
-		-webkit-box-shadow: none;
+		width:                    120px;
+		opacity:                  1.0;
+		filter:                   alpha(opacity=100);
+		-webkit-box-shadow:       none;
 	}
 	
 .imgOffBox{
-	display:						table-cell;
-	background-color: 	inherit;
-	text-align:					center;
-	border:							solid 2px rgba(0,0,0,0);
+	display:                      table-cell;
+	background-color:             inherit;
+	text-align:                   center;
+	border:                       solid 2px rgba(0,0,0,0);
 	/* Border-radius not implemented yet */
-	border-top-left-radius:		10px;
-	border-top-right-radius:	10px;
+	border-top-left-radius:       10px;
+	border-top-right-radius:      10px;
 }
 	.imgOffBox img{
-		width: 				120px;
-		opacity:			0.5;
-		filter:				alpha(opacity=50);
-		-webkit-box-shadow: none;
+		width:                    120px;
+		opacity:                  0.5;
+		filter:                   alpha(opacity=50);
+		-webkit-box-shadow:       none;
 	}
 
 #contactImgBox {
-	display:			table;
-	width:				600px;
-	padding:			0 10px;
+	display:                      table;
+	width:                        600px;
+	padding:                      0 10px;
 }
 
 #contactInfoBox {
-	min-height:		200px;
-	background:		rgba(0,0,100,.4);
-	padding:			5px 20px;
-	border:				solid 2px #039;
-	border-top:		none;
+	min-height:                   200px;
+	background:                   rgba(0,0,100,.4);
+	padding:                      5px 20px;
+	border:                       solid 2px #039;
+	border-top:                   none;
 	/* Border-radius not implemented yet */
- 	-moz-border-radius: 			10px;
-	-webkit-border-radius: 		10px;
+ 	-moz-border-radius:           10px;
+	-webkit-border-radius:        10px;
 }
 	#contactInfoBox h3{
-		padding:				0px 0px;
+		padding:                  0px 0px;
 	}
 	#contactInfoBox p.role{
-		padding-bottom:	11px 0px;
-		font-style:			italic;
+		padding-bottom:           11px 0px;
+		font-style:               italic;
 	}
 
 
@@ -372,48 +356,48 @@ aside section#sublinks{
 
 
 footer {
-	background: #222;
-	position: 	absolute;
-	left: 			0;
-	width: 			100%;
+	background:                   #222;
+	position:                     absolute;
+	left:                         0;
+	width:                        100%;
 }
 
 	footer div {
-		display: 	table;
-		color: 		#777;
-		margin: 	0 auto;
-		padding: 	44px 0;
-		width: 		940px;
+		display:                  table;
+		color:                    #777;
+		margin:                   0 auto;
+		padding:                  44px 0;
+		width:                    940px;
 	}
 	
 		footer div section {
-			display: 	table-cell;
-			width: 		300px;
+			display:              table-cell;
+			width:                300px;
 		}
 		
 		footer div #about, footer div #blogroll {
-			padding-right: 20px;
+			padding-right:        20px;
 		}
 		
 	footer h3 {
-		color: #FFF;
+		color:                    #FFF;
 	}
 	
 	footer a {
-		color: #999;
+		color:                    #999;
 	}
 	
 		footer a:hover {
-			color: 						#FFF;
-			text-decoration: 	none;
+			color:                #FFF;
+			text-decoration:      none;
 		}
 	
 	footer ul {
-		margin: 		0 0 0 40px;
-		list-style: square;
-		color:			#565656;
+		margin:                   0 0 0 40px;
+		list-style:               square;
+		color:                    #565656;
 	}
 	
 		footer ul li a {
-			display: 	block;
+			display:              block;
 		}
