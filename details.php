@@ -12,6 +12,13 @@
     }
   </script>
 
+	<!-- define image map for diagram -->
+	<map name="map1">
+  	<area shape="rect" coords="0,220,180,300" href="#geomtess">
+  	<area shape="rect" coords="236,224,359,304" href="#parallax">
+  	<area shape="rect" coords="417,101,617,242" href="#interface">
+  </map>
+
 </head>
 <body>
 <div id="container">
@@ -109,7 +116,7 @@
             <p>
               The goal of this project is to create a terrain deformation test-bed that supports the real-time deformation of a triangle mesh representing a terrain. The system must be capable of handling a large number of deformations whilst maintaining real-time frame-rates. Ultimately this system will serve as basis for creating realistically deforming terrain environment for use in computer games and visual effects. While methods do exist to change geometry on-the-fly, these have not been widely adopted in computer games mainly due to previous limits imposed by graphics hardware. Currently most computer games rely on pre-computed data, meaning that the terrain (or other environmental objects) can only be changed in a small number of predefined ways, thus breaking immersion.
             </p>
-            <img src="images/divisions.png">
+            <img src="images/divisions.png" usemap="map1">
             <p>
               The work of the project is divided up into three components of equal weight. The first and second components share a common framework which is collaboratively developed by Andrew Flower and Justin Crause. This common framework allows for coarse level deformations to take place on the terrain, the implementation of the caching system. The core application also includes the representation of the terrain mesh and basic rendering functionality. The main distinction between the two components comes about with the addition of high-detail deformations to the terrain, one uses <a href="#geomtess">Geometry Tessellation</a> and the other uses a <a href="#parallax">Texture-Based</a> approach. These two back-end implementations will be combined with a  <a href="#interface">Vision Interface</a> front-end to create a unique real-time terrain deformation system.
             </p>
