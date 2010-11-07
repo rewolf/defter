@@ -62,6 +62,7 @@
            onMouseDown="mouseEvent('gallery', '-pressed')"
            onMouseOut="mouseEvent('gallery', '')"
            onMouseUp="mouseEvent('gallery', '-hover')"
+           class="selected"
           >
         </a>
       </li>

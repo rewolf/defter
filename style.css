@@ -29,6 +29,10 @@ a {
 	text-decoration:              none;
 }
 
+img {
+	border:												none;
+}
+
 h1, h2 {
 	font-size:                    28px;
 	line-height:                  34px;
@@ -96,6 +100,10 @@ nav {
 				line-height:      44px;
 				width:            163px;
 				margin-right:     20px;
+			}
+			nav ul li a img.selected {
+				opacity:	0.3;
+				filter:		alpha(30);
 			}
 
 /************************************
@@ -233,11 +241,12 @@ aside section {
 		}
 		
 			aside section ul li a:hover {
-				text-decoration:  underline;
+				text-decoration:  	underline;
 			}
 
 aside section#sublinks{
 	background:                   rgba(0, 0, 0, .5);
+	position: fixed;
 }
 			
 /************************************
@@ -257,26 +266,17 @@ aside section#sublinks{
 			*/
 			display:              inline;
 			display:              inline-block;
-            display:              -moz-inline-box; /* mozilla only */
+			display:              -moz-inline-box; /* mozilla only */
 			margin:               0px 20px;
 		}
 			.imgList li a {
 				display:          block;
-				color:            #9f0;
 				font-size:        14px;
 				text-align:       center;
 				text-decoration:  none;
 				line-height:      44px;
 				margin-right:     0px;
 			}
-		
-				.imgList li a:hover {
-					color:        #fff;
-				}
-		
-				.imgList li.selected a {
-					color:        #fff;
-				}
 				
 				.imgList li img {
 					width:        100px;

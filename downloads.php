@@ -62,6 +62,7 @@
            onMouseDown="mouseEvent('downloads', '-pressed')"
            onMouseOut="mouseEvent('downloads', '')"
            onMouseUp="mouseEvent('downloads', '-hover')"
+           class="selected"
           >
         </a>
       </li>

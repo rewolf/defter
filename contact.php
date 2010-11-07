@@ -104,6 +104,7 @@
            onMouseDown="mouseEvent('contact', '-pressed')"
            onMouseOut="mouseEvent('contact', '')"
            onMouseUp="mouseEvent('contact', '-hover')"
+           class="selected"
           >
         </a>
       </li>

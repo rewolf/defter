@@ -42,6 +42,7 @@
            onMouseDown="mouseEvent('details', '-pressed')"
            onMouseOut="mouseEvent('details', '')"
            onMouseUp="mouseEvent('details', '-hover')"
+           class="selected"
           >
         </a>
       </li>
