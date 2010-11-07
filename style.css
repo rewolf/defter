@@ -118,12 +118,11 @@ nav {
  ************************************/
  
 #teaser {
-	background: 			#467612 url("images/teaser.png") repeat-x;
+	background: 			url("images/teaser2.png") repeat-x;
 	background-size:	100%;
 	position: 				relative;
 	height:						250px;
 	margin-top: 			66px;
-	padding: 					44px;
 	border-radius: 		22px;
 	
 	/* Background-size not implemented yet */
@@ -316,6 +315,8 @@ aside section#sublinks{
 	/* Border-radius not implemented yet */
 	border-top-left-radius:		10px;
 	border-top-right-radius:	10px;
+ 	-moz-border-top-left-radius: 			10px;
+	-webkit-border-top-right-radius: 		10px;
 }
 	.imgOnBox img {
 		width: 				120px;
