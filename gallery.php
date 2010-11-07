@@ -8,7 +8,9 @@
   
   <link rel="stylesheet" href="css/prettyPhoto.css" type="text/css" media="screen" title="prettyPhoto main stylesheet" charset="utf-8" />
   <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
-
+  
+  <script type='text/javascript' src='jw/swfobject.js'></script>
+  
   <?php
     // Include code used to insert gallery images
     include("util.php");
@@ -29,7 +31,7 @@
   <!------------------------------------------------------------->
   <nav>
     <ul>
-      <li><a href="index.php">    	Home     </a></li>
+      <li><a href="index.php">      Home     </a></li>
       <li><a href="details.php">    Details  </a></li>
       <li><a href="gallery.php">    Gallery  </a></li>
       <li><a href="downloads.php">  Downloads</a></li>
@@ -53,7 +55,7 @@
     <!------------------------------------------------------------->
     <div id="mainContent">
       <section id="sectGroup">
-      	<!-- Development Shots -->
+        <!-- Development Shots -->
         <section>
           <header>
             <h2>Development</h2>
@@ -61,11 +63,11 @@
               FUNNESS!!!!
             </p>
           </header>
-            <div>
-              <?php
-                insert_gallery("development");
-              ?>
-            </div>
+          <div>
+            <?php
+              insert_gallery("development");
+            ?>
+          </div>
         </section>
 
         <!-- Videos -->
@@ -94,10 +96,10 @@
 
 <script type="text/javascript" charset="utf-8">
   $(document).ready(function(){
-    $("a[rel^='prettyPhoto']").prettyPhoto({animationSpeed:'slow',
+    $("a[rel^='prettyPhoto']").prettyPhoto({animationSpeed:'fast',
                                             theme:'light_square',
-											overlay_gallery: false
-											});
+                      overlay_gallery: false
+                      });
   });
 </script>
 

@@ -79,6 +79,8 @@
 			
 			flash_markup: '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="{width}" height="{height}"><param name="wmode" value="{wmode}" /><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="{path}" /><embed src="{path}" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="{width}" height="{height}" wmode="{wmode}"></embed></object>',
 			
+			jwplayer: '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="{width}" height="{height}" id="player1"><param name="movie" value="jw/player.swf"/><param name="allowfullscreen" value="true"/><param name="allowscriptaccess" value="always"/><param name="flashvars" value="file={path}"/><embed src="jw/player.swf" type="application/x-shockwave-flash" flashvars="file={path}" allowfullscreen="true" allowscriptaccess="always" width="{width}" height="{height}" /></object>',
+			
 			quicktime_markup: '<object classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" codebase="http://www.apple.com/qtactivex/qtplugin.cab" height="{height}" width="{width}"><param name="src" value="{path}"><param name="autoplay" value="{autoplay}"><param name="type" value="video/quicktime"><embed src="{path}" height="{height}" width="{width}" autoplay="{autoplay}" type="video/quicktime" pluginspage="http://www.apple.com/quicktime/download/"></embed></object>',
 			
 			wm_markup: '<object classid="clsid:22d6f312-b0f6-11d0-94ab-0080c74c7e95" name="Player" width="{width}" height="{height}" hspace="0" codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,0,0" type="application/x-oleobject"><param name="src" value="{path}"/><param name="uimode" value="full"><param name="autostart" value="{autoplay}"/><param name="showControls" value="true"/><embed width="{width}" height="{height}" hspace="0" src="{path}" type="application/x-oleobject" pluginspage="http://microsoft.com/windows/mediaplayer/en/download/" autostart="{autoplay}"></embed></object>',
@@ -368,6 +370,20 @@
 						filename = filename.substring(0,filename.indexOf('?'));
 					
 						toInject =  settings.flash_markup.replace(/{width}/g,correctSizes['width']).replace(/{height}/g,correctSizes['height']).replace(/{wmode}/g,settings.wmode).replace(/{path}/g,filename+'?'+flash_vars);
+					break;
+					
+					case 'jwplayer':
+						correctSizes = _fitToViewport(movie_width,movie_height); // Fit item to viewport				
+
+						videoPath = pp_images[setPosition];
+						index1 = pp_images[setPosition].lastIndexOf('/');
+						index2 = pp_images[setPosition].lastIndexOf('.') + 1;
+						
+						imagePath = pp_images[setPosition].substring(0,index1+1) + "thumbs";
+						
+						imagePath += pp_images[setPosition].substring(index1,index2) + "jpg";
+						
+						toInject =  settings.jwplayer.replace(/{width}/g,correctSizes['width']).replace(/{height}/g,correctSizes['height']).replace(/{path}/g,"../"+videoPath+/*"?&autostart=true&controlbar=over*/"?&image="+imagePath);
 					break;
 					
 					case 'local':
@@ -763,6 +779,9 @@
 				
 			}else if(itemSrc.indexOf('.flv') != -1){
 				return 'local';
+				
+			}else if((itemSrc.indexOf('.f4v') != -1)||(itemSrc.indexOf('.mp4') != -1)){
+				return 'jwplayer';
 				
 			}else if(itemSrc.indexOf('iframe') != -1){
 				return 'iframe'
