@@ -259,7 +259,9 @@ aside section {
 			/*
 				List items will float to the left of the next item
 			*/
-			float: left;
+			display:		inline;
+			display:		inline-block;
+      display: 		-moz-inline-box; /* mozilla only */
 		}
 			.imgList li a {
 				display: 					block;
