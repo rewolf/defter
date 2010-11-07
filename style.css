@@ -21,6 +21,8 @@ body {
 	width: 			940px;
 	margin: 		0 auto;
 	padding: 		22px 0;
+	
+	background-color:	#000;
 }
 
 a {
@@ -30,7 +32,7 @@ a {
 h1, h2 {
 	font-size: 	28px;
 	line-height:34px;
-	padding: 		20px 0;
+	padding: 		10px 0px 20px 0px;
 }
 
 h3 {
@@ -44,10 +46,24 @@ p {
 }
 
 #container {
-	background-color: #222;
-	padding-bottom: 20px;
+	padding-bottom: 	5px;
+	background-color:	#000;
+	
+	background-image: 			url("images/background.jpg");
+	background-attachment:	fixed;
+	background-repeat:			no-repeat;
+	background-position:		center 0px;
 }
 
+/************************************
+ *  BANNER
+ ************************************/
+ 
+ #banner {
+	 background:			url("images/banner.jpg");
+	 height:					160px;
+ }
+ 
 /************************************
  *  NAVIGATION
  ************************************/
@@ -135,17 +151,6 @@ nav {
 		color: 		#d9f499;
 		padding: 	0;
 	}
-	#teaser img {
-		position: absolute;
-		top: 			0;
-		right: 		0;
-		width: 		653px;
-		height: 	100%;
-	
-		/* Border-radius not implemented yet */
-		-moz-border-radius: 		22px;
-		-webkit-border-radius: 	22px;
-	}
 
  
 /************************************
@@ -154,7 +159,7 @@ nav {
  
 #content {
 	display: 	table;
-	margin: 	0 12px;
+	margin: 	10px 10px;
 }
 
 	#mainContent {
@@ -166,7 +171,6 @@ nav {
 	
 	aside {
 		display: 				table-cell;
-		background: 		url("images/sidebar_background.png") top left;
 		width: 					270px;
 	}
 
@@ -174,7 +178,16 @@ nav {
  *  MAIN CONTENT
  ************************************/
 
-/* originally used a class .pageText, but there's only one article anyway*/
+#sectGroup section{
+	background:		rgba(0,0,0,.5);
+	padding:			10px 10px;
+	margin:				20px 0px;
+	border-radius:8px;
+	/* Border-radius not implemented yet */
+ 	-moz-border-radius: 			8px;
+	-webkit-border-radius: 		8px;
+}
+
 #sectGroup section header p, #sectGroup section header p a {
 	font-size: 		12px;
 	font-style: 	italic;
@@ -218,7 +231,7 @@ nav {
  ************************************/
  
 aside section {
-	background: 			url("images/sidebar_section_background.png") repeat-x;
+	background: 			repeat-x;
 	margin: 					22px 0 0 22px;
 	padding: 					11px 22px;
 	
@@ -243,6 +256,10 @@ aside section {
 			aside section ul li a:hover {
 				text-decoration: underline;
 			}
+
+aside section#sublinks{
+	background:			rgba(0, 0, 0, .5);
+}
 			
 /************************************
  *  IMAGE LIST (for gallery)
@@ -259,7 +276,10 @@ aside section {
 			/*
 				List items will float to the left of the next item
 			*/
-			float: left;
+			display:		inline;
+			display:		inline-block;
+      display: 		-moz-inline-box; /* mozilla only */
+			marging:		0px 20px;
 		}
 			.imgList li a {
 				display: 					block;
@@ -268,8 +288,8 @@ aside section {
 				text-align: 			center;
 				text-decoration: 	none;
 				line-height: 			44px;
-				width: 						110px;
-				margin-right: 		20px;
+				width: 						100px;
+				margin-right: 		0px;
 			}
 		
 				.imgList li a:hover {
@@ -278,13 +298,6 @@ aside section {
 		
 				.imgList li.selected a {
 					color: 					#fff;
-				}
-		
-				.imgList li.subscribe a {
-					background: 		url("rss.png") left center no-repeat;
-					text-align: 		left;
-					margin-left: 		22px;
-					padding-left: 	33px;
 				}
  
 /************************************
@@ -298,7 +311,7 @@ aside section {
 
 .imgOnBox{
 	display:						table-cell;
-	background:					#111;
+	background:					rgba(0,0,100,.4);
 	text-align:					center;
 	border:				solid 2px #039;
 	border-bottom:				none;
@@ -329,22 +342,30 @@ aside section {
 		-webkit-box-shadow: none;
 	}
 
-#contactBox {
-	min-height:		200px;
-	background:		#111;
-	padding:			0 12px;
-	border:				solid 2px #039;
-	border-top:				none;
-	/* Border-radius not implemented yet */
- 	-moz-border-radius: 			10px;
-	-webkit-border-radius: 		10px;
-}
-
 #contactImgBox {
 	display:			table;
 	width:				600px;
 	padding:			0 10px;
 }
+
+#contactInfoBox {
+	min-height:		200px;
+	background:		rgba(0,0,100,.4);
+	padding:			5px 20px;
+	border:				solid 2px #039;
+	border-top:		none;
+	/* Border-radius not implemented yet */
+ 	-moz-border-radius: 			10px;
+	-webkit-border-radius: 		10px;
+}
+	#contactInfoBox h3{
+		padding:				0px 0px;
+	}
+	#contactInfoBox p.role{
+		padding-bottom:	11px 0px;
+		font-style:			italic;
+	}
+
 
 /************************************
  *  FOOTER
