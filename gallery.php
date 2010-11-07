@@ -7,10 +7,10 @@
   <script src="js/jquery.prettyPhoto.js" type="text/javascript" charset="utf-8"></script>
   
   <link rel="stylesheet" href="css/prettyPhoto.css" type="text/css" media="screen" title="prettyPhoto main stylesheet" charset="utf-8" />
-  <link rel="stylesheet" href="style.css" type="text/css" media="screen" /> 
-  
-	<?php
-		// Include code used to insert gallery images
+  <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+
+  <?php
+    // Include code used to insert gallery images
     include("util.php");
   ?>
   
@@ -33,7 +33,7 @@
       <li><a href="details.php">    Details  </a></li>
       <li><a href="gallery.php">    Gallery  </a></li>
       <li><a href="downloads.php">  Downloads</a></li>
-      <li><a href="contact.php">		Contact  </a></li>
+      <li><a href="contact.php">    Contact  </a></li>
     </ul>
   </nav>
 
@@ -61,13 +61,13 @@
               FUNNESS!!!!
             </p>
           </header>
-          <div>
-          	<?php
-							insert_gallery("development");
-						?>
-          </div>
+            <div>
+              <?php
+                insert_gallery("development");
+              ?>
+            </div>
         </section>
-        
+
         <!-- Videos -->
         <section>
           <header>
@@ -77,9 +77,9 @@
             </p>
           </header>
           <div>
-          	<?php
-							insert_gallery("videos");
-						?>
+            <?php
+              insert_gallery("videos");
+            ?>
           </div>
         </section>
       </section>
@@ -95,9 +95,9 @@
 <script type="text/javascript" charset="utf-8">
   $(document).ready(function(){
     $("a[rel^='prettyPhoto']").prettyPhoto({animationSpeed:'slow',
-                        theme:'light_square',
-												slideshow:4000,
-												autoplay_slideshow: true});
+                                            theme:'light_square',
+											overlay_gallery: false
+											});
   });
 </script>
 
