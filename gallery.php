@@ -134,6 +134,21 @@
             ?>
           </div>
         </section>
+        
+        <!-- Vision Interface Shots -->
+        <section>
+          <header>
+            <h2>Vision Interface</h2>
+            <p>
+              Some pictures showing the vision interface
+            </p>
+          </header>
+          <div>
+            <?php
+              insert_gallery("vision");
+            ?>
+          </div>
+        </section>
 
         <!-- Videos -->
         <section>
