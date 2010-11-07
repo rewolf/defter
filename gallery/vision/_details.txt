@@ -1,0 +1,28 @@
+# #'s are comments
+# $'s denote extra detail. First title then caption
+#
+# Structure
+# FileName
+# $Title
+# $Caption
+#
+
+1.jpg
+$
+$Results of imminence thresholding
+
+2.jpg
+$
+$Hand pixel segmentation
+
+3.jpg
+$
+$Monitor detection results
+
+4.jpg
+$
+$Fingertip detection
+
+5.jpg
+$
+$Sample drawing application
