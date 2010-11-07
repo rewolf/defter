@@ -164,7 +164,6 @@ nav {
 
 	#mainContent {
 		display: 				table-cell;
-		width: 					650px;
 		padding-right:	22px;
 		vertical-align:	top;
 	}
@@ -180,7 +179,7 @@ nav {
 
 #sectGroup section{
 	background:		rgba(0,0,0,.5);
-	padding:			10px 10px;
+	padding:			10px 20px;
 	margin:				20px 0px;
 	border-radius:8px;
 	/* Border-radius not implemented yet */
@@ -204,9 +203,6 @@ nav {
 	text-align:		justify;
 }
 
-#sectGroup section div ul li {
-	margin:				0px 40px;
-}
 
 #sectGroup section img {
 	margin: 						22px 0;
@@ -268,7 +264,7 @@ aside section#sublinks{
 	.imgList {
 		display:		block;
 		margin: 		0 auto;
-		width: 			940px;
+
 		list-style: none;
 		float:			none;
 	}
@@ -279,7 +275,7 @@ aside section#sublinks{
 			display:		inline;
 			display:		inline-block;
       display: 		-moz-inline-box; /* mozilla only */
-			marging:		0px 20px;
+			margin:		0px 20px;
 		}
 			.imgList li a {
 				display: 					block;
