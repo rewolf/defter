@@ -48,6 +48,10 @@ function insert_gallery($dir){
 	// Output the HTML for each item
 	echo "\n<ul class=\"imgList\">\n";    // starts a list
 	foreach ($items as $i => $item){
+		// Make sure exists before adding it
+		if (!file_exists($dir.'/'.$item->filename))
+			continue;
+			
 		echo "  <li>\n";    // start list element
 		// Create the anchor tag for the prettyPhoto link
 		echo "    <a href=\"{$dir}/{$item->filename}\" rel=\"prettyPhoto[{$dir}]\"";
