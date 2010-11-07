@@ -110,7 +110,7 @@
           <header>
             <h2>Development</h2>
             <p>
-              FUNNESS!!!!
+              A set of images taken from our development process
             </p>
           </header>
           <div>
@@ -125,7 +125,7 @@
           <header>
             <h2>Videos</h2>
             <p>
-              FUNNESS!!!!
+              Various videos of the project, all the way from early days until the final product
             </p>
           </header>
           <div>
