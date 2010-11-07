@@ -172,8 +172,19 @@
           
           <div>
             <p>
-              This component forms the front-end to the two separate back-ends described above. This interface is a computer vision based system wherein the user interacts with the application directly through the use of gestures. This component is designed to integrate easily with the two deformation components. The vision system uses object tracking, background subtraction and minimal use of hand pose estimation to create a functional input device from the users hand, hand occlusion, pose and position relative to the computer monitor.
-The contents of this report focus on component two on texture-based methods. For information pertaining to one of the other components please see the respective documentation.
+            A computer vision interface was developed and tested with the terrain application as well as a simple drawing application. This step up uses a head mounted camera pointed at the monitor. A user could then control the system by occluding the monitor with their hand. To accomplish any meanigful interaction the sytem computes the following parameters for each frame:
+            </p>
+            <ul>
+              <li>Monitor corner positions</li>
+              <li>Monitor Pose estimate</li>
+              <li>Segmented hand pixels</li>
+              <li>Fingertip positions</li>
+              <li>Frame to Display Homography</li>
+						</ul>
+            <br/>
+						<p>
+Once this information is computed, the fingertips cap be used as pointing devices. All this data can then be used to control the terrain application or draw images with the drawing application.
+Experiments were run to measure the speed and accuracy of the system. At a frame resolution of 640x480 the system achieved an average frame rate of 28.2 frames per second. Accuracy results were also satisfactory with consistently high recognition rates.
             </p>
           </div>
           <a href="#">&uarr;Top&uarr;</a>
