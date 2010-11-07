@@ -262,6 +262,7 @@ aside section {
 			display:		inline;
 			display:		inline-block;
       display: 		-moz-inline-box; /* mozilla only */
+			marging:		0px 20px;
 		}
 			.imgList li a {
 				display: 					block;
@@ -270,8 +271,8 @@ aside section {
 				text-align: 			center;
 				text-decoration: 	none;
 				line-height: 			44px;
-				width: 						110px;
-				margin-right: 		20px;
+				width: 						100px;
+				margin-right: 		0px;
 			}
 		
 				.imgList li a:hover {
@@ -280,13 +281,6 @@ aside section {
 		
 				.imgList li.selected a {
 					color: 					#fff;
-				}
-		
-				.imgList li.subscribe a {
-					background: 		url("rss.png") left center no-repeat;
-					text-align: 		left;
-					margin-left: 		22px;
-					padding-left: 	33px;
 				}
  
 /************************************

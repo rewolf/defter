@@ -48,11 +48,22 @@ function insert_gallery($dir){
 	echo "\n<ul class=\"imgList\">\n";    // starts a list
 	foreach ($items as $i => $item){
 		echo "  <li>\n";    // start list element
+		// Create the anchor tag for the prettyPhoto link
 		echo "    <a href=\"{$dir}/{$item->filename}\" rel=\"prettyPhoto[gallery1]\"";
 		if ($item->caption != NULL)
 			echo " title=\"{$item->caption}\"";
 		echo ">\n";
-		echo "      <img src=\"{$dir}/thumbs/{$item->filename}\"";
+		// Change the extension for the thumbnail if it's a video
+		$thumbname = NULL;
+		if (	 substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "mp4"
+				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "ogv"
+				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "ogm"
+				|| substr($item->filename, strlen($item->filename) - 3, strlen($item->filename)) == "flv")
+			$thumbname = substr($item->filename, 0, strlen($item->filename)-3) . "jpg";
+		else
+			$thumbname = $item->filename;
+		// Create the thumbnail
+		echo "      <img src=\"{$dir}/thumbs/{$thumbname}\"";
 		if ($item->title != NULL)
 			echo " alt=\"{$item->title}\"";
 		echo " />\n";
