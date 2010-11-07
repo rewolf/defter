@@ -39,7 +39,7 @@
 		setInterval("flash()", 20);
 	</script>
 </head>
-<body onLoad="viewContact('pm');">
+<body onLoad="viewContact('af');">
 <div id="container">
   <!------------------------------------------------------------->
   <!---- BANNER ---->
