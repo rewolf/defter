@@ -67,7 +67,7 @@
 						?>
           </div>
         </section>
-        <br/>
+        
         <!-- Videos -->
         <section>
           <header>

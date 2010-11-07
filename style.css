@@ -29,8 +29,8 @@ a {
 
 h1, h2 {
 	font-size: 	28px;
-	line-height:44px;
-	padding: 		22px 0;
+	line-height:34px;
+	padding: 		20px 0;
 }
 
 h3 {
@@ -159,14 +159,15 @@ nav {
 
 	#mainContent {
 		display: 				table-cell;
-		width: 					620px;
+		width: 					650px;
 		padding-right:	22px;
+		vertical-align:	top;
 	}
 	
 	aside {
 		display: 				table-cell;
 		background: 		url("images/sidebar_background.png") top left;
-		width: 					300px;
+		width: 					270px;
 	}
 
 /************************************
@@ -178,13 +179,18 @@ nav {
 	font-size: 		12px;
 	font-style: 	italic;
 	color: 				#777;
-	margin:				0 10px;
+	margin:				0 30px;
 }
 		#sectGroup section header p a:hover {
 			text-decoration: 	none;
 			color: 						#000;
 		}
-		
+
+	
+#sectGroup section div p{
+	text-align:		justify;
+}
+
 #sectGroup section div ul li {
 	margin:				0px 40px;
 }
@@ -243,9 +249,11 @@ aside section {
  ************************************/
  
 	.imgList {
+		display:		block;
 		margin: 		0 auto;
 		width: 			940px;
 		list-style: none;
+		float:			none;
 	}
 		.imgList li {
 			/*
@@ -279,6 +287,64 @@ aside section {
 					padding-left: 	33px;
 				}
  
+/************************************
+ *  CONTACT STUFF
+ ************************************/
+
+.contactInfo {
+	visibility:		hidden;
+	position:			absolute;
+}
+
+.imgOnBox{
+	display:						table-cell;
+	background:					#111;
+	text-align:					center;
+	border:				solid 2px #039;
+	border-bottom:				none;
+	/* Border-radius not implemented yet */
+	border-top-left-radius:		10px;
+	border-top-right-radius:	10px;
+}
+	.imgOnBox img {
+		width: 				120px;
+		opacity:			1.0;
+		filter:				alpha(opacity=100);
+		-webkit-box-shadow: none;
+	}
+	
+.imgOffBox{
+	display:						table-cell;
+	background-color: 	inherit;
+	text-align:					center;
+	border:							solid 2px rgba(0,0,0,0);
+	/* Border-radius not implemented yet */
+	border-top-left-radius:		10px;
+	border-top-right-radius:	10px;
+}
+	.imgOffBox img{
+		width: 				120px;
+		opacity:			0.5;
+		filter:				alpha(opacity=50);
+		-webkit-box-shadow: none;
+	}
+
+#contactBox {
+	min-height:		200px;
+	background:		#111;
+	padding:			0 12px;
+	border:				solid 2px #039;
+	border-top:				none;
+	/* Border-radius not implemented yet */
+ 	-moz-border-radius: 			10px;
+	-webkit-border-radius: 		10px;
+}
+
+#contactImgBox {
+	display:			table;
+	width:				600px;
+	padding:			0 10px;
+}
 
 /************************************
  *  FOOTER
