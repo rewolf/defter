@@ -19,38 +19,38 @@ terrain-first.ogv
 $Terrain 1 (Dev)
 $Dev Vid (30 June):: First-look at editable terrain
 
-normal-parallax-mapping.mp4
+normal-parallax-mapping.f4v
 $Normal/Parallax Mapping (Dev)
 $Dev Vid (07 Aug):: Normal and parallax mapping on a cube
 
-normal-parallax-displacement-mapping.mp4
+normal-parallax-displacement-mapping.f4v
 $Normal/Parallax/Dispalcement Mapping (Dev)
 $Dev Vid (27 Aug):: Normal, parallax and displacement mapping on a cube
 
-terrain-update.mp4
+terrain-update.f4v
 $Terrain 2 (Dev)
 $Dev Vid (07 Sept):: Updated version of terrain showing wire-frame with improved deformations
 
-frustum-culling.mp4
+frustum-culling.f4v
 $Frustum Culling (Dev)
 $Dev Vid (26 Sep):: Demo of how the pre-rendering frustum culling is perfromed to remove unnecessary blocks
 
-caching-system-demo.mp4
+caching-system-demo.f4v
 $Caching Demo (Dev)
 $Dev Vid (13 Oct):: Demo of the caching system. Focus on the radar HUD. Red: Inactive, White: Active, Green: Current
 
-deform-basics-coarsemap.mp4
+deform-basics-coarsemap.f4v
 $Deformation Demo 1 (Dev)
 $Dev Vid (13 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
 
-first-high-def.mp4
+first-high-def.f4v
 $High-detail (Dev)
 $Dev Vid (15 Oct):: First time rendering high-detail texture data to screen by adding colour.
 
-deform-gravity-stamps-coarse-detail.mp4
+deform-gravity-stamps-coarse-detail.f4v
 $Deformation Demo 2 (Dev)
 $Dev Vid (20 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
 
-shockwave.mp4
+shockwave.f4v
 $Shockwave (Dev)
 $Dev Vid (25 Oct):: Example of dynamic stamp. BETA not included in final version.

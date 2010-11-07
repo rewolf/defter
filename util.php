@@ -50,7 +50,7 @@ function insert_gallery($dir){
 	foreach ($items as $i => $item){
 		echo "  <li>\n";    // start list element
 		// Create the anchor tag for the prettyPhoto link
-		echo "    <a href=\"{$dir}/{$item->filename}\" rel=\"prettyPhoto[gallery1]\"";
+		echo "    <a href=\"{$dir}/{$item->filename}\" rel=\"prettyPhoto[{$dir}]\"";
 		if ($item->caption != NULL)
 			echo " title=\"{$item->caption}\"";
 		echo ">\n";
