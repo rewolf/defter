@@ -7,3 +7,62 @@
 # $Caption
 #
 
+1.jpg
+$Coarse-map
+$DefTer enscribed on the terrain
+
+2.jpg
+$Coarse-map
+$Collection of % stamps applied to terrain
+
+3.jpg
+$Coarse-map
+$Collection of stamps made available in the program
+
+4.jpg
+$Coarse-map
+$Very big feet!
+
+5.jpg
+$Coarse-map
+$Pedobear
+
+6.jpg
+$Coarse-map
+$Sample terrain output
+
+7.jpg
+$Coarse-map
+$A curtain of mountains
+
+8.jpg
+$Coarse-map
+$View from above
+
+9.jpg
+$Coarse-map
+$Looking to the heavens
+
+10.jpg
+$Geometry Tessellation
+$
+
+11.jpg
+$Geometry Tessellation
+$
+
+12.jpg
+$Geometry Tessellation
+$
+
+13.jpg
+$Parallax Mapping
+$
+
+14.jpg
+$Parallax Mapping
+$
+
+15.jpg
+$Parallax Mapping
+$
