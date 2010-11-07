@@ -30,7 +30,7 @@ a {
 }
 
 img {
-	border:												none;
+	border:                       none;
 }
 
 h1, h2 {
@@ -102,8 +102,8 @@ nav {
 				margin-right:     20px;
 			}
 			nav ul li a img.selected {
-				opacity:	0.3;
-				filter:		alpha(30);
+				opacity:          0.3;
+				filter:           alpha(30);
 			}
 
 /************************************
@@ -114,8 +114,8 @@ nav {
 	background:                   url("images/teaser.png");
 	background-size:              100%;
 	position:                     relative;
-	margin-top:                   66px;
-	height:                       200px;
+	margin-top:                   40px;
+	height:                       250px;
 	border-radius: 		          15px;
 	
 	/* Background-size not implemented yet */
@@ -196,7 +196,7 @@ nav {
 
 
 #sectGroup section img {
-	margin:												15px auto;
+	margin:                       15px auto;
 }
 
 /* Class can be used to apply two-column layout to a div or section */
@@ -240,7 +240,7 @@ aside section {
 		}
 		
 			aside section ul li a:hover {
-				text-decoration:  	underline;
+				text-decoration:  underline;
 			}
 
 aside section#sublinks{
@@ -278,9 +278,9 @@ aside section#sublinks{
 			}
 				
 				.imgList li img {
-					width:        				100px;
-					margin:               22px 0;
-					-webkit-box-shadow:   3px 3px 7px #777;
+					width:        100px;
+					margin:       22px 0;
+					-webkit-box-shadow:3px 3px 7px #777;
 				}
  
 /************************************
