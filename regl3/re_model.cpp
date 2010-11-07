@@ -77,7 +77,7 @@ reModel::reModel(string filename){
 
 
 	if (strcmp(b_string, "ENDMODEL") != 0){
-		fprintf(stderr, "\nERROR: Unexpected end of model file %s\n", filename.c_str());
+		fprintf(stderr, "\nERROR: Unexpected end of model file %s: %s\n", filename.c_str(),b_string);
 	}
 	// End off
 	fclose(fp);

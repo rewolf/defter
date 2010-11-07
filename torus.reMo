@@ -1,15 +1,10 @@
 reMoA
 reModel 1.1a by rewolf
 1 1
-MATERIAL blinn blinnMat
-checker_large.bmp
-None
-0.800000
+MATERIAL lambert lambert1
+1.000000
+0.500000 0.500000 0.500000
 0.000000 0.000000 0.000000
-0.108609 0.073216 0.286000
-0.351120 0.527937 0.560000
-0.300000
-0.700000
 MODEL pTorus1
   MESH pTorus1
   0.0 0.0 0.0
