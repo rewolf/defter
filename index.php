@@ -97,21 +97,58 @@
       <section id="sectGroup">
         <section>
           <header>
-            <h2>Welcome Title</h2>
+            <h2>Welcome</h2>
             <p>
-              Subtitle
+              ..to the home of Project DefTer
             </p>
           </header>
           <div class="twocolumn">
             <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod tellus eu orci imperdiet nec rutrum lacus blandit. Cras enim nibh, sodales ultricies elementum vel, fermentum id tellus. Proin metus odio, ultricies eu pharetra dictum, laoreet id odio. Curabitur in odio augue. Morbi congue auctor interdum. Phasellus sit amet metus justo. Phasellus vitae tellus orci, at elementum ipsum. In in quam eget diam adipiscing condimentum. Maecenas gravida diam vitae nisi convallis vulputate quis sit amet nibh. Nullam ut velit tortor. Curabitur ut elit id nisl volutpat consectetur ac ac lorem. Quisque non elit et elit lacinia lobortis nec a velit. Sed ac nisl sed enim consequat porttitor.
+            <!--
+            	focus of site
+              honours project
+            -->
+            	Project DefTer is a project developed by a team of three very smashing individuals.  This project
+              was allocated as the mandatory Honours project given to Computer Science Honours students at the
+              <a href="http://www.uct.ac.za/">University of Cape Town</a>.   The purpose of this site is to 
+              present this work.  The Gallery page contains a collection of images and videos pertaining to the
+              development of the Deformable Terrain system.  The downloads page lists the reports and research
+              documents compiled by each team member as well as the team's original proposal.  Detail regarding
+              individual members and the supervisor, Dr Patrick Marais, can be found in the Contact page.
             </p>
             <p>
-              Pellentesque ut sapien arcu, egestas mollis massa. Fusce lectus leo, fringilla at aliquet sit amet, volutpat non erat. Aenean molestie nibh vitae turpis venenatis vel accumsan nunc tincidunt. Suspendisse id purus vel felis auctor mattis non ac erat. Pellentesque sodales venenatis condimentum. Aliquam sit amet nibh nisi, ut pulvinar est. Sed ullamcorper nisi vel tortor volutpat eleifend. Vestibulum iaculis ullamcorper diam consectetur sagittis. Quisque vitae mauris ut elit semper condimentum varius nec nisl. Nulla tempus porttitor dolor ac eleifend. Proin vitae purus lectus, a hendrerit ipsum. Aliquam mattis lacinia risus in blandit.
+            <!--
+            	project details (coarsemap)
+              no-decay
+              2-levels
+            -->
+              The Real-Time Deformable Terrain system (codename DefTer) was developed in order to mend a problem
+              with modern computer games.  The focus of most computer games is realism, such that players may
+              actually feel present within the environment.  One of the first things a player does is test the 
+              limits of a game environment.  When an action is performed, it logical to expect a reaction.  The
+              terrain of most modern computer games is static, however, and yields no appropriate reaction to
+              gunshots or explosions for example.   The DefTer system removes this limitation, providing a 
+              framework for a dynamic terrain that can be modified in real-time by in-game events, thereby 
+              increasing the realism of games and allowing users more freedom.  The modifications performed 
+              persist for the duration of the game and even across executions, unlike the decal-based detail
+              seen in most games. 
+              Such an environment allows for
+              countless new features such as bullet (or explosion) -caused craters, footprints that allow 
+              opponents to track the player and the ability to dig trenches or burrow under enemy barricades.
             </p>
             <p>
-              Vivamus vitae nulla dolor. Suspendisse eu lacinia justo. Vestibulum a felis ante, non aliquam leo. Aliquam eleifend, est viverra semper luctus, metus purus commodo elit, a elementum nisi lectus vel magna. Praesent faucibus leo sit amet arcu vehicula sed facilisis eros aliquet. Etiam sodales, enim sit amet mollis vestibulum, ipsum sapien accumsan lectus, eget ultricies arcu velit ut diam. Aenean fermentum luctus nulla, eu malesuada urna consequat in. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque massa lacus, sodales id facilisis ac, lobortis sed arcu. Donec hendrerit fringilla ligula, ac rutrum nulla bibendum id. Cras sapien ligula, tincidunt eget euismod nec, ultricies eu augue. Nulla vitae velit sollicitudin magna mattis eleifend. Nam enim justo, vulputate vitae pretium ac, rutrum at turpis. Aenean id magna neque. Sed rhoncus aliquet viverra.
+            <!--
+            	introduce team
+            -->
+            	Team DefTer consists of Andrew Flower, Justin Crause, Peter Juritz and is supervised by Dr Patrick
+              Marais.  Each member is responsible for an independent subsystem of the project.  The DefTer 
+              system provides two levels for deformation.  The method of presentation of the fine-level detail
+              was approached from two different angles.  These two implementations were developed by Andrew and
+              Justin.  As an alternative to the familiar mouse-based interface, Peter developed a computer 
+              vision interface allowing a user to manipulate the terrain by merely placing his/her hand in front
+              of the screen and performing specific gestures or direct manipulation.
             </p>
+            
           </div>
         </section>
       </section>
