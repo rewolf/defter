@@ -301,6 +301,7 @@ DefTer::InitGL()
 	m_footprintDT	= .0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
+	m_is_wireframe	= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -993,6 +994,10 @@ DefTer::ProcessInput(float dt)
 				if (areaMax.y > 1.0)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
+			
+			// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
@@ -1001,6 +1006,10 @@ DefTer::ProcessInput(float dt)
 			// Calculate the normals
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
+			
+			// Reset to wireframe mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
@@ -1071,15 +1080,15 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Toggle wireframe
-	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
-		wireframe ^= true;
-		if (wireframe)
+		m_is_wireframe ^= true;
+		if (m_is_wireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
 
 	// Toggle between HD and coarse mode
 	if (m_input.WasKeyPressed(SDLK_h))
@@ -1404,9 +1413,12 @@ DefTer::Render(float dt)
 	glUseProgram(m_shMain->m_programID);
 	m_pClipmap->render_levels();
 	
-	m_pSkybox->render(viewproj);
+	// Only render these when not in wireframe mode
+	if (!m_is_wireframe)
+		m_pSkybox->render(viewproj);
 
-	m_pCaching->Render();
+	if (!m_is_wireframe)
+		m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
