@@ -45,24 +45,24 @@ $Looking to the heavens
 
 10.jpg
 $Geometry Tessellation
-$
+$Example of the Geometry Tessellation process. Much higher vertex density around the deformation region illustrated by the wireframe image
 
 11.jpg
 $Geometry Tessellation
-$
+$Geometry Tessellation applied over the coarse-map. Blended in wireframe mode shows the added vertex density over the stamps.
 
 12.jpg
-$Geometry Tessellation
-$
+$Parallax Mapping
+$Example of Parallax Mapping to imprint a % in the ground. The background has a coarse deformation to illustrate the displacement of vertices there. Parallax Mapping does not displace any vertices as can be seen in the wireframe section
 
 13.jpg
 $Parallax Mapping
-$
+$Another example showing that the vertices remain unchanged and the illusion of depth being produced
 
 14.jpg
 $Parallax Mapping
-$
+$Example with different stamps being applied
 
 15.jpg
 $Parallax Mapping
-$
+$Smiley Face with Parallax Mapping
