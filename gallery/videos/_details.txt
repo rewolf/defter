@@ -23,9 +23,9 @@ normal-parallax-mapping.f4v
 $Normal/Parallax Mapping (Dev)
 $Dev Vid (07 Aug):: Normal and parallax mapping on a cube
 
-normal-parallax-displacement-mapping.f4v
-$Normal/Parallax/Dispalcement Mapping (Dev)
-$Dev Vid (27 Aug):: Normal, parallax and displacement mapping on a cube
+normal-itrparallax-displacement-mapping.f4v
+$Normal/Itr Parallax/Dispalcement Mapping (Dev)
+$Dev Vid (27 Aug):: Normal, iterative parallax and displacement mapping on a cube
 
 terrain-update.f4v
 $Terrain 2 (Dev)
