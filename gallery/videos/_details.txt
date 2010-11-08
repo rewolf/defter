@@ -24,7 +24,7 @@ $Normal/Parallax Mapping (Dev)
 $Dev Vid (07 Aug):: Normal and parallax mapping on a cube
 
 normal-itrparallax-displacement-mapping.f4v
-$Normal/Itr Parallax/Dispalcement Mapping (Dev)
+$Normal/Itr Parallax/Displacement Mapping (Dev)
 $Dev Vid (27 Aug):: Normal, iterative parallax and displacement mapping on a cube
 
 terrain-update.f4v
@@ -33,7 +33,7 @@ $Dev Vid (07 Sept):: Updated version of terrain showing wire-frame with improved
 
 frustum-culling.f4v
 $Frustum Culling (Dev)
-$Dev Vid (26 Sep):: Demo of how the pre-rendering frustum culling is perfromed to remove unnecessary blocks
+$Dev Vid (26 Sep):: Demo of how the pre-rendering frustum culling is performed to remove unnecessary blocks
 
 caching-system-demo.f4v
 $Caching Demo (Dev)
@@ -41,7 +41,7 @@ $Dev Vid (13 Oct):: Demo of the caching system. Focus on the radar HUD. Red: Ina
 
 deform-basics-coarsemap.f4v
 $Deformation Demo 1 (Dev)
-$Dev Vid (13 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
+$Dev Vid (13 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be performed while running
 
 first-high-def.f4v
 $High-detail (Dev)
@@ -49,8 +49,20 @@ $Dev Vid (15 Oct):: First time rendering high-detail texture data to screen by a
 
 deform-gravity-stamps-coarse-detail.f4v
 $Deformation Demo 2 (Dev)
-$Dev Vid (20 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be perfromed while running
+$Dev Vid (20 Oct):: Sample of deformations on the coarse-map. Radar updates to show height-map data. Deformations can be performed while running
 
 shockwave.f4v
 $Shockwave (Dev)
 $Dev Vid (25 Oct):: Example of dynamic stamp. BETA not included in final version.
+
+coarsemap-final.f4v
+$Coarse-map Deformation (Final)
+$Production Vid (03 Nov):: Final demo of the coarse-map deformations with all the main features showcased.
+
+geometry-tessellation-terrain.f4v
+$Geometry Tessellation (Final)
+$Production Vid (03 Nov):: Demonstration of the Geometry Tessellation technique for high-detail deformations.
+
+parallax-mapping-terrain.f4v
+$Parallax Mapping (Final)
+$Production Vid (03 Nov):: Demonstration of the Parallax Mapping technique for high-detail deformations.

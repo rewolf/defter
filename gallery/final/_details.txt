@@ -9,7 +9,7 @@
 
 1.jpg
 $Coarse-map
-$DefTer enscribed on the terrain
+$DefTer inscribed on the terrain
 
 2.jpg
 $Coarse-map
