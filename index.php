@@ -99,7 +99,7 @@
           <header>
             <h2>Welcome</h2>
             <p>
-              ..to the home of Project DefTer
+              ...to the home of Project DefTer
             </p>
           </header>
           <div class="twocolumn">
@@ -110,7 +110,7 @@
             -->
             	Project DefTer is a project developed by a team of three very smashing individuals.  This project
               was allocated as the mandatory Honours project given to Computer Science Honours students at the
-              <a href="http://www.uct.ac.za/">University of Cape Town</a>.   The purpose of this site is to 
+              <a href="http://www.uct.ac.za/" target="_blank">University of Cape Town</a>.   The purpose of this site is to 
               present this work.  The Gallery page contains a collection of images and videos pertaining to the
               development of the Deformable Terrain system.  The downloads page lists the reports and research
               documents compiled by each team member as well as the team's original proposal.  Detail regarding

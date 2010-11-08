@@ -29,7 +29,13 @@ a {
 	text-decoration:              none;
 	outline:											none;
   -moz-outline-style:						none;
+	color:	#0cc;
 }
+
+a:hover {
+	text-decoration:							underline;
+}
+
 a:active {
 	text-decoration:              none;
 	outline:											none;
@@ -257,9 +263,9 @@ aside section {
 		aside section ul li a {
 			display:              block;
 			text-decoration:      none;
-			color:                #00d;
 			font-size:            18px;
-			text-shadow:          #000 2px -2px 2px;
+			text-shadow:          #055 3px -3px 2px;
+			padding-bottom:				5px;
 		}
 		
 			aside section ul li a:hover {
