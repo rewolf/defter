@@ -20,13 +20,25 @@ body {
 	font:                         13px/22px Helvetica, Arial, sans-serif;
 	width:                        940px;
 	margin:                       0 auto;
-	padding:                      22px 0;
-	
+	padding:                      22px;
+
 	background-color:             #000;
 }
 
 a {
 	text-decoration:              none;
+	outline:											none;
+  -moz-outline-style:						none;
+}
+a:actve {
+	text-decoration:              none;
+	outline:											none;
+  -moz-outline-style:						none;
+}
+a:focus {
+	text-decoration:              none;
+	outline:											none;
+  -moz-outline-style:						none;
 }
 
 img {
@@ -91,6 +103,15 @@ nav {
 			*/
 			float:                left;
 		}
+			nav ul li a {
+				border:							none;
+			}
+			nav ul li a:active {
+				border:							none;
+			}
+			nav ul li a:visited {
+				border:							none;
+			}
 			nav ul li a img {
 				display:          block;
 				color:            transparent;
