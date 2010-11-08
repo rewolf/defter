@@ -7,15 +7,15 @@
 # $Caption
 #
 
-tessellation.ogv
+tessellation.f4v
 $Surface Tessellation (Dev)
 $Dev Vid (08 June):: Wire-frame triangle and quad being tessellated by the geometry shader
 
-clipmap.ogv
+clipmap.f4v
 $Clipmap (Dev)
 $Dev Vid (30 June):: Wire-frame version showing the different levels of the clipmap
 
-terrain-first.ogv
+terrain-first.f4v
 $Terrain 1 (Dev)
 $Dev Vid (30 June):: First-look at editable terrain
 
