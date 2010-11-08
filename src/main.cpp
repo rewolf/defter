@@ -89,8 +89,8 @@ const float 	invDT   	= 1.0f/DT;
 #define EYE_HEIGHT			(2.0f)
 #define STEP_TIME			(0.4f)
 
-#define SCREENSHOT_W		(8192)
-#define SCREENSHOT_H		(4096)
+#define SCREENSHOT_W		(1024)
+#define SCREENSHOT_H		(768)
 
 #define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
@@ -117,9 +117,9 @@ const float 	invDT   	= 1.0f/DT;
 #endif
 
 
-#define PARALLAXSCALE	 0.00128f
-#define PARALLAXBIAS	-0.00000f
-#define PARALLAXITR		 4
+#define PARALLAXSCALE	 0.00400f //128
+#define PARALLAXBIAS	-0.00400f //0
+#define PARALLAXITR		 10
 
 
 reTimer tt;
@@ -134,8 +134,8 @@ int main(int argc, char* argv[])
 	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 4;
-	conf.sleepTime	= 0.0f;
+	conf.fsaa		= 0;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -294,7 +294,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
-	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
+	m_stampSIRM		= vector4(10.0f, 0.1f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
@@ -308,6 +308,7 @@ DefTer::InitGL()
 	m_footprintDT	= .0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
+	m_is_wireframe	= false;
 
 	// Init Shaders
 	// Get the Shaders to Compile
@@ -1087,6 +1088,10 @@ DefTer::ProcessInput(float dt)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
 
+			// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampName, stampSIRM, true);
@@ -1095,6 +1100,10 @@ DefTer::ProcessInput(float dt)
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
 			
+			// Reset to wireframe mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer
@@ -1164,11 +1173,10 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Toggle wireframe
-	static bool wireframe = false;
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
-		wireframe ^= true;
-		if (wireframe)
+		m_is_wireframe ^= true;
+		if (m_is_wireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1412,7 +1420,7 @@ DefTer::Logic(float dt)
 	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
 	{ 
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
-			vector4 stampSIRM= vector4(0.5f, -1.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+			vector4 stampSIRM= vector4(0.5f, -0.1f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
 			m_footprintDT 	 = 0.0f;
@@ -1502,12 +1510,14 @@ DefTer::Render(float dt)
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
-	//glUseProgram(m_shMain->m_programID);
+	glUseProgram(m_shMain->m_programID);
 	m_pClipmap->render_levels();
 	
-	m_pSkybox->render(viewproj);
+	if (!m_is_wireframe)
+		m_pSkybox->render(viewproj);
 
-	m_pCaching->Render();
+	if (!m_is_wireframe)
+		m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
