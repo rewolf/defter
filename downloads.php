@@ -104,25 +104,99 @@
           </header>
           <div>
             <h3>Project Proposal</h3>
-            <ul>
-              <li><a href="downloads/proposal.pdf">Download</a></li>
-            </ul>
+            <table>
+              <tr>
+                <td width="200px">
+                  <ul><li><a href="downloads/proposal.pdf">Download</a></li></ul>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [175 KiB]
+                </td>
+              </tr>
+            </table>
           <h3>Project Poster</h3>
-            <ul>
-              <li><a href="downloads/poster.pdf">Downalod</a></li>
-            </ul>
+            <table>
+              <tr>
+                <td width="200px">
+                  <ul><li><a href="downloads/poster.pdf">Downalod</a></li></ul>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [5,050 KiB]
+                </td>
+              </tr>
+            </table>
             <h3>Literature Syntheses</h3>
-            <ul>
-              <li>Andrew Flower: <a href="downloads/litsynth-andrew.pdf">Download</a></li>
-              <li>Justin Crause: <a href="downloads/litsynth-justin.pdf">Download</a></li>
-              <li>Peter Juritz: <a href="downloads/litsynth-peter.pdf">Download</a></li>
-            </ul>
+            <table>
+              <tr>
+                <td width="120px">
+                  <ul><li>Andrew Flower:</li></ul>
+                </td>
+                <td width="80px">
+                  <a href="downloads/litsynth-andrew.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [212 KiB]
+                </td>
+              </tr>
+              <tr>
+                <td width="120px">
+                  <ul><li>Justin Crause:</li></ul>
+                </td>
+                <td width="80px">
+                 <a href="downloads/litsynth-justin.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [407 KiB]
+                </td>
+              </tr>
+              <tr>
+                <td width="120px">
+                  <ul><li>Peter Juritz:</li></ul>
+                </td>
+                <td width="80px">
+                  <a href="downloads/litsynth-peter.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [346 KiB]
+                </td>
+              </tr>
+            </table>
             <h3>Reports</h3>
-            <ul>
-              <li>Andrew Flower: <a href="downloads/report-andrew.pdf">Download</a></li>
-              <li>Justin Crause: <a href="downloads/report-justin.pdf">Download</a></li>
-              <li>Peter Juritz: <a href="downloads/report-peter.pdf">Download</a></li>
-            </ul>
+             <table>
+              <tr>
+                <td width="120px">
+                  <ul><li>Andrew Flower:</li></ul>
+                </td>
+                <td width="80px">
+                  <a href="downloads/report-andrew.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [670 KiB]
+                </td>
+              </tr>
+              <tr>
+                <td width="120px">
+                  <ul><li>Justin Crause:</li></ul>
+                </td>
+                <td width="80px">
+                <a href="downloads/report-justin.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [1,381 KiB]
+                </td>
+              </tr>
+              <tr>
+                <td width="120px">
+                  <ul><li>Peter Juritz:</li></ul>
+                </td>
+                <td width="80px">
+                  <a href="downloads/report-peter.pdf">Download</a>
+                </td>
+                <td width="75px" style="text-align:right">
+                  [5,013 KiB]
+                </td>
+              </tr>
+            </table>
           </div>
         </section>
       </section>

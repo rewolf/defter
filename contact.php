@@ -155,7 +155,7 @@
             </p>
             <p>
               Email: andrew.flower [at] gmail.com<br/>
-              Website: <a href="http://rewolf.dyndns.org">Click here</a>
+              Website: <a href="../andrew/index.html">Click here</a>
             </p>
           </div>
           
@@ -166,7 +166,7 @@
             </p>
             <p>
               Email: juzzwuzz [at] gmail.com<br/>
-              Website: <a href="http://juzzwuzz.com">Click here</a>
+              Website: <a href="../justin/index.html">Click here</a>
             </p>
           </div>
           
@@ -177,7 +177,7 @@
             </p>
             <p>
               Email: peter.juritz [at] gmail.com<br/>
-              Website: <a href="???">Click here</a>
+              Website: <a href="../peter/index.html">Click here</a>
             </p>
           </div>
           
