@@ -96,11 +96,11 @@ const float 	invDT   	= 1.0f/DT;
 #define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
 #define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
 
-#define DEBUG_ON			(1)
+#define DEBUG_ON			(0)
 #if DEBUG_ON
 #	define DEBUG(...)		printf(__VA_ARGS__)
 #else
-#	define DEBUG(x)			{}
+#	define DEBUG(...)		{}
 #endif
 
 #define PROFILE				(1)
@@ -128,8 +128,8 @@ int main(int argc, char* argv[])
 	conf.VSync		= false;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 4;
-	conf.sleepTime	= 0.01f;
+	conf.fsaa		= 0;
+	conf.sleepTime	= 0.0f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -469,8 +469,7 @@ DefTer::Init()
 	printf("Loading models...\t\t");
 	bool noModelError = true;
 	m_pModels = new ModelManager();
-	noModelError |= m_pModels->LoadModel("cube", 	"models/cube2.reMo");
-	noModelError |= m_pModels->LoadModel("torus", 	"models/torus.reMo");
+	noModelError |= m_pModels->LoadModel("gun", 	"models/gun.reMo");
 	if (noModelError){
 		printf("Done\n");
 	}
@@ -1366,7 +1365,7 @@ DefTer::Logic(float dt)
 	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
-	
+
 	glUseProgram(m_shMain->m_programID);
 	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
 	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
@@ -1441,7 +1440,7 @@ DefTer::Render(float dt)
 
 	m_pCaching->Render();
 
-	RenderModel(m_pModels->GetModel("torus"), rotate*translate_tr(-m_cam_translate));
+	RenderModel(m_pModels->GetModel("gun"), rotate*translate_tr(-m_cam_translate));
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1453,9 +1452,9 @@ DefTer::Render(float dt)
 
 //--------------------------------------------------------
 void
-DefTer::RenderModel(reModel* pModel, matrix4 view){
+DefTer::RenderModel(Node* pModel, matrix4 view){
 	matrix4 mvp;
-	
+	/*
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 	
@@ -1468,7 +1467,7 @@ DefTer::RenderModel(reModel* pModel, matrix4 view){
 		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
 
 		glDrawElements(GL_TRIANGLES, pModel->m_mesh_list[i].nIndices, GL_UNSIGNED_INT, 0);
-	}
+	}*/
 }
 
 //--------------------------------------------------------

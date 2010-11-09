@@ -7,54 +7,81 @@ using namespace reMath;
 
 #define 	__fscanf(fp, ...)		if (fscanf(fp, __VA_ARGS__) == EOF){ \
 										fprintf(stderr,"EOF loading model");\
-										return;\
+										return NULL;\
 									}
 #define 	__fscanF(fp, ...)		if (fscanf(fp, __VA_ARGS__) == EOF){ \
 										fprintf(stderr,"EOF loading model");\
 										return false;\
 									}
 
+//--------------------------------------------------------
+Node::Node(){
+	m_pChild 		= NULL;
+	m_pSibling		= NULL;
+}
 
 //--------------------------------------------------------
-reModel::reModel(string filename){
+Node::Node(Node& copy){
+	m_pChild 		= NULL;
+	m_pSibling		= NULL;
+
+	// let this have the same mesh properties and gpu buffers
+	m_mesh 		= copy.m_mesh;
+	// let it copy the current transform
+	m_transform	= copy.m_transform;
+	m_transform.valid = false;		// regen cache
+	// same name for the node
+	m_name		= copy.m_name;
+
+	// Lets a duplicate the sibling, which duplicates the next sibling
+	if (copy.m_pSibling)
+		m_pSibling = new Node(*copy.m_pSibling);
+	// If there is a child, duplicate it and the child will duplicate its siblings
+	if (copy.m_pChild)
+		m_pChild = new Node(*copy.m_pChild);
+
+}
+
+//--------------------------------------------------------
+Node::~Node(){
+	// recursive deletes (only the nodes - not gpu data)
+	if (m_pChild)
+		delete m_pChild;
+	if (m_pSibling)
+		delete m_pSibling;
+}
+
+//--------------------------------------------------------
+Node*
+reLoadModel(string filename){
 	FILE*	fp;
 	char	a_string[256];
 	char	b_string[256];
 	float	flt;
-	int 	nMaterials;
 	int		nModels;
+	Node*	pRoot;
+	Node*	pNode;
 
-	m_loaded	= false;
-	m_nMeshes	= 0;
-	memset(m_vao_list, 0, sizeof(GLuint) * MESH_MAX);
-	memset(m_vbo_list, 0, sizeof(GLuint) * MESH_MAX * 4);
-	memset(m_tex_list, 0, sizeof(GLuint) * MESH_MAX);
-	//memset(m_mesh_list, 0, sizeof(GLuint) * MESH_MAX);
-	
 	fp 	= fopen(filename.c_str(), "r");
 	if (!fp){
 		fprintf(stderr, "\nERROR: Model file %s does not exist\n", filename.c_str());
-		return;
+		return NULL;
 	}
 
 	// Read header
 	__fscanf(fp, "%s", a_string);
 	if (strcmp(a_string, "reMoA") != 0){
 		fprintf(stderr, "\nERROR: Model type is not reMoA\n");
-		return;
+		return NULL;
 	}
 	__fscanf(fp, "%s %s %s %s", b_string, a_string, b_string, b_string);
-	if (strcmp(a_string, "1.1a") != 0){
-		fprintf(stderr, "\nERROR: Only support version 1.1a of model loader\n");
+	if (strcmp(a_string, "1.2a") != 0){
+		fprintf(stderr, "\nERROR: Only support version 1.2a of model loader\n");
+		return NULL;
 	}
 
 	// ignore materials for now
-	__fscanf(fp, "%d %d", &nMaterials, &nModels);
-	for (int i = 0; i < nMaterials; i++){
-		__fscanf(fp, "%s %s %s", b_string, b_string, b_string);	// MATERIAL type name
-		__fscanf(fp, "%s %s", b_string, b_string);				// tex bumpmap
-		__fscanf(fp, "%f %f %f %f %f %f %f", &flt, &flt, &flt, &flt, &flt, &flt, &flt);
-	}
+	__fscanf(fp, "%d", &nModels);
 
 	if (nModels != 1){
 		printf("\nWARNING: Model file %s contains more than one model, only taking first.",
@@ -62,66 +89,113 @@ reModel::reModel(string filename){
 	}
 
 	// Process model
-	__fscanf(fp, "%s %s", b_string, b_string);
-	__fscanf(fp, "%s %s", b_string, a_string);
-	while (strcmp(b_string, "MESH") == 0){
-		Mesh* pMesh = &m_mesh_list[m_nMeshes];
-		pMesh->name = a_string;
-		if (!load_mesh(fp, pMesh))
-			return ;
-
-		m_nMeshes ++;
-		// read end string
-		__fscanf(fp, "%s %s", b_string, b_string);
-		// read next mesh
-		__fscanf(fp, "%s %s", b_string, a_string);
-	}
+	__fscanf(fp, "%s %s", b_string, b_string);	// MODEL
+	pRoot = new Node;
+	reLoadChildren(fp, pRoot);
 
 
-	if (strcmp(b_string, "ENDMODEL") != 0){
-		fprintf(stderr, "\nERROR: Unexpected end of model file %s: %s\n", filename.c_str(),b_string);
-	}
 	// End off
 	fclose(fp);
-	m_loaded = true;
-}
 
-
-//--------------------------------------------------------
-reModel::~reModel(){
-	glDeleteVertexArrays (MESH_MAX,	m_vao_list);
-	glDeleteBuffers (MESH_MAX * 4, 	m_vbo_list);
-	glDeleteTextures (MESH_MAX,		m_tex_list);
+	return pRoot;
 }
 
 //--------------------------------------------------------
 bool
-reModel::load_mesh(FILE* fp, Mesh* pMesh){
+reLoadChildren(FILE* fp, Node* pRoot){
+	char	a_string[256];
+	char	b_string[256];
+	float	flt;
+	int		nModels;
+	Node*	pNode;
+
+	pNode = NULL;
+
+	__fscanf(fp, "%s %s", b_string, a_string);	// MESH or ENDMESH (of parent)
+	// This will loop until we get an ENDMESH line or an ENDMODEL
+	// which indicates the end of this generation
+	while(strcmp(b_string, "MESH") == 0){
+		if (pNode == NULL)
+			// Load the first child
+			pNode = pRoot;
+		else{
+			// Create a sibling to load
+			pNode->m_pSibling = new Node;
+			pNode = pNode->m_pSibling;
+		}
+		pNode->m_name = a_string;
+
+		// Load the mesh data and allocate on GPU
+		if (!reLoadMeshData(fp, pNode)){
+			fprintf(stderr, "Current state of model loader is undefined\n");
+		}
+	
+		// Load children if they exist
+		pNode->m_pChild = new Node;
+		if (!reLoadChildren(fp, pNode->m_pChild)){
+			delete pNode->m_pChild;
+			pNode->m_pChild = NULL;
+		}
+		// We have reached the end of the mesh (ENDMESH has been read)
+
+		// Prepare for another mesh
+		__fscanf(fp, "%s %s", b_string, a_string);	// MESH or ENDMESH (sibling or parent-mesh end)
+	}
+		printf("\n%s %s\n", b_string, a_string);
+
+	// Return whether we loaded any meshes
+	return (pNode != NULL);
+}
+
+//--------------------------------------------------------
+bool
+reLoadMeshData(FILE* fp, Node* pNode){
 	vector3 	translate;
 	vector3 	rotate;
 	vector3 	scale;
 	int 		nVertices, nNormals, nTexCoords, nIndices, nQuadIndices;
 	char		a_string[256];
 	char		b_string[256];
+	char		szTexture[256];
+	char		szNormalMap[256];
 	vector3*	vertices;
 	vector3*	normals;
 	vector2*	tcoords;
 	GLuint*		indices;
-	GLuint*		vao;
+	GLuint		vao;
 	GLuint*		vbo;
 
 	// Transform
 	__fscanF(fp, "%f %f %f", &translate.x, &translate.y, &translate.z);
 	__fscanF(fp, "%f %f %f", &rotate.x, &rotate.y, &rotate.z);
 	__fscanF(fp, "%f %f %f", &scale.x, &scale.y, &scale.z);
-	pMesh->transform	= translate_tr(translate)
-						* rotate_tr(rotate.x, 1.0f, .0f, .0f)
-						* rotate_tr(rotate.y, .0f, 1.0f, .0f)
-						* rotate_tr(rotate.z, .0f, .0f, 1.0f)
-						* scale_tr(scale);
+	pNode->m_transform.translate = translate;
+	pNode->m_transform.rotate = rotate;
+	pNode->m_transform.scale = scale;
 
-	// scrap material
-	__fscanF(fp, "%s", b_string);
+	// Textures
+	__fscanF(fp, "%s", szTexture);
+	__fscanF(fp, "%s", szNormalMap);
+
+	// Material
+	__fscanF(fp, "%s", a_string);
+	__fscanF(fp, "%f %f %f", &pNode->m_mesh.diffuse.x, &pNode->m_mesh.diffuse.y, &pNode->m_mesh.diffuse.z);
+	__fscanF(fp, "%f %f %f", &pNode->m_mesh.ambient.x, &pNode->m_mesh.ambient.y, &pNode->m_mesh.ambient.z);
+	if (strcmp(a_string, "phong")==0){
+		__fscanF(fp, "%f %f %f", &pNode->m_mesh.specular.x, &pNode->m_mesh.specular.y, &pNode->m_mesh.specular.z);
+		__fscanF(fp, "%f", &pNode->m_mesh.specPower);
+	}
+	else if (strcmp(a_string, "blinn")==0){
+		printf("\n\tWARNING: No support for blinn yet\n");
+		float dummy;
+		__fscanF(fp, "%f %f %f", &pNode->m_mesh.specular.x, &pNode->m_mesh.specular.y, &pNode->m_mesh.specular.z);
+		__fscanF(fp, "%f %f", &dummy, &dummy);
+	}
+	else{
+		// specular colour should be initialised to zero already
+		pNode->m_mesh.specPower = .0f;
+	}
+
 	
 	__fscanF(fp, "%d %d %d %d %d", &nVertices, &nNormals, &nTexCoords, &nIndices, &nQuadIndices);
 	if (nQuadIndices != 0){
@@ -155,12 +229,12 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 		__fscanF(fp, "%d", &indices[i]);
 
 	// Create the VAO and VBOs
-	vao = m_vao_list + m_nMeshes; 
-	vbo = m_vbo_list + m_nMeshes * 4;
-	glGenVertexArrays(1, vao);
-	glGenBuffers(4, vbo);
+	glGenVertexArrays(1, &pNode->m_mesh.vao);
+	glGenBuffers(1, pNode->m_mesh.vbo);
+	vao = pNode->m_mesh.vao; 
+	vbo = pNode->m_mesh.vbo;
 
-	glBindVertexArray(vao[0]);
+	glBindVertexArray(vao);
 	// Fill the Vertex Buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * nVertices, vertices, GL_STATIC_READ);
@@ -185,8 +259,7 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * nIndices, indices, GL_STATIC_READ);
 			
 	// Setup the reset of the mesh struct
-	pMesh->vao 		= vao[0];
-	pMesh->nIndices = nIndices;
+	pNode->m_mesh.nIndices = nIndices;
 
 	delete[] vertices;
 	delete[] normals;
@@ -195,3 +268,17 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 
 	return true;
 }
+
+//--------------------------------------------------------
+// Deletes the model's gpu memory BUT NOT structure
+void
+reDeleteModelData(Node* pNode){
+	if (pNode->m_pChild)
+		reDeleteModelData(pNode->m_pChild);
+	if (pNode->m_pSibling)
+		reDeleteModelData(pNode->m_pSibling);
+	glDeleteTextures(1, &pNode->m_mesh.tex);
+	glDeleteBuffers(4, pNode->m_mesh.vbo);
+	glDeleteVertexArrays(1, &pNode->m_mesh.vao);
+}
+

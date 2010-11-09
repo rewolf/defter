@@ -37,7 +37,7 @@ private:
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
 
-	void		RenderModel		(reModel* model, matrix4 view);
+	void		RenderModel		(Node* model, matrix4 view);
 
 public:
 	ShaderProg*		m_shSplash;

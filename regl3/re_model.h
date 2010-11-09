@@ -3,34 +3,50 @@
 
 #define MESH_MAX	64
 
+
 //--------------------------------------------------------
 struct Mesh{
-	string	name;
 	GLuint	tex;
 	GLuint	vao;
+	GLuint	vbo[4];
 	int		nIndices;
-	matrix4	transform;
-};
 
+	vector3	diffuse;
+	vector3 ambient;
+	vector3 specular;
+	float	specPower;
+};
 
 //--------------------------------------------------------
-class reModel{
-public:
-	reModel(string filename);
-	~reModel();
-
-private:
-	bool		load_mesh(FILE* fp,  Mesh* pMesh);
-
-public:
-	GLuint		m_vao_list[MESH_MAX];
-	GLuint		m_vbo_list[MESH_MAX * 4];
-	GLuint		m_tex_list[MESH_MAX];
-	Mesh		m_mesh_list[MESH_MAX];
-	int			m_nMeshes;
-	string		m_name;
-	bool		m_loaded;
+struct Transform{
+	vector3		translate;
+	vector3		rotate;
+	vector3		scale;
+	matrix4		cache;
+	bool		valid;
 };
 
+//--------------------------------------------------------
+class Node{
+public:
+	Node	();
+	Node	(Node&);	// Copy constructor
+	~Node	();
+
+	Node*	GetNode			(string name);
+
+public:
+	Node*			m_pChild;		// First child
+	Node*			m_pSibling;		// First sibling
+	Mesh			m_mesh;
+	Transform		m_transform;
+	string			m_name;
+};
+
+//--------------------------------------------------------
+Node* 		reLoadModel			(string filename);
+bool 		reLoadChildren		(FILE* fp, Node*);
+bool		reLoadMeshData		(FILE* fp, Node*);
+void		reDeleteModelData	(Node* root);
 
 #endif

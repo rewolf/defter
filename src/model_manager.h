@@ -8,12 +8,12 @@ public:
 	~ModelManager();
 	
 	bool		LoadModel		(string name, string path);
-	reModel*	GetModel		(string key);
+	Node*		GetModel		(string key);
 
 private:
-	map<string, reModel*>	m_models;
-	map<string, GLuint>		m_textures;
+	map<string, Node*>		m_models;
 };
 
 
 #endif
+

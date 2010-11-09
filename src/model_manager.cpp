@@ -12,7 +12,8 @@ ModelManager::ModelManager(){
 
 //-----------------------------------------------------------------------------
 ModelManager::~ModelManager(){
-	for (map<string,reModel*>::iterator i = m_models.begin(); i != m_models.end(); i++){
+	for (map<string,Node*>::iterator i=m_models.begin(); i!=m_models.end(); i++){
+		reDeleteModelData(i->second);
 		delete i->second;
 	}
 }
@@ -20,7 +21,7 @@ ModelManager::~ModelManager(){
 //-----------------------------------------------------------------------------
 bool
 ModelManager::LoadModel(string name, string path){
-	reModel* pModel = NULL;
+	Node* pModel = NULL;
 
 	// If this model is already loaded
 	if (m_models.find(name) != m_models.end()){
@@ -28,9 +29,9 @@ ModelManager::LoadModel(string name, string path){
 	}
 
 	// Otherwise load the model
-	pModel = new reModel(path);
+	pModel = reLoadModel(path);
 
-	if (pModel == NULL || !pModel->m_loaded){
+	if (pModel == NULL){
 		fprintf(stderr, "Model Manager could not load model %s!\n", path.c_str());
 		return false;
 	}
@@ -42,10 +43,11 @@ ModelManager::LoadModel(string name, string path){
 }
 
 //-----------------------------------------------------------------------------
-reModel*
+Node*
 ModelManager::GetModel(string key){
-	map<string, reModel*>::iterator ret = m_models.find(key);
+	map<string, Node*>::iterator ret = m_models.find(key);
 	if  (ret == m_models.end())
 		return NULL;
-	return ret->second;
+
+	return new Node(*(ret->second));
 }
