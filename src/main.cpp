@@ -542,13 +542,12 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	// Test model
-	m_pModel = new reModel("cube2.reMo");
+	m_pModel = new reModel("models/cube2.reMo");
 	if (!m_pModel->m_loaded){
 		printf("\n\n\n----FUUUU\n\n");
 		return false;
 	}
 
-	glDisable(GL_CULL_FACE);
 	m_modelPosition = vector3(.0f);
 	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
 
@@ -808,8 +807,7 @@ DefTer::InterpHeight(vector2 worldPos)
 		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
 	SDL_mutexV(m_elevationDataMutex);
 
-	//return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
-	return .0f;
+	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
 }
 
 //--------------------------------------------------------
@@ -1355,6 +1353,7 @@ DefTer::Logic(float dt)
 		}
 	}
 
+	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
@@ -1427,15 +1426,15 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
 	BEGIN_PROF;
-	//m_pClipmap->render_inner();
+	m_pClipmap->render_inner();
 	glUseProgram(m_shMain->m_programID);
-	//m_pClipmap->render_levels();
+	m_pClipmap->render_levels();
 	
-	//m_pSkybox->render(viewproj);
+	m_pSkybox->render(viewproj);
 
-	//m_pCaching->Render();
+	m_pCaching->Render();
 
-	RenderModel(m_pModel, translate_tr(m_cam_translate) * rotate);
+	RenderModel(m_pModel, rotate*translate_tr(-m_cam_translate));
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1490,9 +1489,11 @@ DefTer::RenderModel(reModel* pModel, matrix4 view){
 	
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
+	
+	matrix4 world = translate_tr(m_modelPosition);
 
 	for (int i = 0; i < pModel->m_nMeshes; i++){
-		mvp = m_proj_mat * view * pModel->m_mesh_list[i].transform ;
+		mvp = m_proj_mat * view * world * pModel->m_mesh_list[i].transform ;
 
 		glBindVertexArray(pModel->m_mesh_list[i].vao);
 		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
