@@ -6,13 +6,8 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "re_math.h"
-using namespace reMath;
-#include "re_shader.h"
+#include "constants.h"
 #include "skybox.h"
-#include "util.h"
-
 
 //--------------------------------------------------------
 Skybox::Skybox()
@@ -25,7 +20,7 @@ Skybox::Skybox()
 	glUniform1i(glGetUniformLocation(m_shSky->m_programID, "sky"), 0);
 
 	// Load texture
-	LoadPNG(&m_tex, "images/skybox001.png");
+	LoadPNG(&m_tex, SKYBOX_TEXTURE);
 
 	// make the box
 	const float boxverts[12 * 3] = {
@@ -101,8 +96,7 @@ Skybox::render(matrix4 &transform)
 	glBindTexture(GL_TEXTURE_2D, m_tex);
 	glUseProgram(m_shSky->m_programID);
 
-	glUniformMatrix4fv(glGetUniformLocation(m_shSky->m_programID, "mvpMatrix"), 1, GL_FALSE,
-			transform.m);
+	glUniformMatrix4fv(glGetUniformLocation(m_shSky->m_programID, "mvpMatrix"), 1, GL_FALSE, transform.m);
 
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, 30, GL_UNSIGNED_BYTE, 0);

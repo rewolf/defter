@@ -29,8 +29,6 @@ private:
 	bool		Init			(void);
 	bool		InitGL			(void);
 
-	bool		InitSplash		(void);
-	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
@@ -38,12 +36,8 @@ private:
 	float		InterpHeight	(vector2 worldPos);
 
 public:
-	ShaderProg*		m_shSplash;
-	GLuint			m_vbo[3];
-	GLuint			m_vao;
-	GLuint			m_splashmap;
-	
 	ShaderManager*	m_shManager;
+	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;

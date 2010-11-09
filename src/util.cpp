@@ -6,13 +6,7 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "util.h"
-#include "FreeImage.h"
-
-extern const int SCREEN_W;
-extern const int SCREEN_H;
-extern const float ASPRAT;
+#include "constants.h"
 
 //--------------------------------------------------------
 bool
@@ -213,7 +207,6 @@ CheckError(string text)
 	}
 	return true;
 }
-
 void
 PrintFBOErr(GLenum err)
 {
@@ -246,3 +239,327 @@ PrintFBOErr(GLenum err)
 			break;
 	}
 }
+
+
+// Util VBO Stuff
+GLfloat	square[]	= { -1.0f, -1.0f,
+						 1.0f, -1.0f,
+						 1.0f,  1.0f,
+						-1.0f,  1.0f };
+GLfloat	texcoords[]	= { 0.0f, 0.0f,
+						1.0f, 0.0f,
+						1.0f, 1.0f,
+						0.0f, 1.0f };
+GLuint	indices[]	= { 3, 0, 2, 1 };
+GLuint	util_vbo[3]	= {0};
+GLuint	util_vao	= 0;
+bool	isInit		= false;
+
+void
+InitUtil(void)
+{
+	// Do not re-initialise
+	if (isInit)
+		return;
+
+	// Create the vertex array
+	glGenVertexArrays(1, &util_vao);
+	glBindVertexArray(util_vao);
+
+	// Generate three VBOs for vertices, texture coordinates and indices
+	glGenBuffers(3, util_vbo);
+
+	// Setup the vertex buffer
+	glBindBuffer(GL_ARRAY_BUFFER, util_vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	glBindBuffer(GL_ARRAY_BUFFER, util_vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, util_vbo[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+
+	isInit = true;
+}
+
+//--------------------------------------------------------
+// Util Desctuctor
+//--------------------------------------------------------
+void
+KillUtil(void)
+{
+	glDeleteBuffers(3, util_vbo);
+	glDeleteVertexArrays(1, &util_vao);
+}
+
+//--------------------------------------------------------
+// Return the GLuint for the standard VAO
+//--------------------------------------------------------
+GLuint
+GetStandardVAO(void)
+{
+	if (!isInit)
+		InitUtil();
+
+	return (util_vao);
+}
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Splash Screen Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+Splash::Splash(void)
+{
+	m_error = true;
+
+	// Setup shader
+	m_shSplash = new ShaderProg("shaders/splash.vert", "", "shaders/splash.frag");
+	glBindAttribLocation(m_shSplash->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shSplash->m_programID, 1, "vert_texCoord");
+	if (!m_shSplash->CompileAndLink())
+		return;
+
+	// Load the splash map
+	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE, false, true))
+		return;
+
+	// Set uniforms
+	glUseProgram(m_shSplash->m_programID);
+	glUniform1i(glGetUniformLocation(m_shSplash->m_programID, "splashmap"), 0);
+
+	// set that no error has occured
+	m_error = false;
+}
+
+//--------------------------------------------------------
+Splash::~Splash(void)
+{
+	RE_DELETE(m_shSplash);
+	glDeleteTextures(1, &m_splashmap);
+}
+
+//--------------------------------------------------------
+// Return the error status
+bool
+Splash::GetErrorStatues(void)
+{
+	return m_error;
+}
+
+//--------------------------------------------------------
+// Render the splash screen
+void
+Splash::Render(SDL_Window* window)
+{
+	// Clear the screen
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+	// Bind the vertex array
+	glBindVertexArray(GetStandardVAO());
+
+	// Set the textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_splashmap);
+
+	// Draw the screen
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+	// Swap windows to show splash
+	SDL_GL_SwapWindow(window);
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Shader Manager Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+ShaderManager::ShaderManager(void)
+{
+	curIndex = 0;
+}
+
+//--------------------------------------------------------
+ShaderManager::~ShaderManager(void)
+{
+	//Delete each shader object
+	for (int i = 0; i < curIndex; i++)
+		RE_DELETE(shaders[i]);
+
+	//Delete shader array
+	RE_DELETE_ARR(*shaders);
+}
+
+//--------------------------------------------------------
+// Add a new set of shaders
+bool
+ShaderManager::AddShader(string vert, string geom, string frag)
+{
+	//If out of available shader spots then return an error
+	if ((curIndex + 1) > SHADERNUM)
+		return (false);
+
+	//Create the new shader and increment the current index
+	shaders[curIndex++] = new ShaderProg(vert, geom, frag);
+
+	//Return successful
+	return (true);
+}
+
+//--------------------------------------------------------
+// Bind the specific variable to a location in the shaders
+void
+ShaderManager::BindAttrib(char *name, int val)
+{
+	for (int i = 0; i < curIndex; i++)
+		glBindAttribLocation(shaders[i]->m_programID, val, name);
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni1i(char *name, int val)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform1i(glGetUniformLocation(shaders[i]->m_programID, name), val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2i(char *name, int val1, int val2)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform2i(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni1f(char *name, float val)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform1f(glGetUniformLocation(shaders[i]->m_programID, name), val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2f(char *name, float val1, float val2)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform2f(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni4f(char *name, float val1, float val2, float val3, float val4)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform4f(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2, val3, val4);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2fv(char *name, float val[2])
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform2fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni3fv(char *name, float val[3])
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniform3fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUniMat3fv(char *name, float val[9])
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniformMatrix3fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, GL_FALSE, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUniMat4fv(char *name, float val[16])
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		glUseProgram(shaders[i]->m_programID);
+		glUniformMatrix4fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, GL_FALSE, val);
+
+	}
+}
+
+//--------------------------------------------------------
+// Compile and link the shaders
+int
+ShaderManager::CompileAndLink(void)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		//Check for errors in compiling any shader
+		if (!shaders[i]->CompileAndLink())
+			return (0);
+	}
+
+	//Success
+	return (1);
+}
+
+//--------------------------------------------------------
+// Set the active shader to be used
+void
+ShaderManager::SetActiveShader(int shader)
+{
+	if (shader >= SHADERNUM)
+		return;
+	glUseProgram(shaders[shader]->m_programID);
+}
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------

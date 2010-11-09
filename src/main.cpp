@@ -15,112 +15,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#ifdef _WIN32
-//#	pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-#	pragma comment(linker, "/SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
-#	define GLEW_STATIC 1
-#	pragma comment(lib, "opengl32.lib")
-#	pragma comment(lib, "sdl.lib")
-#	pragma comment(lib, "sdlmain.lib")
-#	pragma comment(lib, "freeimage.lib")
-#endif
-
 class Deform;
 
-#include <vector>
-#include <list>
-#include <queue>
-#include <limits.h>
-
-#ifdef _WIN32
-#	include <direct.h>
-#	define mkdir(x) _mkdir(x)
-#else
-#	include <sys/stat.h>
-#	define mkdir(x) mkdir(x, S_IRWXU)
-#endif
-
-#include "regl3.h"
-#include "FreeImage.h"
-#include "re_math.h"
-using namespace reMath;
-#include <map>
+#include "constants.h"
 using namespace std;
-#include "re_shader.h"
-#include "shader_manager.h"
-#include "util.h"
 #include "deform.h"
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
 #include "main.h"
 
-#define PI					(3.14159265358979323846264338327950288f)
-#define FAR_PLANE			(1000.0f)
-#define NEAR_PLANE			(0.5f)
-
-#define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
-							( p >  b * .5f ? p - b : p))
-
-extern const int SCREEN_W	= 1024;
-extern const int SCREEN_H	=  768;
-extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
-
-extern const int SHADERNUM	= 2;
-
-const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
-const float		ACCELERATION= 3.5f;
-const float		AIR_DRAG	= 0.6f;
-const float		FRICTION	= 1.8f;
-const float 	DT 			= 0.005f;
-const float 	invDT   	= 1.0f/DT;
-
-#define COARSEMAP_FILENAME	("images/coarsemap.png")
-#define COARSEMAP_TEXTURE	("images/coarsemap_tex3.png")
-#define	SPLASHMAP_TEXTURE	("images/splash.png")
-#define CLIPMAP_DIM			(255)
-#define CLIPMAP_RES			(0.1f)
-#define CLIPMAP_LEVELS		(5)
-#define CACHING_LEVEL		(2)
-#define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
-#define HIGH_DIM			(1024 * CACHING_LEVEL)
-#define HIGH_RES			(CLIPMAP_RES / 3.0f)
-#define HD_AURA				((HIGH_DIM * HIGH_RES * .9f)/2.0f)
-#define HD_AURA_SQ			(HD_AURA * HD_AURA)
-#define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
-#define VERT_SCALE			(40.0f)
-#define EYE_HEIGHT			(2.0f)
-#define STEP_TIME			(0.4f)
-
-#define SCREENSHOT_W		(1024)
-#define SCREENSHOT_H		(768)
-
-#define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
-
-#define DEBUG_ON			(0)
-#if DEBUG_ON
-#	define DEBUG(...)		printf(__VA_ARGS__)
-#else
-#	define DEBUG(x)			{}
-#endif
-
-#define PROFILE				(0)
-#if PROFILE
-	reTimer g_profiler;
-	float timeCount = 0;
-	long frameCount = 0;
-#	define BEGIN_PROF		{glFinish(); g_profiler.start();}
-#	define END_PROF			{glFinish(); timeCount+=g_profiler.getElapsed(); frameCount++;}
-#	define PRINT_PROF		{printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);}
-#else
-#	define BEGIN_PROF		{}
-#	define END_PROF			{}
-#	define PRINT_PROF		{}
-#endif
-
-	reTimer tt;
+reTimer tt;
 
 /******************************************************************************
  * Main 
@@ -128,11 +33,11 @@ const float 	invDT   	= 1.0f/DT;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= false;
+	conf.VSync		= VSYNC;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 4;
-	conf.sleepTime	= 0.0f;
+	conf.fsaa		= FSAA;
+	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -171,13 +76,10 @@ DefTer::~DefTer()
 {
 	// signal thread to check "isRunning" status
 	SDL_SemPost(m_waitSem);
-
 	SaveCoarseMap("images/last_shit_coarsemap.png");
-	glDeleteBuffers(3, m_vbo);
-	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
 	glUseProgram(0);
-	RE_DELETE(m_shSplash);
+	KillUtil();
 	RE_DELETE(m_shManager);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
@@ -193,7 +95,6 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
-	glDeleteTextures(1, &m_splashmap);
 	glDeleteTextures(1, &m_screenshotTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
@@ -264,7 +165,8 @@ DefTer::InitGL()
 
 	// Init the splash screen info
 	printf("Initialising Splash screen...\t");
-	if (!InitSplash())
+	m_pSplash = new Splash();
+	if (m_pSplash->GetErrorStatues())
 	{
 		printf("Error\n\tSplash screen initialisation error\n");
 		return false;
@@ -273,7 +175,7 @@ DefTer::InitGL()
 
 	// Render the splash screen
 	printf("Rendering splash screen...\t");
-	RenderSplash();
+	m_pSplash->Render(m_pWindow);
 	if (!CheckError("Splash rendering"))
 		return false;
 	printf("Done\n");
@@ -313,7 +215,7 @@ DefTer::InitGL()
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	m_shManager->BindAttrib("vert_Position", 0);
-	m_shManager->BindAttrib("vert_Position", 0);
+	m_shManager->BindAttrib("vert_TexCoord", 1);
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
@@ -511,86 +413,6 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	return true;
-}
-
-//--------------------------------------------------------
-// Setup the splash screen
-//--------------------------------------------------------
-bool
-DefTer::InitSplash(void)
-{
-	// Setup shader
-	m_shSplash = new ShaderProg("shaders/splash.vert", "", "shaders/splash.frag");
-	glBindAttribLocation(m_shSplash->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shSplash->m_programID, 1, "vert_texCoord");
-	if (!m_shSplash->CompileAndLink())
-		return false;
-
-	// Load the splash map
-	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE, false, true))
-		return false;
-
-	// Set uniforms
-	glUseProgram(m_shSplash->m_programID);
-	glUniform1i(glGetUniformLocation(m_shSplash->m_programID, "splashmap"), 0);
-
-	// Vertex positions
-	GLfloat square[]	= { -1.0f, -1.0f,
-							 1.0f, -1.0f,
-							 1.0f,  1.0f,
-							-1.0f,  1.0f };
-	// Texcoords are upside-down to mimic the systems coordinates
-	GLfloat texcoords[]	= { 0.0f, 0.0f,
-							1.0f, 0.0f,
-							1.0f, 1.0f,
-							0.0f, 1.0f };
-	GLuint indices[]	= { 3, 0, 2, 1 };
-
-	// Create the vertex array
-	glGenVertexArrays(1, &m_vao);
-	glBindVertexArray(m_vao);
-
-	// Generate three VBOs for vertices, texture coordinates and indices
-	glGenBuffers(3, m_vbo);
-
-	// Setup the vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-	// Setup the texcoord buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	// Setup the index buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
-	
-	return true;
-}
-
-//--------------------------------------------------------
-// Render the splash screen
-//--------------------------------------------------------
-void
-DefTer::RenderSplash(void)
-{
-	// Clear the screen
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-	// Bind the vertex array
-	glBindVertexArray(m_vao);
-
-	// Set the textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_splashmap);
-
-	// Draw the screen
-	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
-
-	// Swap windows to show screen
-	SDL_GL_SwapWindow(m_pWindow);
 }
 
 //--------------------------------------------------------
