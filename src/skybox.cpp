@@ -25,7 +25,7 @@ Skybox::Skybox()
 	glUniform1i(glGetUniformLocation(m_shSky->m_programID, "sky"), 0);
 
 	// Load texture
-	LoadPNG(&m_tex, "images/skybox002.png");
+	LoadPNG(&m_tex, "images/skybox001.png");
 
 	// make the box
 	const float boxverts[12 * 3] = {

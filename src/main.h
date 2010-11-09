@@ -42,9 +42,8 @@ public:
 	GLuint			m_vbo[3];
 	GLuint			m_vao;
 	GLuint			m_splashmap;
-
-	ShaderProg*		m_shMain;	// use the provided shader program class
-	ShaderProg*		m_shInner;
+	
+	ShaderManager*	m_shManager;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
