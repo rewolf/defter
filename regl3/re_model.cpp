@@ -67,7 +67,8 @@ reModel::reModel(string filename){
 	while (strcmp(b_string, "MESH") == 0){
 		Mesh* pMesh = &m_mesh_list[m_nMeshes];
 		pMesh->name = a_string;
-		load_mesh(fp, pMesh);
+		if (!load_mesh(fp, pMesh))
+			return ;
 
 		m_nMeshes ++;
 		// read end string

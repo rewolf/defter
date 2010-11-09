@@ -3,6 +3,7 @@
 
 #define MESH_MAX	64
 
+//--------------------------------------------------------
 struct Mesh{
 	string	name;
 	GLuint	tex;
@@ -12,6 +13,7 @@ struct Mesh{
 };
 
 
+//--------------------------------------------------------
 class reModel{
 public:
 	reModel(string filename);
@@ -29,7 +31,6 @@ public:
 	string		m_name;
 	bool		m_loaded;
 };
-
 
 
 #endif

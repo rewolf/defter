@@ -52,6 +52,7 @@ public:
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
+	ModelManager*	m_pModels;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
@@ -105,7 +106,6 @@ public:
 	GLuint			m_screenshotFBO;
 
 	// Test model
-	reModel*		m_pModel;
 	vector3			m_modelPosition;
 };
 

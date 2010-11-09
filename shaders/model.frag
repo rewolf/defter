@@ -17,5 +17,4 @@ void main(){
 	NdotL  = max(0, dot(normal, light.xyz));
 
 	out_Color = vec4(1.0, .0, .0, 1.0) * NdotL;
-	//out_Color = vec4(1.0, .0, .0, 1.0);
 }

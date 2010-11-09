@@ -54,6 +54,7 @@ using namespace std;
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
+#include "model_manager.h"
 #include "main.h"
 
 #define PI					(3.14159265358979323846264338327950288f)
@@ -160,6 +161,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
 	m_pSkybox 			  = NULL;
+	m_pModels			  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -183,6 +185,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
+	RE_DELETE(m_pModels);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -198,8 +201,6 @@ DefTer::~DefTer()
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
-	//Test model
-	delete m_pModel;
 }
 
 //--------------------------------------------------------
@@ -464,6 +465,17 @@ DefTer::Init()
 	}
 	printf("Done\n");
 
+	// Create the model manager
+	printf("Loading models...\t\t");
+	bool noModelError = true;
+	m_pModels = new ModelManager();
+	noModelError |= m_pModels->LoadModel("cube", 	"models/cube2.reMo");
+	noModelError |= m_pModels->LoadModel("torus", 	"models/torus.reMo");
+	if (noModelError){
+		printf("Done\n");
+	}
+
+
 	// Shader uniforms (Clipmap data)
 	glUseProgram(m_shMain->m_programID);
 	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
@@ -542,11 +554,6 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	// Test model
-	m_pModel = new reModel("models/cube2.reMo");
-	if (!m_pModel->m_loaded){
-		printf("\n\n\n----FUUUU\n\n");
-		return false;
-	}
 
 	m_modelPosition = vector3(.0f);
 	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
@@ -1434,7 +1441,7 @@ DefTer::Render(float dt)
 
 	m_pCaching->Render();
 
-	RenderModel(m_pModel, rotate*translate_tr(-m_cam_translate));
+	RenderModel(m_pModels->GetModel("torus"), rotate*translate_tr(-m_cam_translate));
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1442,6 +1449,26 @@ DefTer::Render(float dt)
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
+}
+
+//--------------------------------------------------------
+void
+DefTer::RenderModel(reModel* pModel, matrix4 view){
+	matrix4 mvp;
+	
+	glUseProgram(m_shModel->m_programID);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
+	
+	matrix4 world = translate_tr(m_modelPosition);
+
+	for (int i = 0; i < pModel->m_nMeshes; i++){
+		mvp = m_proj_mat * view * world * pModel->m_mesh_list[i].transform ;
+
+		glBindVertexArray(pModel->m_mesh_list[i].vao);
+		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
+
+		glDrawElements(GL_TRIANGLES, pModel->m_mesh_list[i].nIndices, GL_UNSIGNED_INT, 0);
+	}
 }
 
 //--------------------------------------------------------
@@ -1480,25 +1507,5 @@ map_retriever(void* defter)
 	}
 
 	return 0;
-}
-
-//--------------------------------------------------------
-void
-DefTer::RenderModel(reModel* pModel, matrix4 view){
-	matrix4 mvp;
-	
-	glUseProgram(m_shModel->m_programID);
-	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
-	
-	matrix4 world = translate_tr(m_modelPosition);
-
-	for (int i = 0; i < pModel->m_nMeshes; i++){
-		mvp = m_proj_mat * view * world * pModel->m_mesh_list[i].transform ;
-
-		glBindVertexArray(pModel->m_mesh_list[i].vao);
-		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
-
-		glDrawElements(GL_TRIANGLES, pModel->m_mesh_list[i].nIndices, GL_UNSIGNED_INT, 0);
-	}
 }
 
