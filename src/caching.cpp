@@ -6,60 +6,10 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "re_math.h"
-#include "util.h"
-using namespace reMath;
-#include <map>
+#include "constants.h"
 using namespace std;
-#include "re_shader.h"
 #include "deform.h"
-#include <list>
-#include <queue>
-#include <assert.h>
 #include "caching.h"
-#include "FreeImage.h"
-#ifdef _WIN32
-#	include "direct.h"
-#	define	mkdir(x)	_mkdir(x)
-#else
-#	include "sys/stat.h"
-#	define  mkdir(x)	mkdir(x, S_IRWXU)
-#endif
-
-#define WRAP(val, dim) 		((val < 0) ? (val + dim) : ((val > (dim - 1)) ? (val - dim) : val))
-#define OFFSET(x, y, dim) 	((y) * dim + (x))
-
-#define INITOFFSET		(0)
-
-extern const int SCREEN_W;
-extern const int SCREEN_H;
-extern const float ASPRAT;
-
-#define LOAD_CYCLES		(4)
-#define	UNLOAD_CYCLES	(2)
-#define READS_PER_FRAME	(3)
-#define LOCK(m)			{ if (SDL_LockMutex(m) == -1) fprintf(stderr, "Mutex Lock Error\n"); }
-#define UNLOCK(m)		{ if (SDL_UnlockMutex(m) == -1) fprintf(stderr, "Mutex Unlock Error\n"); }
-
-#define RADAR_OFFSET	(20.0f)
-#define RADAR_SIZE		(200.0f)
-#define RADAR2_SIZE		(RADAR_SIZE / 2.0f)
-#define RADAR_LINE_W	(1.0f / RADAR_SIZE)
-#define RADAR2_LINE_W	(1.0f / RADAR2_SIZE)
-#define RADAR_DOT_R		(16.0f / (RADAR_SIZE * RADAR_SIZE))
-#define RADAR2_DOT_R	(16.0f / (RADAR2_SIZE * RADAR2_SIZE))
-
-#define DEBUG_ON		(0)
-#if DEBUG_ON
-	#define DEBUG(x)		printf(x)
-	#define DEBUG2(x,y)		printf(x,y)
-	#define DEBUG3(x,y,z)	printf(x,y,z)
-#else
-	#define DEBUG(x)		{}
-	#define DEBUG2(x,y)		{}
-	#define DEBUG3(x,y,z)	{}
-#endif
 
 //--------------------------------------------------------
 Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int highDim, float highRes)
@@ -765,7 +715,7 @@ Caching::SetLoadStatus(bool newStatus, vector2 TileIndex, vector2 size)
 void
 Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 {
-	int curVal = INITOFFSET;
+	int curVal = 0;
 	for (float row = TileIndex.y; row < TileIndex.y + size.y; row++)
 	{
 		for (float col = TileIndex.x; col < TileIndex.x + size.x; col++)
@@ -786,7 +736,7 @@ Caching::Load(Tile* tile)
 	CacheRequest load;
 	load.type = LOAD;
 	load.tile = tile;
-	DEBUG3("LOAD %d %d\n", tile->m_row, tile->m_col);
+	DEBUG("LOAD %d %d\n", tile->m_row, tile->m_col);
 
 	// Check for existing requests for this tile that negate this request and remove all
 	/*for (list<CacheRequest>::iterator i = m_readyQueue.begin(); i != m_readyQueue.end(); i++)
@@ -823,7 +773,7 @@ Caching::Unload(Tile* tile)
 	CacheRequest unload;
 	unload.type = UNLOAD;
 	unload.tile = tile;
-	DEBUG3("UNLOAD %d %d\n", tile->m_row, tile->m_col);
+	DEBUG("UNLOAD %d %d\n", tile->m_row, tile->m_col);
 
 	unload.m_waitCount = 0;
 	unload.m_cycles = 0;
@@ -965,7 +915,7 @@ Caching::UpdatePBOs()
 				UNLOCK(m_doneLoadQueueMutex);
 				continue;
 			}
-			DEBUG3("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
+			DEBUG("Tile %d %d is ready for upload\n", load.tile->m_row, load.tile->m_col);
 			UNLOCK(m_doneLoadQueueMutex);
 		}
 		else
@@ -982,7 +932,7 @@ Caching::UpdatePBOs()
 		// Begin transfer
 		if (load.useZero)
 		{
-			DEBUG3("Using Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
+			DEBUG("Using Zero texture for tile %d %d\n", load.tile->m_row, load.tile->m_col);
 			load.tile->m_texdata = m_zeroTex;
 		}
 		else
@@ -990,7 +940,7 @@ Caching::UpdatePBOs()
 			// Get a texture ID
 			load.tile->m_texdata = m_texQueue.front();
 			m_texQueue.pop();
-			DEBUG3("Transferring TO texture (%d, %d)\n",
+			DEBUG("Transferring TO texture (%d, %d)\n",
 					load.tile->m_texdata.heightmap, load.tile->m_texdata.normalmap);
 			glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.heightmap);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_BYTE, 0);
@@ -1043,7 +993,7 @@ Caching::UpdatePBOs()
 		// if it isn't the shared Zero texture, release it into pool
 		if (texID.heightmap != m_zeroTex.heightmap)
 		{
-			DEBUG3("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.normalmap));
+			DEBUG("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.normalmap));
 			m_texQueue.push(texID);
 		}
 		memset(&unload.tile->m_texdata, 0, sizeof(TexData));
@@ -1088,7 +1038,7 @@ hdd_cacher(void* data)
 		if (gotRequest)
 		{
 			// load image to sys memory mapped by PBO
-			DEBUG3("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
+			DEBUG("Loading tile %d %d image into memory\n", load.tile->m_row, load.tile->m_col);
 			if (!pCaching->LoadTextureData(load))
 			{
 				// if this failed, we notify GL thread to use Zero Texture
@@ -1125,7 +1075,7 @@ hdd_cacher(void* data)
 		// Write the data to disk
 		if (gotRequest)
 		{
-			DEBUG3("Writing tile %d %d to image file\n", unload.tile->m_row, unload.tile->m_col);
+			DEBUG("Writing tile %d %d to image file\n", unload.tile->m_row, unload.tile->m_col);
 			// Save the texture data to disk (and release PBO and texture ID)
 			if (!pCaching->SaveTextureData(unload))
 				fprintf(stderr," ERROR: :could not write the tile !!!\n");

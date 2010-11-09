@@ -15,115 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#ifdef _WIN32
-//#	pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-#	pragma comment(linker, "/SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
-#	define GLEW_STATIC 1
-#	pragma comment(lib, "opengl32.lib")
-#	pragma comment(lib, "sdl.lib")
-#	pragma comment(lib, "sdlmain.lib")
-#	pragma comment(lib, "freeimage.lib")
-#endif
-
 class Deform;
 
-#include <vector>
-#include <list>
-#include <queue>
-#include <limits.h>
-
-#ifdef _WIN32
-#	include <direct.h>
-#	define mkdir(x) _mkdir(x)
-#else
-#	include <sys/stat.h>
-#	define mkdir(x) mkdir(x, S_IRWXU)
-#endif
-
-#include "regl3.h"
-#include "FreeImage.h"
-#include "re_math.h"
-using namespace reMath;
-#include <map>
+#include "constants.h"
 using namespace std;
-#include "re_shader.h"
-#include "util.h"
 #include "deform.h"
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
 #include "main.h"
-
-#define PI					(3.14159265358979323846264338327950288f)
-#define FAR_PLANE			(1000.0f)
-#define NEAR_PLANE			(0.5f)
-
-#define WRAP_POS(p,b)		( p < -b * .5f ? p + b : \
-							( p >  b * .5f ? p - b : p))
-
-extern const int SCREEN_W	= 1024;
-extern const int SCREEN_H	=  768;
-extern const float ASPRAT	= float(SCREEN_W) / SCREEN_H;
-const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
-const float		ACCELERATION= 3.5f;
-const float		AIR_DRAG	= 0.6f;
-const float		FRICTION	= 1.8f;
-const float 	DT 			= 0.005f;
-const float 	invDT   	= 1.0f/DT;
-
-#define COARSEMAP_FILENAME	("images/coarsemap.png")
-#define COARSEMAP_TEXTURE	("images/coarsemap_tex.png")
-#define	SPLASHMAP_TEXTURE	("images/splash.png")
-#define CLIPMAP_DIM			(255)
-#define CLIPMAP_RES			(0.1f)
-#define CLIPMAP_LEVELS		(5)
-#define CACHING_LEVEL		(2)
-#define CACHING_DIM			((CLIPMAP_DIM + 1) * CACHING_LEVEL)
-#define HIGH_DIM			(1024 * CACHING_LEVEL)
-#define HIGH_RES			(CLIPMAP_RES / 3.0f)
-#define HD_AURA				((HIGH_DIM * HIGH_RES * .9f)/2.0f)
-#define HD_AURA_SQ			(HD_AURA * HD_AURA)
-#define COARSE_AURA			((CLIPMAP_DIM + 1) * 8 * CLIPMAP_RES)
-#define VERT_SCALE			(40.0f)
-#define EYE_HEIGHT			(2.0f)
-#define STEP_TIME			(0.4f)
-
-#define SCREENSHOT_W		(1024)
-#define SCREENSHOT_H		(768)
-
-#define MAP_TRANSFER_WAIT	(.01f)	// N second gap after deform, before downloading it
-#define MAP_BUFFER_CYCLES	(0)	// After commencing download, wait a few cycles before mapping
-
-#define DEBUG_ON			(0)
-#if DEBUG_ON
-#	define DEBUG(...)		printf(__VA_ARGS__)
-#else
-#	define DEBUG(...)			{}
-#endif
-
-#define PROFILE				(0)
-#if PROFILE
-	reTimer g_profiler;
-	float timeCount = 0;
-	long frameCount = 0;
-#	define BEGIN_PROF		{glFinish(); g_profiler.start();}
-#	define END_PROF			{glFinish(); timeCount+=g_profiler.getElapsed(); frameCount++;}
-#	define PRINT_PROF		{printf("Average render: %.3fms\n", timeCount*1000.0f / frameCount);}
-#else
-#	define BEGIN_PROF		{}
-#	define END_PROF			{}
-#	define PRINT_PROF		{}
-#endif
-
-
-#define PARALLAXSCALE	 0.00400f //128
-#define PARALLAXBIAS	-0.00400f //0
-#define PARALLAXITR		 10
-
-
-reTimer tt;
-
 
 /******************************************************************************
  * Main 
@@ -131,11 +31,11 @@ reTimer tt;
 int main(int argc, char* argv[])
 {
 	AppConfig conf;
-	conf.VSync		= false;
+	conf.VSync		= VSYNC;
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
-	conf.fsaa		= 0;
-	conf.sleepTime	= 0.01f;
+	conf.fsaa		= FSAA;
+	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -160,8 +60,7 @@ int main(int argc, char* argv[])
 //--------------------------------------------------------
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
-	m_shMain  			  = NULL;
-	m_shInner			  = NULL;
+	m_shManager			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
@@ -175,15 +74,11 @@ DefTer::~DefTer()
 {
 	// signal thread to check "isRunning" status
 	SDL_SemPost(m_waitSem);
-
 	SaveCoarseMap("images/last_shit_coarsemap.png");
-	glDeleteBuffers(3, m_vbo);
-	glDeleteVertexArrays(1, &m_vao);
 	FreeImage_DeInitialise();
 	glUseProgram(0);
-	RE_DELETE(m_shSplash);
-	RE_DELETE(m_shMain);
-	RE_DELETE(m_shInner);
+	KillUtil();
+	RE_DELETE(m_shManager);
 	RE_DELETE(m_pDeform);
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
@@ -198,7 +93,6 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_coarsemap.heightmap);
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
-	glDeleteTextures(1, &m_splashmap);
 	glDeleteTextures(1, &m_screenshotTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
@@ -269,7 +163,8 @@ DefTer::InitGL()
 
 	// Init the splash screen info
 	printf("Initialising Splash screen...\t");
-	if (!InitSplash())
+	m_pSplash = new Splash();
+	if (m_pSplash->GetErrorStatues())
 	{
 		printf("Error\n\tSplash screen initialisation error\n");
 		return false;
@@ -278,7 +173,7 @@ DefTer::InitGL()
 
 	// Render the splash screen
 	printf("Rendering splash screen...\t");
-	RenderSplash();
+	m_pSplash->Render(m_pWindow);
 	if (!CheckError("Splash rendering"))
 		return false;
 	printf("Done\n");
@@ -311,20 +206,18 @@ DefTer::InitGL()
 	m_is_wireframe	= false;
 
 	// Init Shaders
-	// Get the Shaders to Compile
-	m_shMain		= new ShaderProg("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shInner		= new ShaderProg("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
+	m_shManager		= new ShaderManager();
+	m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
-	glBindAttribLocation(m_shMain->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shMain->m_programID, 1, "vert_TexCoord");
-	glBindAttribLocation(m_shInner->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shInner->m_programID, 1, "vert_TexCoord");
+	m_shManager->BindAttrib("vert_Position", 0);
+	m_shManager->BindAttrib("vert_TexCoord", 1);
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
-	res = m_shMain->CompileAndLink() && m_shInner->CompileAndLink();
+	res = m_shManager->CompileAndLink();
 	if (!res)
 	{
 		printf("Error\n\tWill not continue without working shaders\n");
@@ -332,47 +225,23 @@ DefTer::InitGL()
 	}
 
 	// Assign samplers to texture units
-	glUseProgram(m_shMain->m_programID);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "heightmap"), 0);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "pdmap"), 1);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "colormap"),  2);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail0"),  3);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail1"),  4);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail2"),  5);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3"),  6);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail0N"),  7);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail1N"),  8);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail2N"),  9);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "detail3N"),  10);
-	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+	m_shManager->UpdateUni1i("heightmap", 0);
+	m_shManager->UpdateUni1i("pdmap", 1);
+	m_shManager->UpdateUni1i("colormap", 2);
+	m_shManager->UpdateUni1i("detail0", 3);
+	m_shManager->UpdateUni1i("detail1", 4);
+	m_shManager->UpdateUni1i("detail2", 5);
+	m_shManager->UpdateUni1i("detail3", 6);
+	m_shManager->UpdateUni1i("detail0N", 7);
+	m_shManager->UpdateUni1i("detail1N", 8);
+	m_shManager->UpdateUni1i("detail2N", 9);
+	m_shManager->UpdateUni1i("detail3N", 10);
+	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
+	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 
-	glUseProgram(m_shInner->m_programID);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "heightmap"), 0);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "pdmap"), 1);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "colormap"),  2);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail0"),  3);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1"),  4);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2"),  5);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3"),  6);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail0N"),  7);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail1N"),  8);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail2N"),  9);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "detail3N"),  10);
-	glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
-	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
-
-
-	glUseProgram(m_shInner->m_programID);
-	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), PARALLAXBIAS);
-	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), PARALLAXSCALE);
-	glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), PARALLAXITR);
-	glUseProgram(m_shMain->m_programID);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), PARALLAXBIAS);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), PARALLAXSCALE);
-	glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), PARALLAXITR);
-
-	
+	m_shManager->UpdateUni1f("parallaxBias", PARALLAXBIAS);
+	m_shManager->UpdateUni1f("parallaxScale", PARALLAXSCALE);
+	m_shManager->UpdateUni1i("parallaxItr", PARALLAXITR);
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -478,10 +347,7 @@ DefTer::Init()
 	printf("Done\n");
 
 	// Shader uniforms (Clipmap data)
-	glUseProgram(m_shMain->m_programID);
-	glUniform2f(glGetUniformLocation(m_shMain->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
-	glUseProgram(m_shInner->m_programID);
-	glUniform2f(glGetUniformLocation(m_shInner->m_programID, "scales"), m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
+	m_shManager->UpdateUni2f("scales",  m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
@@ -513,10 +379,8 @@ DefTer::Init()
 	vector2 hdasq_its;
 	hdasq_its.x = float(HD_AURA_SQ) / (CLIPMAP_RES * m_coarsemap_dim * CLIPMAP_RES * m_coarsemap_dim);
 	hdasq_its.y = 1.0f / (HIGH_RES * HIGH_DIM * m_pClipmap->m_metre_to_tex);
-	glUseProgram(m_shMain->m_programID);
-	glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "hdasq_its"), 1, hdasq_its.v);
-	glUseProgram(m_shInner->m_programID);
-	glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "hdasq_its"), 1, hdasq_its.v);
+
+	m_shManager->UpdateUni2fv("hdasq_its", hdasq_its.v);
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
@@ -555,86 +419,6 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	return true;
-}
-
-//--------------------------------------------------------
-// Setup the splash screen
-//--------------------------------------------------------
-bool
-DefTer::InitSplash(void)
-{
-	// Setup shader
-	m_shSplash = new ShaderProg("shaders/splash.vert", "", "shaders/splash.frag");
-	glBindAttribLocation(m_shSplash->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shSplash->m_programID, 1, "vert_texCoord");
-	if (!m_shSplash->CompileAndLink())
-		return false;
-
-	// Load the splash map
-	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE, false, true))
-		return false;
-
-	// Set uniforms
-	glUseProgram(m_shSplash->m_programID);
-	glUniform1i(glGetUniformLocation(m_shSplash->m_programID, "splashmap"), 0);
-
-	// Vertex positions
-	GLfloat square[]	= { -1.0f, -1.0f,
-							 1.0f, -1.0f,
-							 1.0f,  1.0f,
-							-1.0f,  1.0f };
-	// Texcoords are upside-down to mimic the systems coordinates
-	GLfloat texcoords[]	= { 0.0f, 0.0f,
-							1.0f, 0.0f,
-							1.0f, 1.0f,
-							0.0f, 1.0f };
-	GLuint indices[]	= { 3, 0, 2, 1 };
-
-	// Create the vertex array
-	glGenVertexArrays(1, &m_vao);
-	glBindVertexArray(m_vao);
-
-	// Generate three VBOs for vertices, texture coordinates and indices
-	glGenBuffers(3, m_vbo);
-
-	// Setup the vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-	// Setup the texcoord buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	// Setup the index buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
-	
-	return true;
-}
-
-//--------------------------------------------------------
-// Render the splash screen
-//--------------------------------------------------------
-void
-DefTer::RenderSplash(void)
-{
-	// Clear the screen
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-	// Bind the vertex array
-	glBindVertexArray(m_vao);
-
-	// Set the textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_splashmap);
-
-	// Draw the screen
-	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
-
-	// Swap windows to show screen
-	SDL_GL_SwapWindow(m_pWindow);
 }
 
 //--------------------------------------------------------
@@ -781,10 +565,7 @@ DefTer::UpdateClickPos(void)
 	{
 		m_clickPosPrev = m_clickPos;
 
-		glUseProgram(m_shMain->m_programID);
-		glUniform2fv(glGetUniformLocation(m_shMain->m_programID, "click_pos"), 1, temp.v);
-		glUseProgram(m_shInner->m_programID);
-		glUniform2fv(glGetUniformLocation(m_shInner->m_programID, "click_pos"), 1, temp.v);
+		m_shManager->UpdateUni2fv("click_pos", temp.v);
 	}
 }
 
@@ -830,7 +611,6 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
-		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -892,50 +672,35 @@ DefTer::ProcessInput(float dt)
 	{
 		pscale += 0.0001f * ttt;
 		printf("%.5f\n", pscale);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), pscale);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), pscale);
+		m_shManager->UpdateUni1f("parallaxScale", pscale);
 	}
 
 	if (m_input.IsKeyPressed(SDLK_u))
 	{
 		pscale -= 0.0001f * ttt;
 		printf("%.5f\n", pscale);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxScale"), pscale);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxScale"), pscale);
+		m_shManager->UpdateUni1f("parallaxScale", pscale);
 	}
 
 	if (m_input.IsKeyPressed(SDLK_v))
 	{
 		pbias += 0.0001f * ttt;
 		printf("%.5f\n", pbias);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pbias);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), pbias);
+		m_shManager->UpdateUni1f("parallaxBias", pbias);
 	}
 
 	if (m_input.IsKeyPressed(SDLK_b))
 	{
 		pbias -= 0.0001f * ttt;
 		printf("%.5f\n", pbias);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "parallaxBias"), pbias);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "parallaxBias"), pbias);
+		m_shManager->UpdateUni1f("parallaxBias", pbias);
 	}
 
 	if (m_input.WasKeyPressed(SDLK_6))
 	{
 		pitr += 1;
 		printf("%d\n", pitr);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), pitr);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), pitr);
+		m_shManager->UpdateUni1i("parallaxItr", pitr);
 	}
 
 	if (m_input.WasKeyPressed(SDLK_7))
@@ -943,13 +708,9 @@ DefTer::ProcessInput(float dt)
 		pitr -= 1;
 		pitr = max(pitr, 1);
 		printf("%d\n", pitr);
-		glUseProgram(m_shInner->m_programID);
-		glUniform1i(glGetUniformLocation(m_shInner->m_programID, "parallaxItr"), pitr);
-		glUseProgram(m_shMain->m_programID);
-		glUniform1i(glGetUniformLocation(m_shMain->m_programID, "parallaxItr"), pitr);
+		m_shManager->UpdateUni1i("parallaxItr", pitr);
 	}
 	
-
 
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
@@ -1087,6 +848,10 @@ DefTer::ProcessInput(float dt)
 				if (areaMax.y > 1.0)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
+			
+			// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			// Check if in wireframe mode and remember to switch to fill mode
 			if (m_is_wireframe)
@@ -1131,10 +896,10 @@ DefTer::ProcessInput(float dt)
 		matrix4 temp = m_proj_mat;
 		m_proj_mat = m_screenshotProj;
 
-		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
 		Render(.0f);
 		m_proj_mat = temp;
-		glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+		m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		
 		GLubyte* framebuffer = new GLubyte[3 * SCREENSHOT_W * SCREENSHOT_H];
@@ -1182,6 +947,7 @@ DefTer::ProcessInput(float dt)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
+
 	// Toggle between HD and coarse mode
 	if (m_input.WasKeyPressed(SDLK_h))
 	{
@@ -1192,10 +958,7 @@ DefTer::ProcessInput(float dt)
 		// Update the click position
 		UpdateClickPos();
 
-		glUseProgram(m_shMain->m_programID);
-		glUniform1f(glGetUniformLocation(m_shMain->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
-		glUseProgram(m_shInner->m_programID);
-		glUniform1f(glGetUniformLocation(m_shInner->m_programID, "is_hd_stamp"), (m_is_hd_stamp ? 1.0f : 0.0f));
+		m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 
 		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
 	}
@@ -1435,12 +1198,8 @@ DefTer::Logic(float dt)
 	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
 	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
 	
-	glUseProgram(m_shMain->m_programID);
-	glUniform1f(glGetUniformLocation(m_shMain->m_programID, "cam_height"), m_cam_translate.y);
-	glUniform4f(glGetUniformLocation(m_shMain->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
-	glUseProgram(m_shInner->m_programID);
-	glUniform1f(glGetUniformLocation(m_shInner->m_programID, "cam_height"), m_cam_translate.y);
-	glUniform4f(glGetUniformLocation(m_shInner->m_programID, "cam_and_shift"), pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
+	m_shManager->UpdateUni1f("cam_height", m_cam_translate.y);
+	m_shManager->UpdateUni4f("cam_and_shift", pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
 	m_frameAcceleration.set(.0f);
 }
@@ -1478,17 +1237,14 @@ DefTer::Render(float dt)
 	int firstTile[2] = {activeTiles[0].m_row, activeTiles[0].m_col};
 
 
-	// Use the shader program and set the view matrix.
-	glUseProgram(m_shMain->m_programID);
-	glUniformMatrix4fv(glGetUniformLocation(m_shMain->m_programID, "view"), 1, GL_FALSE, rotate.m);
-	glUniform2i(glGetUniformLocation(m_shMain->m_programID, "tileOffset"), firstTile[1],
-			firstTile[0]);
-	if (m_enableTess){
-		glUseProgram(m_shInner->m_programID);
-		glUniformMatrix4fv(glGetUniformLocation(m_shInner->m_programID, "view"), 1, GL_FALSE, rotate.m);
-		glUniform2i(glGetUniformLocation(m_shInner->m_programID, "tileOffset"), firstTile[1],
-				firstTile[0]);
-	}
+	// Set the view matrix.
+	m_shManager->UpdateUniMat4fv("view", rotate.m);
+	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
+
+	if (m_enableTess)
+		m_shManager->SetActiveShader(1);
+	else
+		m_shManager->SetActiveShader(0);
 
 
 	glActiveTexture(GL_TEXTURE3);
@@ -1510,9 +1266,10 @@ DefTer::Render(float dt)
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
-	glUseProgram(m_shMain->m_programID);
+	m_shManager->SetActiveShader(0);
 	m_pClipmap->render_levels();
 	
+	// Only render these when not in wireframe mode
 	if (!m_is_wireframe)
 		m_pSkybox->render(viewproj);
 
@@ -1558,7 +1315,6 @@ map_retriever(void* defter)
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
-		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 
