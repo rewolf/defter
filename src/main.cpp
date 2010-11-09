@@ -25,8 +25,6 @@ using namespace std;
 #include "caching.h"
 #include "main.h"
 
-reTimer tt;
-
 /******************************************************************************
  * Main 
  ******************************************************************************/
@@ -605,7 +603,6 @@ DefTer::UpdateCoarsemapStreamer(){
 	// If a deformation hasn't been made in a short while, but the map is different from the client's
 	if (m_XferState==READY && m_deformTimer.peekElapsed() > MAP_TRANSFER_WAIT){
 		DEBUG("__________\nStart transfer\n");
-		tt.start();
 		// Setup PBO and FBO
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboTransfer);
@@ -1251,7 +1248,6 @@ map_retriever(void* defter)
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;
 		DEBUG("Retriever took %.3fms to copy into sys mem\n", copyTimer.getElapsed() * 1000);
-		printf("Total TIME: %.6f\n",tt.getElapsed()*1000);
 		SDL_mutexV(main->m_elevationDataMutex);
 	}
 
