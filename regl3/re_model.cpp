@@ -51,7 +51,8 @@ reModel::reModel(string filename){
 	// ignore materials for now
 	__fscanf(fp, "%d %d", &nMaterials, &nModels);
 	for (int i = 0; i < nMaterials; i++){
-		__fscanf(fp, "%s %s %s", b_string, b_string, b_string);
+		__fscanf(fp, "%s %s %s", b_string, b_string, b_string);	// MATERIAL type name
+		__fscanf(fp, "%s %s", b_string, b_string);				// tex bumpmap
 		__fscanf(fp, "%f %f %f %f %f %f %f", &flt, &flt, &flt, &flt, &flt, &flt, &flt);
 	}
 
@@ -98,7 +99,7 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	vector3 	translate;
 	vector3 	rotate;
 	vector3 	scale;
-	int 		nVertices, nNormals, nTexCoords, nIndices;
+	int 		nVertices, nNormals, nTexCoords, nIndices, nQuadIndices;
 	char		a_string[256];
 	char		b_string[256];
 	vector3*	vertices;
@@ -121,7 +122,11 @@ reModel::load_mesh(FILE* fp, Mesh* pMesh){
 	// scrap material
 	__fscanF(fp, "%s", b_string);
 	
-	__fscanF(fp, "%d %d %d %d", &nVertices, &nNormals, &nTexCoords, &nIndices);
+	__fscanF(fp, "%d %d %d %d %d", &nVertices, &nNormals, &nTexCoords, &nIndices, &nQuadIndices);
+	if (nQuadIndices != 0){
+		fprintf(stderr, "\nERROR: Model loader does not support quads");
+		return false;
+	}
 	if (nNormals != 0 && nNormals != nVertices){
 		fprintf(stderr, "\nERROR: Number of vertices and normals differ");
 		return false;

@@ -542,7 +542,7 @@ DefTer::Init()
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
 
 	// Test model
-	m_pModel = new reModel("torus.reMo");
+	m_pModel = new reModel("cube2.reMo");
 	if (!m_pModel->m_loaded){
 		printf("\n\n\n----FUUUU\n\n");
 		return false;
