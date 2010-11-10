@@ -205,22 +205,23 @@ DefTer::InitGL()
 	m_is_wireframe	= false;
 
 	// Init Shaders
-	printf("Initialising shaders...\t\t");
+	printf("Initialising Shader Manager...\t");
 	m_shManager		 = new ShaderManager();
 	error			 = !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
 	error			&= !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmParallax);
 	error			&= !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmGeomTess);
 	m_hdShaderIndex	 = m_shmSimple;
-	if (error)
-	{
-		printf("Error\n\tError adding shaders to shader manager\n");
-		return false;
-	}
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	m_shManager->BindAttrib("vert_Position", 0);
 	m_shManager->BindAttrib("vert_TexCoord", 1);
+	if (error || !CheckError("Binding shader attributes"))
+	{
+		printf("Error\n\tError adding shaders to shader manager\n");
+		return false;
+	}
+	printf("Done\n");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
@@ -276,16 +277,16 @@ DefTer::InitGL()
 	printf(
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
-	"k\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
 	"c\t"		"= Crouch/Sink\n"
 	"f\t"		"= Toggle footprint deforms\n"
 	"h\t"		"= High Detail Toggle\n"
-	"L-Shift\t"	"= En/Disable Super Speed\n"
+	"Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
+	"8/9/0\t"	"= HD Shader: Simple/Parallax/Geom\n"
 	"F12\t"		"= Screenshot\n"
 	"Esc\t"		"= Quit\n"
 	);
@@ -293,11 +294,10 @@ DefTer::InitGL()
 	printf("-------------Stamp  Controls-------------\n");
 	printf("-----------------------------------------\n");
 	printf(
+	"[/]\t"		"= Cycle Stamps\n"
 	"Pg Up/Dn"	"= Stamp Scale\n"
 	"+/-\t"		"= Stamp Intensity\n"
 	"m\t"		"= Stamp Mirror\n"
-	"0\t"		"= %%\n"
-	"1\t"		"= Gaussian\n"
 	);
 	printf("-----------------------------------------\n");
 	printf("-----------------------------------------\n");
@@ -1120,7 +1120,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			//**********************m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			//m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		}
 	}
 
