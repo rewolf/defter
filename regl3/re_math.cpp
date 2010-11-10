@@ -293,8 +293,8 @@ vector2::SetFloor(){
 // SETABS sets the values to be their absolute form
 void 
 vector2::SetAbs(){
-	x=abs(x);
-	y=abs(y);
+	x=fabsf(x);
+	y=fabsf(y);
 }
 
 //-------------------------------------------------------------------------
@@ -308,7 +308,7 @@ vector2::Floor()const{
 // Returns a abs version of this vector
 vector2 
 vector2::Abs()const{
-	return vector2(abs(x), abs(y));
+	return vector2(fabsf(x), fabsf(y));
 }
 
 
@@ -610,9 +610,9 @@ vector3::SetFloor(){
 // SETABS sets the values to be their absolute form
 void 
 vector3::SetAbs(){
-	x=abs(x);
-	y=abs(y);
-	z=abs(z);
+	x=fabsf(x);
+	y=fabsf(y);
+	z=fabsf(z);
 }
 
 //-------------------------------------------------------------------------
@@ -626,7 +626,7 @@ vector3::Floor()const{
 // Returns a abs version of this vector
 vector3 
 vector3::Abs()const{
-	return vector3(abs(x), abs(y), abs(z));
+	return vector3(fabsf(x), fabsf(y), fabsf(z));
 }
 
 

@@ -1114,7 +1114,7 @@ DefTer::Logic(float dt)
 		if (m_pCamera->m_translate.y < terrain_height)
 		{
 			m_pCamera->m_translate.y = terrain_height;
-			m_pCamera->ZeroVelocity();
+			m_pCamera->m_lastTranslate.y = terrain_height;
 			m_pCamera->m_onGround	= true;
 		} else{
 			m_pCamera->m_onGround	= false;
@@ -1148,7 +1148,7 @@ DefTer::Logic(float dt)
 	m_shManager->UpdateUni1f("cam_height", m_pCamera->m_translate.y);
 	m_shManager->UpdateUni4f("cam_and_shift", pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
-	m_pCamera->m_frameAcceleration.set(.1f);
+	m_pCamera->m_frameAcceleration.set(.0f);
 }
 
 //--------------------------------------------------------

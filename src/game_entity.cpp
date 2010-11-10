@@ -62,12 +62,12 @@ GameEntity::Update(){
 	vector3 velocity= GetVelocity(); 
 	
 	if (m_onGround)
-		accel += - FRICTION * vector3(velocity.x, .0f, velocity.z) * .0f;
+		accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
 	else
 		accel += - AIR_DRAG * velocity;
 
 	vector3 temp 	= m_translate;
-	m_translate		+= m_translate - m_lastTranslate + accel * DT * DT;	// verlet update
-	velocity		= (m_translate - m_lastTranslate) * invDT * .5f; // (f(t+1)-f(t-1))/(2dt)
+	m_translate		= 2*m_translate - m_lastTranslate + accel * DT * DT;	// verlet update
+
 	m_lastTranslate	= temp;
 }

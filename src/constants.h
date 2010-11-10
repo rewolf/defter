@@ -60,7 +60,7 @@
 
 // App Settings
 #define FSAA				(0)
-#define SLEEP_TIME			(0.0f)
+#define SLEEP_TIME			(0.01f)
 #define VSYNC				(false)
 
 
@@ -93,7 +93,7 @@ extern int STAMPCOUNT;
 
 const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 #define ACCELERATION		(3.5f)
-#define AIR_DRAG			(0.6f)
+#define AIR_DRAG			(0.8f)
 #define FRICTION			(1.8f)
 #define DT 					(0.008f)
 #define invDT   			(1.0f / DT)
