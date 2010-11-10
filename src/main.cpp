@@ -216,7 +216,6 @@ DefTer::InitGL()
 	error			&= !m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag", &m_shmGeomTess);
 	m_hdShaderIndex	 = m_shmSimple;
 
-
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	m_shManager->BindAttrib("vert_Position", 0);
