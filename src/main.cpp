@@ -1049,6 +1049,9 @@ DefTer::Logic(float dt)
 {
 	float speed2, terrain_height;
 
+	speed2 = ((m_cam_translate - m_lastPosition) * invDT).Mag2();
+	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
@@ -1124,7 +1127,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			//m_pCaching->DeformHighDetail(foot, "Footprint", stampSIRM);
+			m_pCaching->DeformHighDetail(foot, "Footprint", stampSIRM);
 		}
 	}
 
