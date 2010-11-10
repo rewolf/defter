@@ -230,7 +230,7 @@ reLoadMeshData(FILE* fp, Node* pNode){
 
 	// Create the VAO and VBOs
 	glGenVertexArrays(1, &pNode->m_mesh.vao);
-	glGenBuffers(1, pNode->m_mesh.vbo);
+	glGenBuffers(4, pNode->m_mesh.vbo);
 	vao = pNode->m_mesh.vao; 
 	vbo = pNode->m_mesh.vbo;
 

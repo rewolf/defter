@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 	conf.gl_major	= 3;
 	conf.gl_minor	= 2;
 	conf.fsaa		= 0;
-	conf.sleepTime	= 0.0f;
+	conf.sleepTime	= 0.01f;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
 	DefTer test(conf);
@@ -186,6 +186,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
 	RE_DELETE(m_pModels);
+	RE_DELETE(m_pModel);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -473,6 +474,7 @@ DefTer::Init()
 	if (noModelError){
 		printf("Done\n");
 	}
+	m_pModel = m_pModels->GetModel("gun");
 
 
 	// Shader uniforms (Clipmap data)
@@ -554,8 +556,8 @@ DefTer::Init()
 
 	// Test model
 
-	m_modelPosition = vector3(.0f);
-	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
+	//m_pModel->m_transform.translate.y = InterpHeight(vector2(
+	//	m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
 
 	return true;
 }
@@ -1352,14 +1354,15 @@ DefTer::Logic(float dt)
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
 			vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
-			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
+			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
 			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		}
 	}
 
-	m_modelPosition.y = InterpHeight(vector2(m_modelPosition.x, m_modelPosition.z));
+	//m_pModel->m_transform.translate.y = InterpHeight(vector2(
+	//	m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
@@ -1440,7 +1443,7 @@ DefTer::Render(float dt)
 
 	m_pCaching->Render();
 
-	RenderModel(m_pModels->GetModel("gun"), rotate*translate_tr(-m_cam_translate));
+	RenderModel(m_pModel, rotate*translate_tr(-m_cam_translate));
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1454,20 +1457,34 @@ DefTer::Render(float dt)
 void
 DefTer::RenderModel(Node* pModel, matrix4 view){
 	matrix4 mvp;
-	/*
+	
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
+
+	RenderNode(pModel, m_proj_mat * view);
+}
+
+//--------------------------------------------------------
+void
+DefTer::RenderNode(Node* pNode, matrix4 parent_tr){
+	matrix4 model_tr = translate_tr(pNode->m_transform.translate)
+					 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
+					 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
+					 * rotate_tr(pNode->m_transform.rotate.x, 1.0f, .0f, .0f)
+					 * scale_tr(pNode->m_transform.scale);
+
+	matrix4 transform = parent_tr * model_tr;
 	
-	matrix4 world = translate_tr(m_modelPosition);
+	if (pNode->m_pSibling)
+		RenderNode(pNode->m_pSibling, parent_tr);
+	if (pNode->m_pChild)
+		RenderNode(pNode->m_pChild, transform);
 
-	for (int i = 0; i < pModel->m_nMeshes; i++){
-		mvp = m_proj_mat * view * world * pModel->m_mesh_list[i].transform ;
+	glBindVertexArray(pNode->m_mesh.vao);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, transform.m);
 
-		glBindVertexArray(pModel->m_mesh_list[i].vao);
-		glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, mvp.m);
-
-		glDrawElements(GL_TRIANGLES, pModel->m_mesh_list[i].nIndices, GL_UNSIGNED_INT, 0);
-	}*/
+	glDrawElements(GL_TRIANGLES, pNode->m_mesh.nIndices, GL_UNSIGNED_INT, 0);
+	
 }
 
 //--------------------------------------------------------

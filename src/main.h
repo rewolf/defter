@@ -38,6 +38,7 @@ private:
 	float		InterpHeight	(vector2 worldPos);
 
 	void		RenderModel		(Node* model, matrix4 view);
+	void		RenderNode		(Node* node, matrix4 transform);
 
 public:
 	ShaderProg*		m_shSplash;
@@ -106,7 +107,7 @@ public:
 	GLuint			m_screenshotFBO;
 
 	// Test model
-	vector3			m_modelPosition;
+	Node*			m_pModel;
 };
 
 // thread that retrieves the coarsemap from the PBOs
