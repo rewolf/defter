@@ -17,7 +17,7 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	const float renderQuad[4][2] = { {-1.0f, -1.0f}, {1.0f, -1.0f}, {-1.0f, 1.0f},
 		{1.0f, 1.0f}};
 
-	m_no_error				= true;
+	m_error					= false;
 	m_coarseDim				= coarseDim;
 	m_highDim				= highDim;
 	m_metre_to_tex			= metre_to_tex;
@@ -27,16 +27,11 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 	glGenFramebuffers(1, &m_fbo_heightmap);
 
 	// Setup shader
-	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
 	m_shPDMapper = new ShaderProg("shaders/calc_pdmap.vert", "", "shaders/calc_pdmap.frag");
-	glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shPDMapper->m_programID, 0, "vert_Position");
-	m_no_error &= (m_shTexStamp->CompileAndLink() == 1 && m_shPDMapper->CompileAndLink() == 1);
+	m_error &= !m_shPDMapper->CompileAndLink();
 
-	// Bind constant uniform values
-	glUseProgram(m_shTexStamp->m_programID);
-	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
-	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
+	// Set uniform values
 	glUseProgram(m_shPDMapper->m_programID);
 	glUniform1i(glGetUniformLocation(m_shPDMapper->m_programID, "in_heightmap"), 0);
 
@@ -52,44 +47,6 @@ Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_de
 
 	m_initialised = false;
 	init_backups();
-
-	// Add in the stamps
-	Stamp newStamp;
-
-	// Gaussian function stamp
-	newStamp.initShader = &setupGaussian;
-	m_no_error &= newStamp.SetupShader("shaders/gaussian.vert", "shaders/gaussian.frag");
-	stampCollection["Gaussian"] = newStamp;
-
-	// Testing image stamp
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/percent.png");
-	stampCollection["%"] = newStamp;
-
-	// Footprint stamp
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/leftfoot.png");
-	stampCollection["leftfoot"] = newStamp;
-
-	// Smiley stamp 1
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/smiley.png");
-	stampCollection["smiley"] = newStamp;
-	
-	// Smiley stamp 1
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/smiley2.png");
-	stampCollection["smiley2"] = newStamp;
-
-	// Smiley stamp 1
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/pedobear.png");
-	stampCollection["pedobear"] = newStamp;
-
-	// mess
-	newStamp = Stamp();
-	m_no_error &= newStamp.LoadTexture("images/stamps/mess.png");
-	stampCollection["mess"] = newStamp;
 }
 
 //--------------------------------------------------------
@@ -98,15 +55,22 @@ Deform::~Deform()
 	glDeleteFramebuffers(1, &m_fbo_heightmap);
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteBuffers(1, &m_vbo);
-	RE_DELETE(m_shTexStamp);
 	RE_DELETE(m_shPDMapper);
 	glDeleteTextures(1, &m_coarseBackup);
 	glDeleteTextures(1, &m_highBackup);
 }
 
 //--------------------------------------------------------
+bool
+Deform::HasError(void)
+{
+	return (m_error);
+}
+
+//--------------------------------------------------------
 void
-Deform::init_backups(){
+Deform::init_backups()
+{
 	glGenTextures(1, &m_coarseBackup);
 	glBindTexture(GL_TEXTURE_2D, m_coarseBackup);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
@@ -129,11 +93,10 @@ Deform::init_backups(){
 //--------------------------------------------------------
 // Used to apply deformations to the given heightmap
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector4 SIRM,
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, int stampIndex, vector4 SIRM,
 	bool isCoarse, GLuint copySrcTex)
 {
 	GLuint	backupTex;
-	GLuint	shaderID;
 	int 	currentViewport[4];
 	int		dim;
 	int		copyX, copyY;
@@ -141,24 +104,27 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	float	metre_scale;
 	matrix2 stampRot;
 	Stamp	stamp;
+	GLuint	shaderID;
 
 	// Setup transforms
-	SIRM.x		= 0.5f * SIRM.x;				// scale in metres
-	stampRot	= rotate_tr2(SIRM.z);			// rotation
+	SIRM.x			= 0.5f * SIRM.x;				// scale in metres
+	stampRot		= rotate_tr2(SIRM.z);			// rotation
 
 	// Stamp controls
-	stamp		= stampCollection[stampName];
-	shaderID	= stamp.m_isTexStamp ? m_shTexStamp->m_programID : stamp.m_shader->m_programID;
+	stamp			= GetStampMan()->GetStamp(stampIndex);
+	shaderID		= stamp.GetShaderID();
 
 	// Setup variables dependent on whether it is Coarse or High detail deformation
-	if (isCoarse){
+	if (isCoarse)
+	{
 		dim			= m_coarseDim;
 		metre_scale = m_metre_to_tex;
 		SIRM.x		= SIRM.x * metre_scale;
 		clickPos	= (clickPos * metre_scale) + vector2(0.5f) + clickOffset;
 		backupTex	= m_coarseBackup;
 	}
-	else{
+	else
+	{
 		dim			= m_highDim;
 		metre_scale	= m_metre_to_detail_tex;
 		SIRM.x		= SIRM.x * metre_scale;
@@ -232,19 +198,18 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glBindTexture(GL_TEXTURE_2D, backupTex);
 
 	//Bind the stamp texture if it uses one
-	if (stamp.m_isTexStamp)
+	if (stamp.IsTexStamp())
 	{
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, stamp.m_texture);
+		stamp.BindTexture();
 	}
 	
 	// Bind the shader and set the uniform values
 	glUseProgram(shaderID);
-
 	glUniform2fv(glGetUniformLocation(shaderID, "clickPos"), 1, clickPos.v);
 	glUniform2f (glGetUniformLocation(shaderID, "stamp_scale"), SIRM.x, SIRM.x);
 	glUniformMatrix2fv(glGetUniformLocation(shaderID, "stamp_rotation"), 1, GL_FALSE, stampRot.m);
-	if (stamp.m_isTexStamp)
+	if (stamp.IsTexStamp())
 	{
 		// Controls for mirroring the texture
 		vector2 mirror(0.0f, -1.0f);
@@ -347,14 +312,4 @@ void
 Deform::create_pdmap(TexData texdata, bool isCoarse)
 {
 	calculate_pdmap(texdata, vector2(0.0f), vector2(0.0f), 0.0f, isCoarse, true);
-}
-
-//--------------------------------------------------------
-void
-setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity)
-{
-	const float epsilon = 0.000001f;
-
-	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
-	glUniform1f(glGetUniformLocation(stamp.m_shader->m_programID, "falloff"), falloff);
 }

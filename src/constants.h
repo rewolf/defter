@@ -86,6 +86,10 @@
 
 
 
+// Stamp Settings
+extern int STAMPCOUNT;
+
+
 const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 #define ACCELERATION		(3.5f)
 #define AIR_DRAG			(0.6f)

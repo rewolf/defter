@@ -12,15 +12,18 @@
 //--------------------------------------------------------
 Skybox::Skybox()
 {
-	m_no_error = true;
+	m_error = true;
 	m_shSky = new ShaderProg("shaders/skybox.vert","","shaders/skybox.frag");
 
-	m_no_error = m_no_error && m_shSky->CompileAndLink();
+	if (!m_shSky->CompileAndLink())
+		return;
+
 	glUseProgram(m_shSky->m_programID);
 	glUniform1i(glGetUniformLocation(m_shSky->m_programID, "sky"), 0);
 
 	// Load texture
-	LoadPNG(&m_tex, SKYBOX_TEXTURE);
+	if (!LoadPNG(&m_tex, SKYBOX_TEXTURE))
+		return;
 
 	// make the box
 	const float boxverts[12 * 3] = {
@@ -77,6 +80,8 @@ Skybox::Skybox()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	m_error = false;
 }
 
 
@@ -86,6 +91,13 @@ Skybox::~Skybox()
 	RE_DELETE(m_shSky);
 	glDeleteBuffers(3, m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
+}
+
+//--------------------------------------------------------
+bool
+Skybox::HasError(void)
+{
+	return (m_error);
 }
 
 //--------------------------------------------------------

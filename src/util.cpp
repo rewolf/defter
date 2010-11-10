@@ -253,7 +253,11 @@ GLfloat	texcoords[]	= { 0.0f, 0.0f,
 GLuint	indices[]	= { 3, 0, 2, 1 };
 GLuint	util_vbo[3]	= {0};
 GLuint	util_vao	= 0;
-bool	isInit		= false;
+
+// Hidden Util methods
+bool isInit						= false;
+StampManager* m_stampManager	= NULL;
+int STAMPCOUNT					= 0;
 
 void
 InitUtil(void)
@@ -308,6 +312,19 @@ GetStandardVAO(void)
 	return (util_vao);
 }
 
+//--------------------------------------------------------
+// Return the Stamp Manager object
+//--------------------------------------------------------
+StampManager*
+GetStampMan(void)
+{
+	// Create the stamp manager if not already created
+	if (m_stampManager == NULL)
+		m_stampManager = new StampManager();
+
+	return (m_stampManager);
+}
+
 
 
 
@@ -350,7 +367,7 @@ Splash::~Splash(void)
 //--------------------------------------------------------
 // Return the error status
 bool
-Splash::GetErrorStatues(void)
+Splash::HasError(void)
 {
 	return m_error;
 }
@@ -432,6 +449,32 @@ ShaderManager::BindAttrib(char *name, int val)
 {
 	for (int i = 0; i < curIndex; i++)
 		glBindAttribLocation(shaders[i]->m_programID, val, name);
+}
+
+//--------------------------------------------------------
+// Compile and link the shaders
+bool
+ShaderManager::CompileAndLink(void)
+{
+	for (int i = 0; i < curIndex; i++)
+	{
+		//Check for errors in compiling any shader
+		if (!shaders[i]->CompileAndLink())
+			return false;
+	}
+
+	//Success
+	return true;
+}
+
+//--------------------------------------------------------
+// Set the active shader to be used
+void
+ShaderManager::SetActiveShader(int shader)
+{
+	if (shader >= SHADERNUM)
+		return;
+	glUseProgram(shaders[shader]->m_programID);
 }
 
 //--------------------------------------------------------
@@ -533,33 +576,199 @@ ShaderManager::UpdateUniMat4fv(char *name, float val[16])
 
 	}
 }
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
 
 //--------------------------------------------------------
-// Compile and link the shaders
-int
-ShaderManager::CompileAndLink(void)
+//--------------------------------------------------------
+// Stamp Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+Stamp::Stamp(void)
 {
-	for (int i = 0; i < curIndex; i++)
-	{
-		//Check for errors in compiling any shader
-		if (!shaders[i]->CompileAndLink())
-			return (0);
-	}
+	m_stampName		= "";
+	m_isTexStamp	= false;
+	m_texture		= 0;
+	m_shader		= NULL;
 
-	//Success
-	return (1);
+	initShader		= NULL;
 }
 
 //--------------------------------------------------------
-// Set the active shader to be used
+Stamp::~Stamp(void)
+{
+	//if (!m_isTexStamp)
+	//	RE_DELETE(m_shader);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::CreateFuncStamp(string stampName, string vertPath, string fragPath)
+{
+	m_stampName = stampName;
+
+	m_isTexStamp = false;
+
+	m_shader = new ShaderProg(vertPath, "", fragPath);
+	glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
+
+	if (!m_shader->CompileAndLink())
+		return false;
+
+	// Set constant uniforms
+	glUseProgram(m_shader->m_programID);
+	glUniform1i(glGetUniformLocation(m_shader->m_programID, "in_heightmap"), 0);
+
+	return true;
+}
+
+//--------------------------------------------------------
+bool
+Stamp::CreateTexStamp(ShaderProg *shader, string stampName, string textureName)
+{
+	m_shader = shader;
+	m_stampName = stampName;
+	m_isTexStamp = true;
+	return (LoadPNG(&m_texture, textureName, true));
+}
+
+//--------------------------------------------------------
+string
+Stamp::GetStampName(void)
+{
+	return (m_stampName);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::IsTexStamp(void)
+{
+	return (m_isTexStamp);
+}
+
+//--------------------------------------------------------
 void
-ShaderManager::SetActiveShader(int shader)
+Stamp::BindTexture(void)
 {
-	if (shader >= SHADERNUM)
-		return;
-	glUseProgram(shaders[shader]->m_programID);
+	glBindTexture(GL_TEXTURE_2D, m_texture);
 }
 
+//--------------------------------------------------------
+GLuint
+Stamp::GetShaderID(void)
+{
+	return (m_shader->m_programID);
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Stamp Manager Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+StampManager::StampManager(void)
+{
+	m_error = false;
+
+	// Create the texture stamp shader
+	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
+	
+	glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
+
+	// Compile and check for errors
+	m_error &= !m_shTexStamp->CompileAndLink();
+
+	// Set uniform values
+	glUseProgram(m_shTexStamp->m_programID);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
+
+	// Add in the stamps
+	Stamp newStamp;
+
+	// Gaussian function stamp
+	newStamp.initShader = &setupGaussian;
+	m_error &= !newStamp.CreateFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag");
+	stampCollection.push_back(newStamp);
+
+	// Testing image stamp
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "%", "images/stamps/percent.png");
+	stampCollection.push_back(newStamp);
+
+	// Footprint stamp
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Footprint", "images/stamps/leftfoot.png");
+	stampCollection.push_back(newStamp);
+
+	// Smiley stamp 1
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley", "images/stamps/smiley.png");
+	stampCollection.push_back(newStamp);
+	
+	// Smiley stamp 2
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley2", "images/stamps/smiley2.png");
+	stampCollection.push_back(newStamp);
+
+	// Pedobear
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Pedobear", "images/stamps/pedobear.png");
+	stampCollection.push_back(newStamp);
+
+	// Mess
+	newStamp = Stamp();
+	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Mess", "images/stamps/mess.png");
+	stampCollection.push_back(newStamp);
+
+	// Set how many stamps there currently are
+	STAMPCOUNT = stampCollection.size();
+}
+
+//--------------------------------------------------------
+StampManager::~StampManager(void)
+{
+	RE_DELETE(m_shTexStamp);
+}
+
+//--------------------------------------------------------
+Stamp
+StampManager::GetStamp(int stampIndex)
+{
+	return (stampCollection.at(stampIndex));
+}
+
+//--------------------------------------------------------
+string
+StampManager::GetStampName(int stampIndex)
+{
+	return (stampCollection.at(stampIndex).GetStampName());
+}
+
+//--------------------------------------------------------
+void
+setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity)
+{
+	const float epsilon = 0.000001f;
+
+	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
+	glUniform1f(glGetUniformLocation(stamp.GetShaderID(), "falloff"), falloff);
+}
 //--------------------------------------------------------
 //--------------------------------------------------------
 //--------------------------------------------------------

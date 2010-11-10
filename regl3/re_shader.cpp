@@ -59,17 +59,17 @@ ShaderProg::~ShaderProg()
 }
 
 //--------------------------------------------------------
-int 
+bool 
 ShaderProg::CompileAndLink()
 {
 	GLint res;
 
 	if (!SetupShader(m_vertShID))
-		return 0;
+		return false;
 	if (!SetupShader(m_fragShID))
-		return 0;
+		return false;
 	if (!SetupShader(m_geomShID))
-		return 0;
+		return false;
 	
 	// Link shaders together
 	glLinkProgram(m_programID);
@@ -79,18 +79,18 @@ ShaderProg::CompileAndLink()
 	{
 		fprintf(stderr, "Could not link shaders.\n");
 		PrintProgramLog();
-		return 0;
+		return false;
 	}
-	return 1;
+	return true;
 }
 
 //--------------------------------------------------------
-int
+bool
 ShaderProg::SetupShader(GLuint id)
 {
 	//If shader is disabled then return
 	if (id == -1)
-		return 1;
+		return true;
 
 	GLint res;
 
@@ -101,14 +101,14 @@ ShaderProg::SetupShader(GLuint id)
 	{
 		fprintf(stderr, "Could not compile shader.\n");
 		PrintShaderLog(id);
-		return 0;
+		return false;
 	}
 
 	// Attach and set to delete on detachment
 	glAttachShader(m_programID, id);
 	glDeleteShader(id);
 
-	return 1;
+	return true;
 }
 
 
