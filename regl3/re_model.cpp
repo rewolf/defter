@@ -16,8 +16,9 @@ using namespace reMath;
 
 //--------------------------------------------------------
 Node::Node(){
-	m_pChild 		= NULL;
-	m_pSibling		= NULL;
+	m_pChild 			= NULL;
+	m_pSibling			= NULL;
+	m_transform.valid	= false;
 }
 
 //--------------------------------------------------------
@@ -43,6 +44,39 @@ Node::Node(Node& copy){
 }
 
 //--------------------------------------------------------
+void
+Node::InvalidateCache(){
+	m_transform.valid = false;
+}
+
+//--------------------------------------------------------
+Node*
+Node::GetNode(string name){
+	Node* found = NULL;
+
+	// If the node is me, return myself
+	if (m_name==name)
+		return this;
+
+	// If it's a sibling, return him
+	if (m_pSibling){
+		found = m_pSibling->GetNode(name);
+		if (found != NULL)
+			return found;
+	}
+
+	// If it's a descendent, return it
+	if (m_pChild){
+		found = m_pChild->GetNode(name);
+		if (found != NULL)
+			return found;
+	}
+
+	// Not found --> return nothing :(
+	return NULL;
+}
+
+//--------------------------------------------------------
 Node::~Node(){
 	// recursive deletes (only the nodes - not gpu data)
 	if (m_pChild)
@@ -53,14 +87,12 @@ Node::~Node(){
 
 //--------------------------------------------------------
 Node*
-reLoadModel(string filename){
+re_LoadModel(string filename){
 	FILE*	fp;
 	char	a_string[256];
 	char	b_string[256];
-	float	flt;
 	int		nModels;
 	Node*	pRoot;
-	Node*	pNode;
 
 	fp 	= fopen(filename.c_str(), "r");
 	if (!fp){
@@ -91,7 +123,7 @@ reLoadModel(string filename){
 	// Process model
 	__fscanf(fp, "%s %s", b_string, b_string);	// MODEL
 	pRoot = new Node;
-	reLoadChildren(fp, pRoot);
+	re_LoadChildren(fp, pRoot);
 
 
 	// End off
@@ -102,11 +134,9 @@ reLoadModel(string filename){
 
 //--------------------------------------------------------
 bool
-reLoadChildren(FILE* fp, Node* pRoot){
+re_LoadChildren(FILE* fp, Node* pRoot){
 	char	a_string[256];
 	char	b_string[256];
-	float	flt;
-	int		nModels;
 	Node*	pNode;
 
 	pNode = NULL;
@@ -126,13 +156,13 @@ reLoadChildren(FILE* fp, Node* pRoot){
 		pNode->m_name = a_string;
 
 		// Load the mesh data and allocate on GPU
-		if (!reLoadMeshData(fp, pNode)){
+		if (!re_LoadMeshData(fp, pNode)){
 			fprintf(stderr, "Current state of model loader is undefined\n");
 		}
 	
 		// Load children if they exist
 		pNode->m_pChild = new Node;
-		if (!reLoadChildren(fp, pNode->m_pChild)){
+		if (!re_LoadChildren(fp, pNode->m_pChild)){
 			delete pNode->m_pChild;
 			pNode->m_pChild = NULL;
 		}
@@ -141,7 +171,6 @@ reLoadChildren(FILE* fp, Node* pRoot){
 		// Prepare for another mesh
 		__fscanf(fp, "%s %s", b_string, a_string);	// MESH or ENDMESH (sibling or parent-mesh end)
 	}
-		printf("\n%s %s\n", b_string, a_string);
 
 	// Return whether we loaded any meshes
 	return (pNode != NULL);
@@ -149,13 +178,12 @@ reLoadChildren(FILE* fp, Node* pRoot){
 
 //--------------------------------------------------------
 bool
-reLoadMeshData(FILE* fp, Node* pNode){
+re_LoadMeshData(FILE* fp, Node* pNode){
 	vector3 	translate;
 	vector3 	rotate;
 	vector3 	scale;
 	int 		nVertices, nNormals, nTexCoords, nIndices, nQuadIndices;
 	char		a_string[256];
-	char		b_string[256];
 	char		szTexture[256];
 	char		szNormalMap[256];
 	vector3*	vertices;
@@ -272,11 +300,11 @@ reLoadMeshData(FILE* fp, Node* pNode){
 //--------------------------------------------------------
 // Deletes the model's gpu memory BUT NOT structure
 void
-reDeleteModelData(Node* pNode){
+re_DeleteModelData(Node* pNode){
 	if (pNode->m_pChild)
-		reDeleteModelData(pNode->m_pChild);
+		re_DeleteModelData(pNode->m_pChild);
 	if (pNode->m_pSibling)
-		reDeleteModelData(pNode->m_pSibling);
+		re_DeleteModelData(pNode->m_pSibling);
 	glDeleteTextures(1, &pNode->m_mesh.tex);
 	glDeleteBuffers(4, pNode->m_mesh.vbo);
 	glDeleteVertexArrays(1, &pNode->m_mesh.vao);

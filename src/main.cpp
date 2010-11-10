@@ -556,8 +556,9 @@ DefTer::Init()
 
 	// Test model
 
-	//m_pModel->m_transform.translate.y = InterpHeight(vector2(
-	//	m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
+	m_pModel->m_transform.translate.y = InterpHeight(vector2(
+		m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
+	m_pModel->m_transform.valid = false;
 
 	return true;
 }
@@ -1361,8 +1362,6 @@ DefTer::Logic(float dt)
 		}
 	}
 
-	//m_pModel->m_transform.translate.y = InterpHeight(vector2(
-	//	m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
@@ -1467,11 +1466,19 @@ DefTer::RenderModel(Node* pModel, matrix4 view){
 //--------------------------------------------------------
 void
 DefTer::RenderNode(Node* pNode, matrix4 parent_tr){
-	matrix4 model_tr = translate_tr(pNode->m_transform.translate)
-					 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
-					 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
-					 * rotate_tr(pNode->m_transform.rotate.x, 1.0f, .0f, .0f)
-					 * scale_tr(pNode->m_transform.scale);
+	matrix4 model_tr;
+
+	if (pNode->m_transform.valid){
+		model_tr = pNode->m_transform.cache;
+	}else{
+		model_tr = translate_tr(pNode->m_transform.translate)
+				 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
+				 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
+				 * rotate_tr(pNode->m_transform.rotate.x, 1.0f, .0f, .0f)
+				 * scale_tr(pNode->m_transform.scale);
+	}
+	pNode->m_transform.cache = model_tr;
+	pNode->m_transform.valid = true;
 
 	matrix4 transform = parent_tr * model_tr;
 	

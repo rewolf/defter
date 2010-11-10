@@ -13,7 +13,7 @@ ModelManager::ModelManager(){
 //-----------------------------------------------------------------------------
 ModelManager::~ModelManager(){
 	for (map<string,Node*>::iterator i=m_models.begin(); i!=m_models.end(); i++){
-		reDeleteModelData(i->second);
+		re_DeleteModelData(i->second);
 		delete i->second;
 	}
 }
@@ -29,7 +29,7 @@ ModelManager::LoadModel(string name, string path){
 	}
 
 	// Otherwise load the model
-	pModel = reLoadModel(path);
+	pModel = re_LoadModel(path);
 
 	if (pModel == NULL){
 		fprintf(stderr, "Model Manager could not load model %s!\n", path.c_str());

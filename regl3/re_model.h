@@ -34,6 +34,7 @@ public:
 	~Node	();
 
 	Node*	GetNode			(string name);
+	void	InvalidateCache ();
 
 public:
 	Node*			m_pChild;		// First child
@@ -44,9 +45,9 @@ public:
 };
 
 //--------------------------------------------------------
-Node* 		reLoadModel			(string filename);
-bool 		reLoadChildren		(FILE* fp, Node*);
-bool		reLoadMeshData		(FILE* fp, Node*);
-void		reDeleteModelData	(Node* root);
+Node* 		re_LoadModel			(string filename);
+bool 		re_LoadChildren		(FILE* fp, Node*);
+bool		re_LoadMeshData		(FILE* fp, Node*);
+void		re_DeleteModelData	(Node* root);
 
 #endif
