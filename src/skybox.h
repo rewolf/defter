@@ -16,12 +16,13 @@ public:
 	Skybox();
 	~Skybox();
 
-	void		render			(matrix4& transform);
+	bool HasError		(void);
+	void render			(matrix4& transform);
 
 
-public:
+private:
 	ShaderProg*		m_shSky;
-	bool			m_no_error;
+	bool			m_error;
 
 	GLuint			m_tex;
 	GLuint			m_vao;

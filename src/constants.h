@@ -83,8 +83,12 @@
 
 
 // Shader Manager settings
-#define SHADERNUM			(2)
+#define SHADERNUM			(3)
 
+
+
+// Stamp Settings
+extern int STAMPCOUNT;
 
 
 const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);

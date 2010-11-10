@@ -21,7 +21,6 @@ Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim)
 		nVerts = pot-1;
 	}
 
-	m_cullingEnabled			= true;
 	m_N					= nVerts;
 	m_nLevels			= nLevels;
 	m_quad_size			= quad_size;
@@ -599,30 +598,21 @@ Clipmap::cull(matrix4& mvp, vector2 shift)
 	{
 		cull_block& block = blocks[i];
 
-		if (!m_cullingEnabled)
+		for (int j = 0; j < 4; j++)
 		{
-			m_draw_count[m_primcount] 	= blocks[i].count;
-			m_draw_starts[m_primcount]	= blocks[i].start_index;
-			m_primcount++;
-		}
-		else
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				vector2& v = block.bound[j];
-				vector4 frag = mvp * vector4(v.x + shift.x, -20.0f, v.y + shift.y, 1.0f);
-				vector4 NDC  = frag * (1.0f / frag.w);
+			vector2& v = block.bound[j];
+			vector4 frag = mvp * vector4(v.x + shift.x, -20.0f, v.y + shift.y, 1.0f);
+			vector4 NDC  = frag * (1.0f / frag.w);
 
-				// if screen x is neither > 1.0 nor < -1.0
-				// remember v.y is the z coordinate, the frag's x and y would still need to be divided
-				// by the w-coordinate (which is w=-z for perspective) so just mult both sides
-				if (!(NDC.z < -1.0f || NDC.z > 1.0f || NDC.x < -1.2f || NDC.x > 1.2f))
-				{
-					m_draw_count[m_primcount] 	= blocks[i].count;
-					m_draw_starts[m_primcount]	= blocks[i].start_index;
-					m_primcount++;
-					break;
-				}
+			// if screen x is neither > 1.0 nor < -1.0
+			// remember v.y is the z coordinate, the frag's x and y would still need to be divided
+			// by the w-coordinate (which is w=-z for perspective) so just mult both sides
+			if (!(NDC.z < -1.0f || NDC.z > 1.0f || NDC.x < -1.2f || NDC.x > 1.2f))
+			{
+				m_draw_count[m_primcount] 	= blocks[i].count;
+				m_draw_starts[m_primcount]	= blocks[i].start_index;
+				m_primcount++;
+				break;
 			}
 		}
 	}
