@@ -178,7 +178,6 @@ DefTer::InitGL()
 		return false;
 	printf("Done\n");
 
-
 	// Init projection matrix
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
@@ -203,6 +202,11 @@ DefTer::InitGL()
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
 	m_is_wireframe	= false;
+
+	// Set initial shader index values
+	m_shmSimple		= 0;
+	m_shmParallax	= 0;
+	m_shmGeomTess	= 0;
 
 	// Init Shaders
 	printf("Initialising Shader Manager...\t");
@@ -959,7 +963,7 @@ DefTer::ProcessInput(float dt)
 		else
 			m_stampSIRM.w = 0.0f;
 
-		printf("Stamp Mirroring: %s",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
+		printf("Stamp Mirroring: %s\n",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
 	}
 
 
