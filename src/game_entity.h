@@ -4,11 +4,11 @@
 
 class GameEntity{
 public:
-	GameEntity();
-	~GameEntity();
+	GameEntity		(Node* pModel);
+	~GameEntity		();
 
 public:
-	Node*		m_model;
+	Node*		m_pModel;
 	vector3		m_translate;
 	vector3		m_rotate;
 	vector3		m_scale;

@@ -6,23 +6,10 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "re_math.h"
-#include <vector>
-using namespace reMath;
-#include <map>
+#include "constants.h"
 using namespace std;
-#include "re_shader.h"
-#include "util.h"
 #include "deform.h"
 #include "clipmap.h"
-
-#ifdef _WIN32
-	float log2(float n)
-	{
-		return logf(n)/logf(2);
-	};
-#endif
 
 //--------------------------------------------------------
 Clipmap::Clipmap(int nVerts, float quad_size, int nLevels, int heightmap_dim)

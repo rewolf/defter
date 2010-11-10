@@ -7,13 +7,8 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "re_math.h"
-using namespace reMath;
-#include <map>
+#include "constants.h"
 using namespace std;
-#include "re_shader.h"
-#include "util.h"
 #include "deform.h"
 
 //--------------------------------------------------------

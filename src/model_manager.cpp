@@ -1,9 +1,6 @@
 
-#include <map>
-#include "regl3.h"
-#include "re_math.h"
-using namespace reMath;
-#include "re_model.h"
+#include "constants.h"
+using namespace std;
 #include "model_manager.h"
 
 //-----------------------------------------------------------------------------

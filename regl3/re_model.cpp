@@ -1,7 +1,6 @@
 
 #include "regl3.h"
 #include "re_math.h"
-using namespace reMath;
 #include "re_model.h"
 
 

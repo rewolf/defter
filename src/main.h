@@ -29,8 +29,6 @@ private:
 	bool		Init			(void);
 	bool		InitGL			(void);
 
-	bool		InitSplash		(void);
-	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
@@ -41,14 +39,9 @@ private:
 	void		RenderNode		(Node* node, matrix4 transform);
 
 public:
-	ShaderProg*		m_shSplash;
-	GLuint			m_vbo[3];
-	GLuint			m_vao;
-	GLuint			m_splashmap;
-
-	ShaderProg*		m_shMain;	// use the provided shader program class
-	ShaderProg*		m_shInner;
 	ShaderProg*		m_shModel;
+	ShaderManager*	m_shManager;
+	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
@@ -76,6 +69,7 @@ public:
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
+	bool			m_is_wireframe;
 
 	// Coarsemap continuous unpacking stuff
 	GLushort*		m_elevationData;
