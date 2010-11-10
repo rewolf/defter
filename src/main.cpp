@@ -211,6 +211,8 @@ DefTer::InitGL()
 	m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
 	m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag");
 
+	chosenShader = 0;
+
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	m_shManager->BindAttrib("vert_Position", 0);
@@ -712,6 +714,13 @@ DefTer::ProcessInput(float dt)
 		printf("%d\n", pitr);
 		m_shManager->UpdateUni1i("parallaxItr", pitr);
 	}
+
+	if (m_input.WasKeyPressed(SDLK_i))
+		chosenShader = 0;
+	else if (m_input.WasKeyPressed(SDLK_o))
+		chosenShader = 1;
+	else if (m_input.WasKeyPressed(SDLK_p))
+		chosenShader = 2;
 	
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
@@ -1243,7 +1252,7 @@ DefTer::Render(float dt)
 	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
 
 	if (m_enableTess)
-		m_shManager->SetActiveShader(1);
+		m_shManager->SetActiveShader(chosenShader);
 	else
 		m_shManager->SetActiveShader(0);
 

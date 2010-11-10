@@ -64,7 +64,7 @@ public:
 	void SetActiveShader	(int shader);
 
 public:
-	ShaderProg*			shaders[2];
+	ShaderProg*			shaders[SHADERNUM];
 	int					curIndex;
 };
 

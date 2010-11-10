@@ -37,6 +37,7 @@ private:
 
 public:
 	ShaderManager*	m_shManager;
+	int				chosenShader;
 	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;

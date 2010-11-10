@@ -82,7 +82,7 @@
 
 
 // Shader Manager settings
-#define SHADERNUM			(2)
+#define SHADERNUM			(3)
 
 
 
