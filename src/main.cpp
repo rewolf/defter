@@ -194,7 +194,6 @@ DefTer::InitGL()
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
-	m_enableTess	= false;
 
 	// Init the world settings
 	m_gravity_on	= true;
@@ -206,9 +205,17 @@ DefTer::InitGL()
 	m_is_wireframe	= false;
 
 	// Init Shaders
-	m_shManager		= new ShaderManager();
-	m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
+	printf("Initialising shaders...\t\t");
+	m_shManager		 = new ShaderManager();
+	res				 = m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
+	res				&= m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmParallax);
+	res				&= m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmGeomTess);
+	m_hdShaderIndex	 = m_shmSimple;
+	if (!res)
+	{
+		printf("Error\n\tError adding shaders to shader manager\n");
+		return false;
+	}
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -859,12 +866,6 @@ DefTer::ProcessInput(float dt)
 		delete[] framebuffer;		
 	}
 
-	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_k))
-	{
-		m_pClipmap->m_cullingEnabled ^= true;
-		printf("Frustum Culling: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
-	}
 
 	// Toggle footprints
 	if (m_input.WasKeyPressed(SDLK_f)){
@@ -872,11 +873,6 @@ DefTer::ProcessInput(float dt)
 		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
-	// Toggle tess shader
-	if (m_input.WasKeyPressed(SDLK_t)){
-		m_enableTess ^= true;
-		printf("Tessellation: %s\n", m_enableTess ? "ON" : "OFF");
-	}
 
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
@@ -903,6 +899,25 @@ DefTer::ProcessInput(float dt)
 
 		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
 	}
+
+
+	// Controls to change the HDShader
+	if (m_input.WasKeyPressed(SDLK_8))
+	{
+		m_hdShaderIndex = m_shmSimple;
+		printf("HD Shader: None\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_9))
+	{
+		m_hdShaderIndex = m_shmParallax;
+		printf("HD Shader: Parallax Mapping\n");
+	}
+	else if (m_input.WasKeyPressed(SDLK_0))
+	{
+		m_hdShaderIndex = m_shmGeomTess;
+		printf("HD Shader: Geometry Tessellation\n");
+	}
+
 
 	// Change between a set of stamps
 	if (m_input.WasKeyPressed(SDLK_1))
@@ -970,7 +985,10 @@ DefTer::ProcessInput(float dt)
 			m_stampSIRM.w = 1.0f;
 		else
 			m_stampSIRM.w = 0.0f;
+
+		printf("Stamp Mirroring: %s",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
 	}
+
 
 	// Toggle gravity
 	if (m_input.WasKeyPressed(SDLK_g))
@@ -1182,11 +1200,8 @@ DefTer::Render(float dt)
 	m_shManager->UpdateUniMat4fv("view", rotate.m);
 	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
 
-	if (m_enableTess)
-		m_shManager->SetActiveShader(1);
-	else
-		m_shManager->SetActiveShader(0);
-
+	// Set the active shader to be the current HD shader chosen
+	m_shManager->SetActiveShader(m_hdShaderIndex);
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
@@ -1199,7 +1214,8 @@ DefTer::Render(float dt)
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
-	m_shManager->SetActiveShader(0);
+	// Switch to the simple shader and render the rest
+	m_shManager->SetActiveShader(m_shmSimple);
 	m_pClipmap->render_levels();
 	
 	// Only render these when not in wireframe mode

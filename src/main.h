@@ -37,6 +37,10 @@ private:
 
 public:
 	ShaderManager*	m_shManager;
+	int				m_shmSimple;
+	int				m_shmParallax;
+	int				m_shmGeomTess;
+	int				m_hdShaderIndex;
 	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
@@ -81,13 +85,10 @@ public:
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 
-	// footprints
+	// Footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
 	bool			m_drawing_feet;
-
-	// Use the second shader for inner grid
-	bool			m_enableTess;
 
 	// Stuff for awesome screenshot
 	matrix4			m_screenshotProj;

@@ -46,7 +46,7 @@ class ShaderManager
 public:
 	ShaderManager			(void);
 	~ShaderManager			(void);
-	bool AddShader			(string vert, string geom, string frag);
+	bool AddShader			(string vert, string geom, string frag, int *index);
 
 	//Update methods
 	void BindAttrib			(char *name, int val);
@@ -64,7 +64,7 @@ public:
 	void SetActiveShader	(int shader);
 
 public:
-	ShaderProg*			shaders[2];
+	ShaderProg*			shaders[SHADERNUM];
 	int					curIndex;
 };
 

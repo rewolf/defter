@@ -410,11 +410,13 @@ ShaderManager::~ShaderManager(void)
 //--------------------------------------------------------
 // Add a new set of shaders
 bool
-ShaderManager::AddShader(string vert, string geom, string frag)
+ShaderManager::AddShader(string vert, string geom, string frag, int *index)
 {
 	//If out of available shader spots then return an error
 	if ((curIndex + 1) > SHADERNUM)
 		return (false);
+
+	*index = curIndex;
 
 	//Create the new shader and increment the current index
 	shaders[curIndex++] = new ShaderProg(vert, geom, frag);
