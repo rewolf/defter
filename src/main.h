@@ -34,8 +34,9 @@ private:
 	void		UpdateClickPos	(void);
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
+	void		WrapEntity		(GameEntity* pEnt);
 
-	void		RenderModel		(Node* model, matrix4 view);
+	void		RenderModel		(GameEntity* pEnt, matrix4 view);
 	void		RenderNode		(Node* node, matrix4 transform);
 
 public:
@@ -59,13 +60,9 @@ public:
 	vector2			m_clickPos;
 	vector2			m_clickPosPrev;
 
+	GameEntity*		m_pCamera;
 	matrix4			m_proj_mat;
-	vector3			m_cam_rotate;
-	vector3			m_cam_translate;
 	vector2			m_clipmap_shift;
-	vector3			m_lastPosition;
-	vector3			m_frameAcceleration;
-	bool			m_hit_ground;
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
@@ -102,7 +99,6 @@ public:
 
 	// Test model
 	Node*			m_pModel;
-	Node*			m_pModel2;
 };
 
 // thread that retrieves the coarsemap from the PBOs

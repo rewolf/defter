@@ -24,6 +24,7 @@ using namespace std;
 #include "skybox.h"
 #include "caching.h"
 #include "model_manager.h"
+#include "game_entity.h"
 #include "main.h"
 
 /******************************************************************************
@@ -188,12 +189,6 @@ DefTer::InitGL()
 	// Init projection matrix
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
-	// Init the cameras position such that it is in the middle of a tile
-	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
-	//m_cam_translate.set(-halfTile, 0.0f, -halfTile);
-	m_cam_translate.set(.0f, .0f, .0f);
-	m_lastPosition  = m_cam_translate;
-
 	// Set the initial stamp mode and clicked state
 	m_stampName		= "Gaussian";
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
@@ -206,7 +201,6 @@ DefTer::InitGL()
 	// Init the world settings
 	m_gravity_on	= true;
 	m_is_crouching	= false;
-	m_hit_ground	= false;
 	m_footprintDT	= .0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
@@ -364,6 +358,11 @@ DefTer::Init()
 	}
 	m_pModel = m_pModels->GetModel("gun");
 
+	
+	// Init the cameras position such that it is in the middle of a tile
+	m_pCamera 		= new GameEntity(m_pModels->GetModel("gun"));
+	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
+	m_pCamera->SetTranslate(vector3(-halfTile, 0.0f, -halfTile));
 
 	// Shader uniforms (Clipmap data)
 	m_shManager->UpdateUni2f("scales",  m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
@@ -381,7 +380,7 @@ DefTer::Init()
 	m_pCaching = new Caching(m_pDeform, CACHING_DIM, m_coarsemap_dim, CLIPMAP_RES, HIGH_DIM, HIGH_RES);
 	printf("Done\n");
 	printf("Initialising caching system...\t");
-	m_pCaching->Init(m_coarsemap.heightmap, m_colormap_tex, vector2(m_cam_translate.x, m_cam_translate.z));
+	m_pCaching->Init(m_coarsemap.heightmap, m_colormap_tex, m_pCamera->GetHorizPosition());
 	printf("Done\n");
 
 	// Create the skybox object
@@ -442,6 +441,7 @@ DefTer::Init()
 	m_pModel->m_transform.translate.y = InterpHeight(vector2(
 		m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
 	m_pModel->m_transform.valid = false;
+
 
 	return true;
 }
@@ -564,7 +564,7 @@ DefTer::UpdateClickPos(void)
 		// Check that the dot is not further than the max 'allowable distance' if in HD stamp mode
 		if (m_is_hd_stamp)
 		{
-			vector2 camPos(m_cam_translate.x, m_cam_translate.z);
+			vector2 camPos = m_pCamera->GetHorizPosition();
 			m_clickPos -= camPos;
 
 			// Calculate the magnitude and scale to keep in range
@@ -692,22 +692,22 @@ DefTer::ProcessInput(float dt)
 {
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
-	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+	float terrain_height = InterpHeight(m_pCamera->GetHorizPosition());
 
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
 	{
 		// Pitch
-		m_cam_rotate.x += dt*move.y*PI*.1f;
+		m_pCamera->m_rotate.x += dt*move.y*PI*.1f;
 		// Yaw
-		m_cam_rotate.y += dt*move.x*PI*.1f;
+		m_pCamera->m_rotate.y += dt*move.x*PI*.1f;
 
 		//Clamp the camera to prevent the user flipping
 		//upside down messing up everything
-		if (m_cam_rotate.x < -PI * 0.5f)
-			m_cam_rotate.x = -PI * 0.5f;
-		if (m_cam_rotate.x > PI * 0.5f)
-			m_cam_rotate.x = PI * 0.5f;
+		if (m_pCamera->m_rotate.x < -PI * 0.5f)
+			m_pCamera->m_rotate.x = -PI * 0.5f;
+		if (m_pCamera->m_rotate.x > PI * 0.5f)
+			m_pCamera->m_rotate.x = PI * 0.5f;
 	}
 
 	// Change the selected deformation location
@@ -721,7 +721,8 @@ DefTer::ProcessInput(float dt)
 
 		vector3 frag(pos.x, pos.y, val);
 		// Derive inverse of view transform (could just use transpose of view matrix
-		matrix4 inverse = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
+		matrix4 inverse = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+						* rotate_tr(-m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
 
 		// Request unprojected coordinate
 		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
@@ -735,7 +736,7 @@ DefTer::ProcessInput(float dt)
 		{
 			// Factor in the camera translation
 			m_stampSIRM.z	 = PI / 2.0f + atan2f(p.z, p.x);
-			p				+= m_cam_translate;
+			p				+= m_pCamera->m_translate;
 			m_clickPos		 = vector2(p.x, p.z);
 			m_clicked		 = true;
 		}
@@ -758,7 +759,7 @@ DefTer::ProcessInput(float dt)
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
-		vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
+		vector2 clickDiff	 = m_clickPos - m_pCamera->GetHorizPosition();
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
@@ -1009,7 +1010,7 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_g))
 	{
 		m_gravity_on ^= true;
-		m_lastPosition = m_cam_translate;	// velocity = 0
+		m_pCamera->ZeroVelocity();	// velocity = 0
 		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
@@ -1018,9 +1019,10 @@ DefTer::ProcessInput(float dt)
 	vector3 moveDirection;
 	matrix4 rotation;
 	if (!m_gravity_on)
-		rotation = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f) * rotate_tr(-m_cam_rotate.x, 1.0f, .0f, .0f);
+		rotation = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+				 * rotate_tr(-m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
 	else
-		rotation = rotate_tr(-m_cam_rotate.y, .0f, 1.0f, .0f);
+		rotation = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	if (m_input.IsKeyPressed(SDLK_w))
 		moveDirection += rotation * vector3( 0.0f, 0.0f,-1.0f);
 
@@ -1037,7 +1039,7 @@ DefTer::ProcessInput(float dt)
 		moveDirection.Normalize();
 		if (m_input.IsKeyPressed(SDLK_LSHIFT))
 			moveDirection *= 3.0f;
-		m_frameAcceleration += moveDirection *= ACCELERATION;
+		m_pCamera->m_frameAcceleration += moveDirection * ACCELERATION;
 	}
 
 
@@ -1045,15 +1047,14 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_SPACE))
 	{
 		// Only jump if on the ground
-		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
-			m_lastPosition.y -= 8.0f * DT;
-	//		m_velocity.y = 8.0f;
+		if (m_pCamera->m_onGround ||  m_pCamera->m_translate.y - EYE_HEIGHT - terrain_height < .1f)
+			m_pCamera->AddVelocity(vector3(.0f, 8.0f, .0f));
 	}
 	else if (m_input.IsKeyPressed(SDLK_SPACE) && !m_gravity_on)
 	{
 		// Float if gravity off
-		m_cam_translate.y += 5.0f * dt;
-		m_lastPosition.y  += 5.0f * dt;
+		m_pCamera->m_translate.y += 5.0f * dt;
+		m_pCamera->ZeroVelocity();
 	}
 	// Controls for crouching (Sinking)
 	if (m_input.IsKeyPressed(SDLK_c))
@@ -1061,15 +1062,15 @@ DefTer::ProcessInput(float dt)
 		// Sink if gravity off
 	   if (!m_gravity_on)
 	   {
-			m_cam_translate.y -= 5.0f * dt;
-			m_lastPosition.y  -= 5.0f * dt;
+			m_pCamera->m_translate.y -= 5.0f * dt;
+			m_pCamera->ZeroVelocity();
 	   }
 	   // Crouch - Drop camera down
 	   else if (!m_is_crouching)
 	   {
-		   m_is_crouching = true;
-		   m_cam_translate.y -= EYE_HEIGHT * .5f;
-		   m_lastPosition.y   = m_cam_translate.y;
+			m_is_crouching = true;
+			m_pCamera->m_translate.y -= EYE_HEIGHT*.5f;
+			m_pCamera->ZeroVelocity();
 	   }
 	}
 	// Disable crouching if it was previously enabled and no longer pressing Ctrl
@@ -1085,97 +1086,69 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::Logic(float dt)
 {
-	float speed2, terrain_height;
+	float terrain_height;
 
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
 		dt *= 5.0f;
 
 	// Update the caching system
-	m_pCaching->Update(vector2(m_cam_translate.x, m_cam_translate.z), vector2(m_cam_rotate.x, m_cam_rotate.y));
+	m_pCaching->Update(m_pCamera->GetHorizPosition(), vector2(m_pCamera->m_rotate.x, m_pCamera->m_rotate.y));
+
+	// Global environment forces
+	if (m_gravity_on)
+		m_pCamera->m_frameAcceleration += GRAVITY;
 
 	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
 	static float compoundDT = .0f;
 	compoundDT += dt;
 	while (compoundDT > DT){
-		// Perform camera physics
-		vector3 accel 	= m_frameAcceleration;
-		vector3 velocity= (m_cam_translate - m_lastPosition) * invDT; // (f(t)-f(t-1))/(dt)
-		if (m_gravity_on)
-			accel += GRAVITY;
-		if (m_hit_ground)
-			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
-		else
-			accel += - AIR_DRAG * velocity;
+		// Update camera position
+		m_pCamera->Update();
 
-		//m_velocity 		+= accel * DT;
-		vector3 temp 	= m_cam_translate;
-		m_cam_translate	+= m_cam_translate - m_lastPosition + accel * DT * DT;
-		velocity		= (m_cam_translate - m_lastPosition) * invDT * .5f; // (f(t+1)-f(t-1))/(2dt)
-		m_lastPosition 	= temp;
-		speed2			= velocity.Mag2();
-
-		// If the camera is moving we may need to drag the selection to within the HD Aura
-		if (speed2 > 1.0e-5)
-			UpdateClickPos();
-
-		// Boundary check for wrapping position
-		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
-		if (m_cam_translate.x > boundary){
-			m_cam_translate.x -= boundary * 2.0f;
-			m_lastPosition.x  -= boundary * 2.0f;
-		}
-		else if (m_cam_translate.x < -boundary){
-			m_cam_translate.x += boundary * 2.0f;
-			m_lastPosition.x  += boundary * 2.0f;
-		}
-		if (m_cam_translate.z > boundary){
-			m_cam_translate.z -= boundary * 2.0f;
-			m_lastPosition.z  -= boundary * 2.0f;
-		}
-		else if (m_cam_translate.z < -boundary){
-			m_cam_translate.z += boundary * 2.0f;
-			m_lastPosition.z  += boundary * 2.0f;
-		}
+		WrapEntity(m_pCamera);
 
 		// Don't let player go under the terrain
-		terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+		terrain_height = InterpHeight(m_pCamera->GetHorizPosition());
 
-		if (m_cam_translate.y < terrain_height)
+		if (m_pCamera->m_translate.y < terrain_height)
 		{
-			m_lastPosition.y	= 
-			m_cam_translate.y 	= terrain_height;
-			m_hit_ground		= true;
+			m_pCamera->m_translate.y = terrain_height;
+			m_pCamera->ZeroVelocity();
+			m_pCamera->m_onGround	= true;
 		} else{
-			m_hit_ground		= false;
+			m_pCamera->m_onGround	= false;
 		}
 		compoundDT -= DT;
 	}
 
+	// If the camera is moving we may need to drag the selection to within the HD Aura
+	UpdateClickPos();
+
 	// Create footprints
 	m_footprintDT += dt;
-	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
+	if (m_drawing_feet && m_gravity_on && m_pCamera->GetVelocity().Mag2() > .025f)
 	{ 
-		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
-			vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
-			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
-			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
+		if (m_pCamera->m_translate.y - EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
+			vector4 stampSIRM= vector4(0.5f, 2.0f, m_pCamera->m_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+			vector2 foot 	 = m_pCamera->GetHorizPosition();
+			foot 			+= rotate_tr2(m_pCamera->m_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			//m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		}
 	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
-	vector3 pos 	  = m_cam_translate * m_pClipmap->m_metre_to_tex;
-	m_clipmap_shift.x = -fmodf(m_cam_translate.x, 32*m_pClipmap->m_quad_size);
-	m_clipmap_shift.y = -fmodf(m_cam_translate.z, 32*m_pClipmap->m_quad_size);
+	vector3 pos 	  = m_pCamera->m_translate * m_pClipmap->m_metre_to_tex;
+	m_clipmap_shift.x = -fmodf(m_pCamera->m_translate.x, 32*m_pClipmap->m_quad_size);
+	m_clipmap_shift.y = -fmodf(m_pCamera->m_translate.z, 32*m_pClipmap->m_quad_size);
 
-	m_shManager->UpdateUni1f("cam_height", m_cam_translate.y);
+	m_shManager->UpdateUni1f("cam_height", m_pCamera->m_translate.y);
 	m_shManager->UpdateUni4f("cam_and_shift", pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
-	m_frameAcceleration.set(.0f);
+	m_pCamera->m_frameAcceleration.set(.1f);
 }
 
 //--------------------------------------------------------
@@ -1186,11 +1159,13 @@ DefTer::Render(float dt)
 
 	matrix4 rotate, rotateclamp, cullviewproj, viewproj, translate;
 
-	translate= translate_tr(.0f, -m_cam_translate.y, .0f);
-	rotateclamp  = rotate_tr(max(.0f, m_cam_rotate.x), 1.0f, .0f, .0f) * rotate_tr(m_cam_rotate.y, .0f, 1.0f, .0f);
+	translate= translate_tr(.0f, -m_pCamera->m_translate.y, .0f);
+	rotateclamp  = rotate_tr(max(.0f, m_pCamera->m_rotate.x), 1.0f, .0f, .0f) 
+				 * rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	cullviewproj = m_proj_mat * rotateclamp * translate;
 
-	rotate   = rotate_tr(m_cam_rotate.x, 1.0f, .0f, .0f) * rotate_tr(m_cam_rotate.y, .0f, 1.0f, .0f);
+	rotate   = rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f) 
+			 * rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	viewproj = m_proj_mat * rotate;
 
 	// Bind coarse heightmap and its corresponding normal and colour maps
@@ -1239,7 +1214,7 @@ DefTer::Render(float dt)
 	if (!m_is_wireframe)
 		m_pSkybox->render(viewproj);
 
-	RenderModel(m_pModel, rotate*translate_tr(-m_cam_translate));
+	//RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 
 	if (!m_is_wireframe)
 		m_pCaching->Render();
@@ -1255,13 +1230,19 @@ DefTer::Render(float dt)
 
 //--------------------------------------------------------
 void
-DefTer::RenderModel(Node* pModel, matrix4 view){
-	matrix4 mvp;
+DefTer::RenderModel(GameEntity* pEnt, matrix4 view){
+	matrix4 model_tr;
+
+	model_tr = translate_tr(pEnt->m_translate)
+			 * rotate_tr(pEnt->m_rotate.z, .0f, .0f, 1.0f)
+			 * rotate_tr(pEnt->m_rotate.y, .0f, 1.0f, .0f)
+			 * rotate_tr(pEnt->m_rotate.x, 1.0f, .0f, .0f)
+			 * scale_tr(pEnt->m_scale);
 	
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 
-	RenderNode(pModel, view);
+	RenderNode(pEnt->m_pModel, view);
 }
 
 //--------------------------------------------------------
@@ -1338,3 +1319,25 @@ map_retriever(void* defter)
 	return 0;
 }
 
+//--------------------------------------------------------
+void
+DefTer::WrapEntity(GameEntity* pEnt){
+	// Boundary check for wrapping position
+	static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
+	if (pEnt->m_translate.x > boundary){
+		pEnt->m_translate.x -= boundary * 2.0f;
+		pEnt->m_lastTranslate.x  -= boundary * 2.0f;
+	}
+	else if (pEnt->m_translate.x < -boundary){
+		pEnt->m_translate.x += boundary * 2.0f;
+		pEnt->m_lastTranslate.x  += boundary * 2.0f;
+	}
+	if (pEnt->m_translate.z > boundary){
+		pEnt->m_translate.z -= boundary * 2.0f;
+		pEnt->m_lastTranslate.z  -= boundary * 2.0f;
+	}
+	else if (pEnt->m_translate.z < -boundary){
+		pEnt->m_translate.z += boundary * 2.0f;
+		pEnt->m_lastTranslate.z  += boundary * 2.0f;
+	}
+}
