@@ -16,10 +16,10 @@ public:
 	ShaderProg(string vertPath, string geomPath, string fragPath);
 	~ShaderProg();
 
-	int 	CompileAndLink	(void);
+	bool 	CompileAndLink	(void);
 
 protected:
-	int		SetupShader		(GLuint id);
+	bool	SetupShader		(GLuint id);
 	string 	LoadSource		(string path);
 	void	PrintShaderLog	(GLuint shaderID);
 	void	PrintProgramLog	(void);

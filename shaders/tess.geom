@@ -232,9 +232,8 @@ bool prepareVert(in int idx){
 			add.xz = (texture(detail3N, tc).rg*2 - 1);
 			break;
 	};
-	add.y*=-1.0;
 	out_norms[idx] += add * factor;
-	out_verts[idx] = temp - cc.yxyy * detail * .5 *factor;
+	out_verts[idx] = temp + cc.yxyy * detail * .5 *factor;
 	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
 	//out_verts[idx].w = 1.0;
 	return (detail > .0f);

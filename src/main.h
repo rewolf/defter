@@ -37,7 +37,11 @@ private:
 
 public:
 	ShaderManager*	m_shManager;
-	int				chosenShader;
+	int				m_shmSimple;
+	int				m_shmParallax;
+	int				m_shmGeomTess;
+	int				m_hdShaderIndex;
+
 	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
@@ -48,7 +52,7 @@ public:
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
-	string			m_stampName;
+	int				m_stampIndex;
 	vector4			m_stampSIRM;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
@@ -82,13 +86,10 @@ public:
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 
-	// footprints
+	// Footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
 	bool			m_drawing_feet;
-
-	// Use the second shader for inner grid
-	bool			m_enableTess;
 
 	// Stuff for awesome screenshot
 	matrix4			m_screenshotProj;

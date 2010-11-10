@@ -103,7 +103,7 @@ DefTer::~DefTer()
 bool
 DefTer::InitGL()
 {
-	int res;
+	bool error;
 	char* shVersion;
 	int nVertTexUnits, nGeomTexUnits, nTexUnits, nTexUnitsCombined, nColorAttachments, nTexSize,
 		nTexLayers, nVertAttribs, nGeomVerts, nGeomComponents;
@@ -164,7 +164,7 @@ DefTer::InitGL()
 	// Init the splash screen info
 	printf("Initialising Splash screen...\t");
 	m_pSplash = new Splash();
-	if (m_pSplash->GetErrorStatues())
+	if (m_pSplash->HasError())
 	{
 		printf("Error\n\tSplash screen initialisation error\n");
 		return false;
@@ -188,30 +188,35 @@ DefTer::InitGL()
 	m_lastPosition  = m_cam_translate;
 
 	// Set the initial stamp mode and clicked state
-	m_stampName		= "Gaussian";
-	m_stampSIRM		= vector4(10.0f, 0.1f, 0.0f, 0.0f);
+	m_stampIndex	= 0;
+	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
-	m_enableTess	= true;
 
 	// Init the world settings
 	m_gravity_on	= true;
 	m_is_crouching	= false;
 	m_hit_ground	= false;
-	m_footprintDT	= .0f;
+	m_footprintDT	= 0.0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
 	m_is_wireframe	= false;
 
 	// Init Shaders
-	m_shManager		= new ShaderManager();
-	m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
-	m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
-	m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag");
+	printf("Initialising shaders...\t\t");
+	m_shManager		 = new ShaderManager();
+	error			 = !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
+	error			&= !m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag", &m_shmParallax);
+	error			&= !m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag", &m_shmGeomTess);
+	m_hdShaderIndex	 = m_shmSimple;
+	if (error)
+	{
+		printf("Error\n\tError adding shaders to shader manager\n");
+		return false;
+	}
 
-	chosenShader = 0;
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -220,8 +225,7 @@ DefTer::InitGL()
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
-	res = m_shManager->CompileAndLink();
-	if (!res)
+	if (!m_shManager->CompileAndLink())
 	{
 		printf("Error\n\tWill not continue without working shaders\n");
 		return false;
@@ -343,7 +347,7 @@ DefTer::Init()
 	// Create the deformer object
 	printf("Creating deformer...\t\t");
 	m_pDeform = new Deform(m_coarsemap_dim, HIGH_DIM, m_pClipmap->m_metre_to_tex, 1.0f/(HIGH_DIM * HIGH_RES));
-	if (!m_pDeform->m_no_error)
+	if (m_pDeform->HasError())
 	{
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
 		return false;
@@ -355,7 +359,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampName, vector4(0.0f), true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampIndex, vector4(0.0f), true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -372,7 +376,7 @@ DefTer::Init()
 	// Create the skybox object
 	printf("Creating skybox...\t\t");
 	m_pSkybox = new Skybox();
-	if (!m_pSkybox->m_no_error)
+	if (m_pSkybox->HasError())
 	{
 		fprintf(stderr, "\t\tError\n\tCould not create skybox\n");
 		return false;
@@ -715,13 +719,6 @@ DefTer::ProcessInput(float dt)
 		m_shManager->UpdateUni1i("parallaxItr", pitr);
 	}
 
-	if (m_input.WasKeyPressed(SDLK_i))
-		chosenShader = 0;
-	else if (m_input.WasKeyPressed(SDLK_o))
-		chosenShader = 1;
-	else if (m_input.WasKeyPressed(SDLK_p))
-		chosenShader = 2;
-	
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
 	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
@@ -796,7 +793,7 @@ DefTer::ProcessInput(float dt)
 
 		if (m_is_hd_stamp)
 		{
-			m_pCaching->DeformHighDetail(m_clickPos, m_stampName, stampSIRM);
+			m_pCaching->DeformHighDetail(m_clickPos, m_stampIndex, stampSIRM);
 		}
 		else
 		{
@@ -869,7 +866,7 @@ DefTer::ProcessInput(float dt)
 
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampName, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampIndex, stampSIRM, true);
 
 			// Calculate the normals
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
@@ -928,12 +925,6 @@ DefTer::ProcessInput(float dt)
 		delete[] framebuffer;		
 	}
 
-	// Toggle Frustum Culling
-	if (m_input.WasKeyPressed(SDLK_k))
-	{
-		m_pClipmap->m_cullingEnabled ^= true;
-		printf("Frustum Culling: %s\n", m_pClipmap->m_cullingEnabled ? "ON" : "OFF");
-	}
 
 	// Toggle footprints
 	if (m_input.WasKeyPressed(SDLK_f)){
@@ -941,11 +932,6 @@ DefTer::ProcessInput(float dt)
 		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
-	// Toggle tess shader
-	if (m_input.WasKeyPressed(SDLK_t)){
-		m_enableTess ^= true;
-		printf("Tessellation: %s\n", m_enableTess ? "ON" : "OFF");
-	}
 
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
@@ -973,43 +959,35 @@ DefTer::ProcessInput(float dt)
 		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
 	}
 
-	// Change between a set of stamps
-	if (m_input.WasKeyPressed(SDLK_1))
+
+	// Controls to change the HDShader
+	if (m_input.WasKeyPressed(SDLK_8))
 	{
-		m_stampName = "%";
-		printf("Stamp: %%\n");
+		m_hdShaderIndex = m_shmSimple;
+		printf("HD Shader: None\n");
 	}
-	else if (m_input.WasKeyPressed(SDLK_2))
+	else if (m_input.WasKeyPressed(SDLK_9))
 	{
-		m_stampName = "Gaussian";
-		printf("Stamp: Gaussian\n");
+		m_hdShaderIndex = m_shmParallax;
+		printf("HD Shader: Parallax Mapping\n");
 	}
-	else if (m_input.WasKeyPressed(SDLK_3))
+	else if (m_input.WasKeyPressed(SDLK_0))
 	{
-		m_stampName = "leftfoot";
-		printf("Stamp: Left Foot\n");
-	}
-	else if (m_input.WasKeyPressed(SDLK_4))
-	{
-		m_stampName = "smiley";
-		printf("Stamp: Smiley\n");
-	}
-	else if (m_input.WasKeyPressed(SDLK_5))
-	{
-		m_stampName = "smiley2";
-		printf("Stamp: Smiley2\n");
-	}
-	else if (m_input.WasKeyPressed(SDLK_6))
-	{
-		m_stampName = "pedobear";
-		printf("Stamp: Pedobear\n");
-	}
-	else if (m_input.WasKeyPressed(SDLK_7))
-	{
-		m_stampName = "mess";
-		printf("Stamp: Mess\n");
+		m_hdShaderIndex = m_shmGeomTess;
+		printf("HD Shader: Geometry Tessellation\n");
 	}
 
+	// Toggle the stamp values
+	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
+	{
+		m_stampIndex = WRAP((m_stampIndex + 1), STAMPCOUNT);
+		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
+	}
+	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
+	{
+		m_stampIndex = WRAP((m_stampIndex - 1), STAMPCOUNT);
+		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
+	}
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
@@ -1039,7 +1017,10 @@ DefTer::ProcessInput(float dt)
 			m_stampSIRM.w = 1.0f;
 		else
 			m_stampSIRM.w = 0.0f;
+
+		printf("Stamp Mirroring: %s",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
 	}
+
 
 	// Toggle gravity
 	if (m_input.WasKeyPressed(SDLK_g))
@@ -1195,10 +1176,10 @@ DefTer::Logic(float dt)
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
 			vector4 stampSIRM= vector4(0.5f, -0.1f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 			vector2 foot 	 = vector2(m_cam_translate.x, m_cam_translate.z);
-			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3 : -0.3, 0.0f);
+			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			//**********************m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		}
 	}
 
@@ -1251,10 +1232,8 @@ DefTer::Render(float dt)
 	m_shManager->UpdateUniMat4fv("mvp", (m_proj_mat * rotate).m);
 	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
 
-	if (m_enableTess)
-		m_shManager->SetActiveShader(chosenShader);
-	else
-		m_shManager->SetActiveShader(0);
+	// Set the active shader to be the current HD shader chosen
+	m_shManager->SetActiveShader(m_hdShaderIndex);
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
@@ -1275,7 +1254,8 @@ DefTer::Render(float dt)
 
 	BEGIN_PROF;
 	m_pClipmap->render_inner();
-	m_shManager->SetActiveShader(0);
+	// Switch to the simple shader and render the rest
+	m_shManager->SetActiveShader(m_shmSimple);
 	m_pClipmap->render_levels();
 	
 	// Only render these when not in wireframe mode
