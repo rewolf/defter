@@ -1461,7 +1461,7 @@ DefTer::RenderModel(Node* pModel, matrix4 view){
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 
-	RenderNode(pModel, m_proj_mat * view);
+	RenderNode(pModel, view);
 }
 
 //--------------------------------------------------------
@@ -1481,7 +1481,13 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr){
 		RenderNode(pNode->m_pChild, transform);
 
 	glBindVertexArray(pNode->m_mesh.vao);
-	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 1, GL_FALSE, transform.m);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 
+			1, GL_FALSE, (m_proj_mat * transform).m);
+	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "modelview"), 1, GL_FALSE, transform.m);
+	glUniform3fv(glGetUniformLocation(m_shModel->m_programID, "diffuseC"), 1, pNode->m_mesh.diffuse.v);
+	glUniform4f(glGetUniformLocation(m_shModel->m_programID, "specularC"), 
+			pNode->m_mesh.specular.x, pNode->m_mesh.specular.y, pNode->m_mesh.specular.z,
+			pNode->m_mesh.specPower);
 
 	glDrawElements(GL_TRIANGLES, pNode->m_mesh.nIndices, GL_UNSIGNED_INT, 0);
 	

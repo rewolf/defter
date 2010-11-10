@@ -108,6 +108,7 @@ public:
 
 	// Test model
 	Node*			m_pModel;
+	Node*			m_pModel2;
 };
 
 // thread that retrieves the coarsemap from the PBOs
