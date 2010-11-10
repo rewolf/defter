@@ -14,3 +14,10 @@
 :vsp shaders/simple.vert
 :set syntax=glsl
 
+:tabnew shaders/tess.frag
+:set syntax=glsl
+:vsp shaders/tess.geom
+:set syntax=glsl
+:vsp shaders/tess.vert
+:set syntax=glsl
+

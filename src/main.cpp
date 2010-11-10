@@ -209,6 +209,7 @@ DefTer::InitGL()
 	m_shManager		= new ShaderManager();
 	m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag");
 	m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag");
+	m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -237,6 +238,7 @@ DefTer::InitGL()
 	m_shManager->UpdateUni1i("detail2N", 9);
 	m_shManager->UpdateUni1i("detail3N", 10);
 	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
+	m_shManager->UpdateUni1f("tc_delta", 1.0f / HIGH_DIM);
 	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 
 	m_shManager->UpdateUni1f("parallaxBias", PARALLAXBIAS);
@@ -711,7 +713,6 @@ DefTer::ProcessInput(float dt)
 		m_shManager->UpdateUni1i("parallaxItr", pitr);
 	}
 	
-
 	int wheel_ticks 	 = m_input.GetWheelTicks();
 	MouseDelta move 	 = m_input.GetMouseDelta();
 	float terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
@@ -1236,16 +1237,15 @@ DefTer::Render(float dt)
 	m_pCaching->GetActiveTiles(activeTiles);
 	int firstTile[2] = {activeTiles[0].m_row, activeTiles[0].m_col};
 
-
 	// Set the view matrix.
 	m_shManager->UpdateUniMat4fv("view", rotate.m);
+	m_shManager->UpdateUniMat4fv("mvp", (m_proj_mat * rotate).m);
 	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
 
 	if (m_enableTess)
 		m_shManager->SetActiveShader(1);
 	else
 		m_shManager->SetActiveShader(0);
-
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
