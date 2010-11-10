@@ -1124,7 +1124,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			//m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			//m_pCaching->DeformHighDetail(foot, "Footprint", stampSIRM);
 		}
 	}
 

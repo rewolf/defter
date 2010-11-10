@@ -298,6 +298,8 @@ KillUtil(void)
 {
 	glDeleteBuffers(3, util_vbo);
 	glDeleteVertexArrays(1, &util_vao);
+
+	RE_DELETE(m_stampManager);
 }
 
 //--------------------------------------------------------
@@ -604,8 +606,8 @@ Stamp::Stamp(void)
 //--------------------------------------------------------
 Stamp::~Stamp(void)
 {
-	//if (!m_isTexStamp)
-	//	RE_DELETE(m_shader);
+	if (!m_isTexStamp)
+		RE_DELETE(m_shader);
 }
 
 //--------------------------------------------------------
@@ -683,7 +685,7 @@ Stamp::GetShaderID(void)
 //--------------------------------------------------------
 StampManager::StampManager(void)
 {
-	m_error = false;
+	m_error = true;
 
 	// Create the texture stamp shader
 	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
@@ -698,56 +700,81 @@ StampManager::StampManager(void)
 	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
 	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
 
-	// Add in the stamps
-	Stamp newStamp;
-
 	// Gaussian function stamp
-	newStamp.initShader = &setupGaussian;
-	m_error &= !newStamp.CreateFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag");
-	stampCollection.push_back(newStamp);
+	if (!AddFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag"))
+		return;
 
 	// Testing image stamp
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "%", "images/stamps/percent.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("%", "images/stamps/percent.png"))
+		return;
 
 	// Footprint stamp
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Footprint", "images/stamps/leftfoot.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Footprint", "images/stamps/leftfoot.png"))
+		return;
 
 	// Smiley stamp 1
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley", "images/stamps/smiley.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Smiley", "images/stamps/smiley.png"))
+		return;
 	
 	// Smiley stamp 2
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley2", "images/stamps/smiley2.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Smiley2", "images/stamps/smiley2.png"))
+		return;
 
 	// Pedobear
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Pedobear", "images/stamps/pedobear.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Pedobear", "images/stamps/pedobear.png"))
+		return;
 
 	// Mess
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Mess", "images/stamps/mess.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Mess", "images/stamps/mess.png"))
+		return;
 
-	// Set how many stamps there currently are
-	STAMPCOUNT = stampCollection.size();
+	m_error = false;
 }
 
 //--------------------------------------------------------
 StampManager::~StampManager(void)
 {
 	RE_DELETE(m_shTexStamp);
+	for (int i = 0; i < (int)stampCollection.size(); i++)
+		delete stampCollection.at(i);
 }
 
 //--------------------------------------------------------
-Stamp
+bool
+StampManager::AddTexStamp(string stampName, string textureName)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateTexStamp(m_shTexStamp, stampName, textureName))
+		return false;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateFuncStamp(stampName, vertPath, fragPath))
+		return false;
+
+	newStamp->initShader = &setupGaussian;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::FinaliseStamp(Stamp* newStamp)
+{
+	stampCollection.push_back(newStamp);
+	stampIndexMap[newStamp->GetStampName()] = STAMPCOUNT++;
+
+	return true;
+}
+
+//--------------------------------------------------------
+Stamp*
 StampManager::GetStamp(int stampIndex)
 {
 	return (stampCollection.at(stampIndex));
@@ -757,17 +784,24 @@ StampManager::GetStamp(int stampIndex)
 string
 StampManager::GetStampName(int stampIndex)
 {
-	return (stampCollection.at(stampIndex).GetStampName());
+	return (stampCollection.at(stampIndex)->GetStampName());
+}
+
+//--------------------------------------------------------
+int
+StampManager::GetStampIndex(string stampName)
+{
+	return (stampIndexMap[stampName]);
 }
 
 //--------------------------------------------------------
 void
-setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity)
+setupGaussian(Stamp* stamp, vector2 clickPos, float scale, float intensity)
 {
 	const float epsilon = 0.000001f;
 
 	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
-	glUniform1f(glGetUniformLocation(stamp.GetShaderID(), "falloff"), falloff);
+	glUniform1f(glGetUniformLocation(stamp->GetShaderID(), "falloff"), falloff);
 }
 //--------------------------------------------------------
 //--------------------------------------------------------
