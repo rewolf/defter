@@ -713,9 +713,9 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsButtonPressed(1))
 	{
 		// Pitch
-		m_pCamera->m_rotate.x += dt*move.y*PI*.1f;
+		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
 		// Yaw
-		m_pCamera->m_rotate.y += dt*move.x*PI*.1f;
+		m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
 
 		//Clamp the camera to prevent the user flipping
 		//upside down messing up everything
@@ -736,8 +736,8 @@ DefTer::ProcessInput(float dt)
 
 		vector3 frag(pos.x, pos.y, val);
 		// Derive inverse of view transform (could just use transpose of view matrix
-		matrix4 inverse = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
-						* rotate_tr(-m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
+		matrix4 inverse = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+						* rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
 
 		// Request unprojected coordinate
 		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
@@ -1019,10 +1019,10 @@ DefTer::ProcessInput(float dt)
 	vector3 moveDirection;
 	matrix4 rotation;
 	if (!m_gravity_on)
-		rotation = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
-				 * rotate_tr(-m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
+		rotation = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+				 * rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
 	else
-		rotation = rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
+		rotation = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	if (m_input.IsKeyPressed(SDLK_w))
 		moveDirection += rotation * vector3( 0.0f, 0.0f,-1.0f);
 
@@ -1093,7 +1093,7 @@ DefTer::Logic(float dt)
 		dt *= 5.0f;
 
 	// Update the caching system
-	m_pCaching->Update(m_pCamera->GetHorizPosition(), vector2(m_pCamera->m_rotate.x, m_pCamera->m_rotate.y));
+	m_pCaching->Update(m_pCamera->GetHorizPosition(), vector2(-m_pCamera->m_rotate.x, -m_pCamera->m_rotate.y));
 
 	// Global environment forces
 	if (m_gravity_on)
@@ -1130,9 +1130,9 @@ DefTer::Logic(float dt)
 	if (m_drawing_feet && m_gravity_on && m_pCamera->GetVelocity().Mag2() > .025f)
 	{ 
 		if (m_pCamera->m_translate.y - EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
-			vector4 stampSIRM= vector4(0.5f, 2.0f, m_pCamera->m_rotate.y, m_flipFoot ? 1.0f : 0.0f);
+			vector4 stampSIRM= vector4(0.5f, 2.0f, -m_pCamera->m_rotate.y, m_flipFoot ? 1.0f : 0.0f);
 			vector2 foot 	 = m_pCamera->GetHorizPosition();
-			foot 			+= rotate_tr2(m_pCamera->m_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
+			foot 			+= rotate_tr2(-m_pCamera->m_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
 			//m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
@@ -1160,12 +1160,12 @@ DefTer::Render(float dt)
 	matrix4 rotate, rotateclamp, cullviewproj, viewproj, translate;
 
 	translate= translate_tr(.0f, -m_pCamera->m_translate.y, .0f);
-	rotateclamp  = rotate_tr(max(.0f, m_pCamera->m_rotate.x), 1.0f, .0f, .0f) 
-				 * rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
+	rotateclamp  = rotate_tr(max(.0f, -m_pCamera->m_rotate.x), 1.0f, .0f, .0f) 
+				 * rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	cullviewproj = m_proj_mat * rotateclamp * translate;
 
-	rotate   = rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f) 
-			 * rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
+	rotate   = rotate_tr(-m_pCamera->m_rotate.x, 1.0f, .0f, .0f) 
+			 * rotate_tr(-m_pCamera->m_rotate.y, .0f, 1.0f, .0f);
 	viewproj = m_proj_mat * rotate;
 
 	// Bind coarse heightmap and its corresponding normal and colour maps
@@ -1212,7 +1212,7 @@ DefTer::Render(float dt)
 	if (!m_is_wireframe)
 		m_pSkybox->render(viewproj);
 
-	//RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
+	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 
 	if (!m_is_wireframe)
 		m_pCaching->Render();
@@ -1240,7 +1240,7 @@ DefTer::RenderModel(GameEntity* pEnt, matrix4 view){
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 
-	RenderNode(pEnt->m_pModel, view);
+	RenderNode(pEnt->m_pModel, view * model_tr);
 }
 
 //--------------------------------------------------------
