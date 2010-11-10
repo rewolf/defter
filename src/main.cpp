@@ -178,7 +178,6 @@ DefTer::InitGL()
 		return false;
 	printf("Done\n");
 
-
 	// Init projection matrix
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
@@ -204,24 +203,30 @@ DefTer::InitGL()
 	m_drawing_feet	= false;
 	m_is_wireframe	= false;
 
+	// Set initial shader index values
+	m_shmSimple		= 0;
+	m_shmParallax	= 0;
+	m_shmGeomTess	= 0;
+
 	// Init Shaders
-	printf("Initialising shaders...\t\t");
+	printf("Initialising Shader Manager...\t");
 	m_shManager		 = new ShaderManager();
 	error			 = !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
 	error			&= !m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag", &m_shmParallax);
 	error			&= !m_shManager->AddShader("shaders/tess.vert","shaders/tess.geom","shaders/tess.frag", &m_shmGeomTess);
 	m_hdShaderIndex	 = m_shmSimple;
-	if (error)
-	{
-		printf("Error\n\tError adding shaders to shader manager\n");
-		return false;
-	}
 
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
 	m_shManager->BindAttrib("vert_Position", 0);
 	m_shManager->BindAttrib("vert_TexCoord", 1);
+	if (error || !CheckError("Binding shader attributes"))
+	{
+		printf("Error\n\tError adding shaders to shader manager\n");
+		return false;
+	}
+	printf("Done\n");
 
 	// NB. must be done after binding attributes
 	printf("Compiling shaders...\t\t");
@@ -286,16 +291,16 @@ DefTer::InitGL()
 	printf(
 	"w,a,s,d\t"	"= Camera Translation\n"
 	"l\t"		"= Lines/Wireframe Toggle\n"
-	"k\t"		"= En/Disable Frustum Culling\n"
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
 	"c\t"		"= Crouch/Sink\n"
 	"f\t"		"= Toggle footprint deforms\n"
 	"h\t"		"= High Detail Toggle\n"
-	"L-Shift\t"	"= En/Disable Super Speed\n"
+	"Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
 	"L-Mouse\t" "= Rotate Camera\n"
 	"Wheel\t"	"= Deform\n"
+	"8/9/0\t"	"= HD Shader: Simple/Parallax/Geom\n"
 	"F12\t"		"= Screenshot\n"
 	"Esc\t"		"= Quit\n"
 	);
@@ -303,11 +308,10 @@ DefTer::InitGL()
 	printf("-------------Stamp  Controls-------------\n");
 	printf("-----------------------------------------\n");
 	printf(
+	"[/]\t"		"= Cycle Stamps\n"
 	"Pg Up/Dn"	"= Stamp Scale\n"
 	"+/-\t"		"= Stamp Intensity\n"
 	"m\t"		"= Stamp Mirror\n"
-	"0\t"		"= %%\n"
-	"1\t"		"= Gaussian\n"
 	);
 	printf("-----------------------------------------\n");
 	printf("-----------------------------------------\n");
@@ -791,6 +795,11 @@ DefTer::ProcessInput(float dt)
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
+		// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampIndex, stampSIRM);
@@ -856,14 +865,6 @@ DefTer::ProcessInput(float dt)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
 			
-			// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-			// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampIndex, stampSIRM, true);
@@ -872,16 +873,16 @@ DefTer::ProcessInput(float dt)
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
 			
-			// Reset to wireframe mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
 			m_otherState = READY;
 		}
+
+		// Reset to wireframe mode
+		if (m_is_wireframe)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 	// Take screenshot
@@ -1018,7 +1019,7 @@ DefTer::ProcessInput(float dt)
 		else
 			m_stampSIRM.w = 0.0f;
 
-		printf("Stamp Mirroring: %s",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
+		printf("Stamp Mirroring: %s\n",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
 	}
 
 
@@ -1179,7 +1180,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			//**********************m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
+			//m_pCaching->DeformHighDetail(foot, "leftfoot", stampSIRM);
 		}
 	}
 
