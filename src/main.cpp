@@ -735,6 +735,11 @@ DefTer::ProcessInput(float dt)
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
+		// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
 			m_pCaching->DeformHighDetail(m_clickPos, m_stampIndex, stampSIRM);
@@ -800,10 +805,6 @@ DefTer::ProcessInput(float dt)
 					fuck.push_back(vector2(-1.0f, -1.0f));
 			}
 			
-			// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampIndex, stampSIRM, true);
@@ -812,16 +813,16 @@ DefTer::ProcessInput(float dt)
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
 			
-			// Reset to wireframe mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
 			m_otherState = READY;
 		}
+
+		// Reset to wireframe mode
+		if (m_is_wireframe)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 	// Take screenshot
