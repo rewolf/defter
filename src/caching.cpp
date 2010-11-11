@@ -731,7 +731,8 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 // Returns the world position corresponding to the position on the radar. 99999 if out of bounds
 // Input position is screen coordinates
 vector2
-Caching::RadarToWorldPos(vector2 screenPos){
+Caching::RadarToWorldPos(vector2 screenPos)
+{
 	screenPos -= m_radar_pos;
 	screenPos.y = RADAR_SIZE - screenPos.y;
 	screenPos *= 1.0f/RADAR_SIZE;

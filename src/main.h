@@ -40,8 +40,8 @@ public:
 	~DefTer();
 
 	void		ProcessInput	(float dt);	//override
-	void		GameModeInput	(float dt, MouseDelta mouseDelta, int ticks);
-	void		EditModeInput	(float dt, MouseDelta mouseDelta, int ticks);
+	void		GameModeInput	(float dt, vector2 mouseDelta, int ticks);
+	void		EditModeInput	(float dt, vector2 mouseDelta, int ticks);
 	void		Logic			(float dt); //override
 	void		Render			(float dt); //override
 
@@ -58,7 +58,9 @@ private:
 	void		EdgeDeform		(vector2 clickPos, vector4 SIRM, string stampName = "");
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
+
 	void		WrapEntity		(GameEntity* pEnt);
+	void		CentreMouse		(bool compensate = true);
 
 	void		RenderModel		(GameEntity* pEnt, matrix4 view);
 	void		RenderNode		(Node* node, matrix4 transform);
@@ -132,6 +134,11 @@ public:
 	WeaponMode		m_activeWeapon;
 	bool			m_bombActive;
 	vector2			m_bombTarget;
+
+	// Mouse movement parameters
+	vector2			m_mouseCompensate;
+	bool			m_mouseFirstMove;
+	bool			m_mouseLook;
 };
 
 // thread that retrieves the coarsemap from the PBOs

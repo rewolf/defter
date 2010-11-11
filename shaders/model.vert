@@ -6,8 +6,8 @@ uniform mat4	modelview;
 uniform mat4	mvp;
 
 in 	vec3 vert_Position;
-in	vec3 vert_Normal;
 in	vec2 vert_TexCoord;
+in	vec3 vert_Normal;
 
 out	vec3 frag_Normal;
 out	vec2 frag_TexCoord;

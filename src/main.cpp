@@ -200,6 +200,8 @@ DefTer::InitGL()
 	m_useMode		= EDIT_MODE;
 	m_activeWeapon	= GUN;
 	m_bombActive	= false;
+	m_mouseCompensate.x	= 0.0f;
+	m_mouseCompensate.y	= 0.0f;
 
 	// Set the initial stamp mode and clicked state
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
@@ -242,7 +244,7 @@ DefTer::InitGL()
 	glBindAttribLocation(m_shModel->m_programID, 2, "vert_TexCoord");
 	glBindAttribLocation(m_shFlash->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shHUD->m_programID, 0, "vert_Position");
-	glBindAttribLocation(m_shModel->m_programID, 1, "vert_TexCoord");
+	glBindAttribLocation(m_shHUD->m_programID, 1, "vert_TexCoord");
 
 	if (error || !CheckError("Binding shader attributes"))
 	{
@@ -813,50 +815,61 @@ DefTer::UpdateCoarsemapStreamer(){
 void
 DefTer::ProcessInput(float dt)
 {
-	int wheel_ticks 	 = m_input.GetWheelTicks();
-	MouseDelta move 	 = m_input.GetMouseDelta();
-	float terrain_height = InterpHeight(m_pCamera->GetHorizPosition());
+	int wheel_ticks 		= m_input.GetWheelTicks();
+	MouseDelta tempDelta	= m_input.GetMouseDelta();
+	vector2 mouseDelta		= vector2(tempDelta.x, tempDelta.y);
+	float terrain_height	= InterpHeight(m_pCamera->GetHorizPosition());
 
 	// Change Mode
-	if (m_input.WasKeyPressed(SDLK_COMMA)){
-		if (m_useMode == EDIT_MODE){
+	if (m_input.WasKeyPressed(SDLK_COMMA))
+	{
+		if (m_useMode == EDIT_MODE)
+		{
 			printf("Switched to GAME MODE\n");
+			
+			// Centre mouse to screen without compensation such that view does not move
+			CentreMouse(false);
+			m_input.GetMouseDelta();
 			// Switch to game mode
 			m_useMode = GAME_MODE;
-			// enable a model for the camera
+
+			// Enable a model for the camera
 			m_pCamera->m_pModel = m_pCamera->m_pGunModel;
-			// disable edit stuff
+
+			// Disable edit stuff
 			m_is_hd_stamp	= false;
 			m_clicked		= false;
 			m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
-			// flash screen
+
+			// Flash screen
 			FlashScreen();
 #ifdef WIN32
-			::ShowCursor(0);
+			ShowCursor(0);
 #endif
 		}
-		else{
+		else
+		{
 			printf("Switched to EDIT MODE\n");
-			// Switch to game mode
+
+			// Switch to edit mode
 			m_useMode = EDIT_MODE;
-			// enable a model for the camera
+
+			// Disable the model for the camera
 			m_pCamera->m_pModel = NULL;
 #ifdef WIN32
-			::ShowCursor(1);
+			ShowCursor(1);
 #endif
 		}
 	}
 
-	// Call input processing function based on mode (GAME or EDIT)
-	static MouseDelta compensate={.0f}; // compensates for the resetting of mouse
-	MousePos mousePos = m_input.GetMousePos();
+	// Call input processing function based on mode (EDIT or GAME)
 	if (m_useMode == EDIT_MODE)
-		EditModeInput(dt, move, wheel_ticks);
+		EditModeInput(dt, mouseDelta, wheel_ticks);
 	else
-		GameModeInput(dt, move, wheel_ticks);
+		GameModeInput(dt, mouseDelta, wheel_ticks);
 
 	// Increase the game speed
-	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+	if (m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT))
 	{
 		dt *= 5.0f;
 		m_is_super_speed = true;
@@ -1026,24 +1039,26 @@ DefTer::ProcessInput(float dt)
 
 //--------------------------------------------------------
 void
-DefTer::GameModeInput(float dt, MouseDelta move, int ticks){
-
-	// Call input processing function based on mode (GAME or EDIT)
-	static MouseDelta compensate={.0f}; // compensates for the resetting of mouse
-	static bool mouse_look = true;
-	MousePos mousePos = m_input.GetMousePos();
-	if (!m_input.WasKeyPressed(SDLK_COMMA)){
-		move.x += -compensate.x;
-		move.y += -compensate.y;
+DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
+{
+	// Ignore the first mouse movement due to hardware glitch
+	if (m_mouseFirstMove &&  mouseDelta != 0.0f)
+	{
+		m_mouseFirstMove = false;
+		mouseDelta = vector2(0.0f);
 	}
-	compensate.x = compensate.y = .0f;
 
+	// If in mouse look mode, do this
+	if (m_mouseLook)
+	{
+		// Call input processing function based on mode (GAME or EDIT)
+		mouseDelta -= m_mouseCompensate;
+		m_mouseCompensate = vector2(0.0f);
 
-	if (mouse_look){
 		// Pitch
-		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
+		m_pCamera->m_rotate.x -= dt * mouseDelta.y * PI * 0.1f;
 		// Yaw
-		m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
+		m_pCamera->m_rotate.y -= dt * mouseDelta.x * PI * 0.1f;
 
 		//Clamp the camera to prevent the user flipping
 		//upside down messing up everything
@@ -1053,40 +1068,49 @@ DefTer::GameModeInput(float dt, MouseDelta move, int ticks){
 			m_pCamera->m_rotate.x = PI * 0.5f;
 	}
 
-	
-	// Iterate through weapons with [,]
+	// Iterate through weapons with []'s
 	bool weaponChanged = false;
-	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET)){
-		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon+1, N_WEAPONS);
+	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
+	{
+		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon + 1, N_WEAPONS);
 		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
 		weaponChanged = true;
 	}		
-	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET)){
-		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon-1, N_WEAPONS);
+	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
+	{
+		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon - 1, N_WEAPONS);
 		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
 		weaponChanged = true;
 	}
 
+	if (!m_pShockwave->IsActive())
+		m_bombActive = false;
+
 	// FIRE!!
-	if (m_input.WasButtonPressed(1)){
+	if (m_input.WasButtonPressed(1))
+	{
 		MousePos p;
 		vector2 pos;
-		switch(m_activeWeapon){
+		switch(m_activeWeapon)
+		{
 			case BOMB:
-				if (m_bombActive){
+				if (m_bombActive)
+				{
 					printf("Bomb already active\n");
 					//break;
 				}
 				// check if its on the radar
 				p	= m_input.GetMousePos();
 				pos = m_pCaching->RadarToWorldPos(vector2(p.x, SCREEN_H - p.y));
-				if (pos.x < 90000){ // test the value
+				// Pos returns 99999 if out of bounds
+				if (pos.x < 90000)
+				{
 					m_bombActive = true;
 					m_bombTarget = pos;
 					m_activeWeapon = GUN;
 					printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
 					weaponChanged = true;
-				printf("-----------------------------------%s\n", m_bombTarget.str().c_str());
+					printf("-----------------------------------%s\n", m_bombTarget.str().c_str());
 					m_pShockwave->CreateShockwave(m_bombTarget, 400.0f);
 				}
 				break;
@@ -1096,48 +1120,68 @@ DefTer::GameModeInput(float dt, MouseDelta move, int ticks){
 	}
 
 	// Change weapon
-	if (weaponChanged){
-		switch(m_activeWeapon){
+	if (weaponChanged)
+	{
+		switch(m_activeWeapon)
+		{
 			case BOMB:
-				mouse_look = false;
+				m_mouseLook = false;
 				m_pCamera->m_pModel = NULL;
 				break;
 			case GUN:
-				mouse_look = true;
+				m_mouseLook = true;
 				m_pCamera->m_pModel = m_pCamera->m_pGunModel;
 				break;
 		}
 	}
 
-	// reset mouse
-	if (mouse_look){
+	// Centre mouse on screen if in mouse look mode
+	if (m_mouseLook)
+	{
+		CentreMouse();
+	}
+}
+
+//--------------------------------------------------------
+// Centre the mouse to the middle of the screen, calculate the offset
+void
+DefTer::CentreMouse(bool compensate)
+{
 #ifdef WIN32
 		int wx,wy,ww,wh;
 		POINT mousep;
 		SDL_GetWindowPosition(m_pWindow, &wx, &wy);
 		SDL_GetWindowSize(m_pWindow, &ww, &wh);
-		::GetCursorPos(&mousep);
-		compensate.x = wx+ww/2 - mousep.x;
-		compensate.y = wy+wh/2 - mousep.y;
-		::SetCursorPos(wx+ww/2, wy+wh/2);
+		GetCursorPos(&mousep);
+
+		if (compensate)
+		{
+			m_mouseCompensate.x = wx+ww/2 - mousep.x;
+			m_mouseCompensate.y = wy+wh/2 - mousep.y;
+		}
+		else
+		{
+			m_mouseFirstMove = true;
+		}
+
+		SetCursorPos(wx+ww/2, wy+wh/2);
 #else
 #endif
-	}
 }
 
 //--------------------------------------------------------
 void
-DefTer::EditModeInput(float dt, MouseDelta move, int ticks){
+DefTer::EditModeInput(float dt, vector2 mouseDelta, int ticks){
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
 	{	
 		// Pitch
-		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
+		m_pCamera->m_rotate.x -= dt * mouseDelta.y * PI * 0.1f;
 		// Yaw
-		m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
+		m_pCamera->m_rotate.y -= dt * mouseDelta.x * PI * 0.1f;
 
-		//Clamp the camera to prevent the user flipping
-		//upside down messing up everything
+		// Clamp the camera to prevent the user flipping
+		// upside down messing up everything
 		if (m_pCamera->m_rotate.x < -PI * 0.5f)
 			m_pCamera->m_rotate.x = -PI * 0.5f;
 		if (m_pCamera->m_rotate.x > PI * 0.5f)
@@ -1367,11 +1411,13 @@ DefTer::Logic(float dt)
 	m_pCamera->m_frameAcceleration.set(.0f);
 
 	// Animate the on-screen flash
-	if (m_flash.enabled){
+	if (m_flash.enabled)
+	{
 		float elapsed = m_flash.timer.peekElapsed();
 		if (elapsed > m_flash.inlength + m_flash.outlength)
 			m_flash.enabled = false;
-		else{
+		else
+		{
 			float dmid = elapsed - m_flash.inlength;
 			float dend = dmid - m_flash.outlength;
 			if (elapsed < m_flash.inlength)
@@ -1453,8 +1499,10 @@ DefTer::Render(float dt)
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
 
-	if (m_flash.enabled){
+	if (m_flash.enabled)
+	{
 		glEnable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
 		glUseProgram(m_shFlash->m_programID);
 		glUniform4fv(glGetUniformLocation(m_shFlash->m_programID, "color"),  1, m_flash.color.v);
 		glBindVertexArray(GetStandardVAO());
@@ -1465,9 +1513,11 @@ DefTer::Render(float dt)
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	if (m_useMode == GAME_MODE){
+	if (m_useMode == GAME_MODE)
+	{
 		// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
-		if (m_activeWeapon == BOMB && !m_bombActive){
+		if (m_activeWeapon == BOMB && !m_bombActive)
+		{
 			vector2 p((float*)&m_input.GetMousePos());
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = 1.0f - p.y/SCREEN_H * 2.0f;
@@ -1481,10 +1531,13 @@ DefTer::Render(float dt)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 			glEnable(GL_DEPTH_TEST);
 		}
-		else if (m_activeWeapon == GUN){
+		else if (m_activeWeapon == GUN)
+		{
+
 		}
 
-		if (m_bombActive){
+		if (m_bombActive)
+		{
 			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
@@ -1506,7 +1559,12 @@ DefTer::Render(float dt)
 
 //--------------------------------------------------------
 void
-DefTer::RenderModel(GameEntity* pEnt, matrix4 view){
+DefTer::RenderModel(GameEntity* pEnt, matrix4 view)
+{
+	// If no model active then return
+	if (!pEnt->m_pModel)
+		return;
+
 	matrix4 model_tr;
 
 	model_tr = translate_tr(pEnt->m_translate)
@@ -1518,18 +1576,21 @@ DefTer::RenderModel(GameEntity* pEnt, matrix4 view){
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 
-	if (pEnt->m_pModel)
-		RenderNode(pEnt->m_pModel, view * model_tr);
+	RenderNode(pEnt->m_pModel, view * model_tr);
 }
 
 //--------------------------------------------------------
 void
-DefTer::RenderNode(Node* pNode, matrix4 parent_tr){
+DefTer::RenderNode(Node* pNode, matrix4 parent_tr)
+{
 	matrix4 model_tr;
 
-	if (pNode->m_transform.valid){
+	if (pNode->m_transform.valid)
+	{
 		model_tr = pNode->m_transform.cache;
-	}else{
+	}
+	else
+	{
 		model_tr = translate_tr(pNode->m_transform.translate)
 				 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
 				 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
@@ -1622,7 +1683,8 @@ DefTer::WrapEntity(GameEntity* pEnt){
 
 //--------------------------------------------------------
 void
-DefTer::FlashScreen		(float inTime, float outTime, float maxAlpha, vector4 color){
+DefTer::FlashScreen		(float inTime, float outTime, float maxAlpha, vector4 color)
+{
 	m_flash.enabled		= true;
 	m_flash.timer.start();
 	m_flash.inlength	= inTime;
