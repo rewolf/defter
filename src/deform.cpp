@@ -93,8 +93,7 @@ Deform::init_backups()
 //--------------------------------------------------------
 // Used to apply deformations to the given heightmap
 void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, int stampIndex, vector4 SIRM,
-	bool isCoarse, GLuint copySrcTex)
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, vector4 SIRM, bool isCoarse, string stampName, GLuint copySrcTex)
 {
 	GLuint	backupTex;
 	int 	currentViewport[4];
@@ -111,7 +110,10 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	stampRot		= rotate_tr2(SIRM.z);			// rotation
 
 	// Stamp controls
-	stamp			= GetStampMan()->GetStamp(stampIndex);
+	if (stampName.compare("") == 0)
+		stamp		= GetStampMan()->GetCurrentStamp();
+	else
+		stamp		= GetStampMan()->GetStamp(stampName);
 	shaderID		= stamp->GetShaderID();
 
 	// Setup variables dependent on whether it is Coarse or High detail deformation
@@ -253,15 +255,6 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
-}
-
-//--------------------------------------------------------
-// Overridden method to allow for specifying the stamp name instead of its index
-void
-Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector4 SIRM,
-	bool isCoarse, GLuint copySrcTex)
-{
-	displace_heightmap(texdata, clickPos, clickOffset, GetStampMan()->GetStampIndex(stampName), SIRM, isCoarse, copySrcTex);
 }
 
 //--------------------------------------------------------

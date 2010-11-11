@@ -51,7 +51,6 @@ public:
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
-	int				m_stampIndex;
 	vector4			m_stampSIRM;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
