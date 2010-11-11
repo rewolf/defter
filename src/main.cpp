@@ -595,6 +595,82 @@ DefTer::UpdateClickPos(void)
 	}
 }
 
+// Perform the coarsemap deformation which handles edge deformations as well
+void
+DefTer::EdgeDeform(vector2 clickPos, vector4 SIRM, string stampName)
+{
+	vector2 areaMin(clickPos - vector2(SIRM.x / 2.0f));
+	vector2 areaMax(areaMin	+ SIRM.x);
+
+	areaMin *= m_pClipmap->m_metre_to_tex;
+	areaMin += vector2(0.5f);
+	areaMax *= m_pClipmap->m_metre_to_tex;
+
+	areaMax += vector2(0.5f);
+
+	list<vector2> fuck;
+
+	// Left-Col
+	if (areaMin.x < 0.0)
+	{
+		// Left-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(1.0f, 1.0f));
+
+		// Left-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(1.0f, 0.0f));
+
+		// Left-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(1.0f, -1.0f));
+	}
+
+	// Centre-Col
+	if (areaMin.x < 1.0 && areaMax.x > 0.0)
+	{
+		// Centre-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(0.0f, 1.0f));
+
+		// Centre-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(0.0f));
+				
+		// Centre-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(0.0f, -1.0f));
+	}
+
+	// Right-Col
+	if (areaMax.x > 1.0)
+	{
+		// Right-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(-1.0f, 1.0f));
+
+		// Right-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(-1.0f, 0.0f));
+
+		// Right-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(-1.0f, -1.0f));
+	}
+			
+	// Displace the heightmap
+	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+		m_pDeform->displace_heightmap(m_coarsemap, clickPos, *shit, SIRM, true, stampName);
+
+	// Calculate the normals
+	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+		m_pDeform->calculate_pdmap(m_coarsemap, clickPos, *shit, SIRM.x, true);
+			
+	// Reset to wireframe mode
+	if (m_is_wireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
+
 //--------------------------------------------------------
 // Interpolates the height of the coarsemap at the given location in world space
 float
@@ -763,94 +839,29 @@ DefTer::ProcessInput(float dt)
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
-		// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
+			// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
+
+			// Reset to wireframe mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
 		else
 		{
-			vector2 areaMin(m_clickPos - vector2(stampSIRM.x / 2.0f));
-			vector2 areaMax(areaMin	+ stampSIRM.x);
+			EdgeDeform(m_clickPos, stampSIRM);
 
-			areaMin *= m_pClipmap->m_metre_to_tex;
-			areaMin += vector2(0.5f);
-			areaMax *= m_pClipmap->m_metre_to_tex;
-
-			areaMax += vector2(0.5f);
-
-			list<vector2> fuck;
-
-			// Left-Col
-			if (areaMin.x < 0.0)
-			{
-				// Left-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(1.0f, 1.0f));
-
-				// Left-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(1.0f, 0.0f));
-
-				// Left-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(1.0f, -1.0f));
-			}
-
-			// Centre-Col
-			if (areaMin.x < 1.0 && areaMax.x > 0.0)
-			{
-				// Centre-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(0.0f, 1.0f));
-
-				// Centre-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(0.0f));
-				
-				// Centre-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(0.0f, -1.0f));
-			}
-
-			// Right-Col
-			if (areaMax.x > 1.0)
-			{
-				// Right-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(-1.0f, 1.0f));
-
-				// Right-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(-1.0f, 0.0f));
-
-				// Right-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(-1.0f, -1.0f));
-			}
-			
-			// Displace the heightmap
-			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, stampSIRM, true);
-
-			// Calculate the normals
-			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
-			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
 			m_XferWaitState = READY;
 		}
-
-		// Reset to wireframe mode
-		if (m_is_wireframe)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 	// Take screenshot
@@ -1164,12 +1175,14 @@ DefTer::Logic(float dt)
 		m_XferWaitState = READY;
 
 		vector4 SIRM;
-		SIRM.x = 400.0f;
+		SIRM.x = 600.0f;
 		SIRM.y = -0.75f * m_pShockwave->GetHeight();
-		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		EdgeDeform(vector2(0.0f), SIRM, "Shockwave");
+		//m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
 		m_pShockwave->Update(dt);
 		SIRM.y = 0.75f * m_pShockwave->GetHeight();
-		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		//m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		EdgeDeform(vector2(0.0f), SIRM, "Shockwave");
 		i++;
 	}
 

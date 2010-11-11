@@ -32,6 +32,7 @@ private:
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
+	void		EdgeDeform		(vector2 clickPos, vector4 SIRM, string stampName = "");
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
 
