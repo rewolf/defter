@@ -90,6 +90,78 @@ Deform::init_backups()
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
+// Perform the coarsemap deformation which handles edge deformations as well
+void
+Deform::EdgeDeform(TexData texdata, vector2 clickPos, vector4 SIRM, string stampName)
+{
+	vector2 areaMin(clickPos - vector2(SIRM.x / 2.0f));
+	vector2 areaMax(areaMin	+ SIRM.x);
+
+	areaMin *= m_metre_to_tex;
+	areaMin += vector2(0.5f);
+	areaMax *= m_metre_to_tex;
+
+	areaMax += vector2(0.5f);
+
+	list<vector2> fuck;
+
+	// Left-Col
+	if (areaMin.x < 0.0)
+	{
+		// Left-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(1.0f, 1.0f));
+
+		// Left-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(1.0f, 0.0f));
+
+		// Left-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(1.0f, -1.0f));
+	}
+
+	// Centre-Col
+	if (areaMin.x < 1.0 && areaMax.x > 0.0)
+	{
+		// Centre-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(0.0f, 1.0f));
+
+		// Centre-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(0.0f));
+				
+		// Centre-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(0.0f, -1.0f));
+	}
+
+	// Right-Col
+	if (areaMax.x > 1.0)
+	{
+		// Right-Top
+		if (areaMin.y < 0.0)
+			fuck.push_back(vector2(-1.0f, 1.0f));
+
+		// Right-Centre
+		if (areaMax.y > 0.0 && areaMin.y < 1.0)
+			fuck.push_back(vector2(-1.0f, 0.0f));
+
+		// Right-Bottom
+		if (areaMax.y > 1.0)
+			fuck.push_back(vector2(-1.0f, -1.0f));
+	}
+			
+	// Displace the heightmap
+	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+		displace_heightmap(texdata, clickPos, *shit, SIRM, true, stampName);
+
+	// Calculate the normals
+	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
+		calculate_pdmap(texdata, clickPos, *shit, SIRM.x, true);
+}
+
 //--------------------------------------------------------
 // Used to apply deformations to the given heightmap
 void

@@ -12,15 +12,12 @@ using namespace std;
 #include "shockwave.h"
 
 //--------------------------------------------------------
-Shockwave::Shockwave(TexData coarsemap, int dimension)
+Shockwave::Shockwave(TexData coarsemap, int dimension, Deform* deformer)
 {
-	m_state			= IDLE;
+	m_pDeform		= deformer;
 	m_error			= true;
 	m_coarsemap		= coarsemap;
 	m_dimension		= dimension;
-	m_height		= 1.0f;
-	m_decayRate		= 1.0f;
-	m_velocity		= 0.0f;
 
 	// Setup shader
 	m_shWave = new ShaderProg("shaders/shockwave.vert", "", "shaders/shockwave.frag");
@@ -76,6 +73,10 @@ Shockwave::~Shockwave()
 	glDeleteBuffers(1, &m_vbo);
 	glDeleteVertexArrays(1, &m_vao);
 	glDeleteTextures(1, &m_stampTex);
+
+	// Kill all the wavelet objects
+	for (int i = 0; i < m_shockwavelets.size(); i++)
+		RE_DELETE(m_shockwavelets.at(i));
 }
 
 //--------------------------------------------------------
@@ -86,98 +87,119 @@ Shockwave::HasError(void)
 }
 
 //--------------------------------------------------------
-bool
-Shockwave::IsActive(void)
-{
-	return (m_state == ACTIVE);
-}
-
-//--------------------------------------------------------
-bool
-Shockwave::IsFirst(void)
-{
-	if (m_firstWave)
-	{
-		m_firstWave ^= true;
-		return true;
-	}
-	else
-		return false;
-}
-
-//--------------------------------------------------------
-float
-Shockwave::GetHeight(void)
-{
-	return (m_height);
-}
-
-//--------------------------------------------------------
-vector2
-Shockwave::GetEpicenter(void)
-{
-	return (m_origin);
-}
-
-//--------------------------------------------------------
-float
-Shockwave::GetAOE(void)
-{
-	return (m_AOE);
-}
-
-//--------------------------------------------------------
 void
 Shockwave::Update(float dt)
 {
 	int currentViewport[4];
 
-	if (m_state == IDLE)
-		return;
+	for (int i = 0; i < m_shockwavelets.size(); i++)
+	{
+		Shockwavelet* wave = m_shockwavelets.at(i);
 
-	glGetIntegerv(GL_VIEWPORT, currentViewport);
-	glViewport(0, 0, m_dimension, m_dimension);
+		if (wave->m_state == IDLE)
+			continue;
 
-	// Bind shader, framebuffer and VAO
-	glUseProgram(m_shWave->m_programID);
-	glUniform1f(glGetUniformLocation(m_shWave->m_programID, "R"),  m_radius);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_stampTex, 0);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	glBindVertexArray(m_vao);
+		// Set the Scale for the wave
+		vector4 SIRM;
+		SIRM.x = wave->m_AOE;
 
-	// write to currentTex
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		// Always skip deletion of first wave
+		if (wave->m_firstWave)
+		{
+			wave->m_firstWave = false;
+		}
+		else
+		{
+			glGetIntegerv(GL_VIEWPORT, currentViewport);
+			glViewport(0, 0, m_dimension, m_dimension);
 
-	glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			// Bind shader, framebuffer and VAO
+			glUseProgram(m_shWave->m_programID);
+			glUniform1f(glGetUniformLocation(m_shWave->m_programID, "R"),  wave->m_radius);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_stampTex, 0);
+			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			glBindVertexArray(m_vao);
 
-	// Move wave
-	m_radius += (m_velocity * dt);
-	// if its large enough, start decaying
-	// H(n+1) = c^{dt} * H(n)
-	// => H(t) = c^{t} * H(0)   // where t=0 is when decaying starts
-	// => t = log(H(t)/H(0)) / log( c^{100} )  // 
-	// The height only starts to decay after the radius is larger than 0.1 (10% max)
-	if (m_radius > SWNODECAYRADIUS)
-		m_height *= powf(m_decayRate, dt);
-	if (m_height < SWTARGETHEIGHT)
-		m_state = IDLE;
+			// write to currentTex
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+			glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+
+			SIRM.y = -0.75f * wave->m_height;
+			m_pDeform->EdgeDeform(m_coarsemap, wave->m_origin, SIRM, "Shockwave");
+		}
+	}
+
+	for (int i = 0; i < m_shockwavelets.size(); i++)
+	{
+		Shockwavelet* wave = m_shockwavelets.at(i);
+
+		if (wave->m_state == IDLE)
+			continue;
+
+		// Set the Scale for the wave
+		vector4 SIRM;
+		SIRM.x = wave->m_AOE;
+
+		// Move wave
+		wave->m_radius += (wave->m_velocity * dt);
+		// if its large enough, start decaying
+		// H(n+1) = c^{dt} * H(n)
+		// => H(t) = c^{t} * H(0)   // where t=0 is when decaying starts
+		// => t = log(H(t)/H(0)) / log( c^{100} )  // 
+		// The height only starts to decay after the radius is larger than 0.1 (10% max)
+		if (wave->m_radius > SWNODECAYRADIUS)
+			wave->m_height *= powf(wave->m_decayRate, dt);
+	
+		if (wave->m_height < SWTARGETHEIGHT)
+			wave->m_state = IDLE;
+		else
+		{
+			glGetIntegerv(GL_VIEWPORT, currentViewport);
+			glViewport(0, 0, m_dimension, m_dimension);
+
+			// Bind shader, framebuffer and VAO
+			glUseProgram(m_shWave->m_programID);
+			glUniform1f(glGetUniformLocation(m_shWave->m_programID, "R"),  wave->m_radius);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_stampTex, 0);
+			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			glBindVertexArray(m_vao);
+
+			// write to currentTex
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+			glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			SIRM.y = 0.75f * wave->m_height;
+			m_pDeform->EdgeDeform(m_coarsemap, wave->m_origin, SIRM, "Shockwave");
+		}
+	}
 }
 
 //--------------------------------------------------------
 void
-Shockwave::CreateShockwave(vector2 position, float areaOfEffect, float height, float velocity)
+Shockwave::CreateShockwave(vector2 pos, float AOE, float h, float vel)
 {
-	m_state		= ACTIVE;
-	m_firstWave	= true;
-	m_origin	= position;
-	m_radius	= 0.0f;
-	m_AOE		= areaOfEffect;
-	m_height	= height;
-	m_velocity	= velocity;
-	// r = vt   ;  H(t) = c^{t} H(0)
-	// t = (R-R0)/v  => time taken since the decay starts
-	// H( (R-R0)/v  )  <  eps;
-	m_decayRate = powf(SWTARGETHEIGHT / m_height, m_velocity / (1.0f - SWNODECAYRADIUS));
+	for (int i = 0; i < m_shockwavelets.size(); i++)
+	{
+		if (m_shockwavelets.at(i)->m_state == IDLE)
+		{
+			m_shockwavelets.at(i)->Reset(pos, AOE, h, vel);
+			return;
+		}
+	}
+
+	if (m_shockwavelets.size() >= SWMAXWAVELETS)
+	{
+		printf("Too many waves!!!!\n");
+		return;
+	}
+
+	// If getting here then no idle shockwavelets found =( so create one =)
+	m_shockwavelets.push_back(new Shockwavelet(pos, AOE, h, vel));
 }

@@ -34,7 +34,6 @@ private:
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
-	void		EdgeDeform		(vector2 clickPos, vector4 SIRM, string stampName = "");
 	void		UpdateCoarsemapStreamer();
 	float		InterpHeight	(vector2 worldPos);
 
@@ -71,7 +70,6 @@ public:
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
-	bool			m_is_wireframe;
 
 	// Coarsemap continuous unpacking stuff
 	GLushort*		m_elevationData;

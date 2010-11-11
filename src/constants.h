@@ -81,8 +81,9 @@
 
 
 
-// Stamp Settings
+// Changeable values
 extern int STAMPCOUNT;
+extern bool WIREFRAMEON;
 
 
 
@@ -91,6 +92,8 @@ extern int STAMPCOUNT;
 #define SWTARGETHEIGHT		(0.01f)
 // Area (radius) that remains unaffected by the damping
 #define	SWNODECAYRADIUS		(0.1f)
+// Maximum number of waves
+#define SWMAXWAVELETS		(10)
 
 
 
