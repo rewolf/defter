@@ -1268,9 +1268,8 @@ DefTer::Render(float dt)
 	if (m_clicked){
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
-		matrix2 rot = rotate_tr2(m_stampSIRM.z);
-		m_shManager->UpdateUniMat2fv("stampRot", rot.m);
-		m_shManager->UpdateUni1f("stampScale", m_stampSIRM.x );
+		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
 	}
 
 	BEGIN_PROF;

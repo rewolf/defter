@@ -17,8 +17,8 @@ uniform vec4	cam_and_shift;
 uniform float	cam_height;
 uniform mat4	projection;
 uniform mat4	view;
-uniform mat2	stampRot;
-uniform float	stampScale;
+uniform mat2	stampTransform;
+uniform vec2	click_pos;
 
 // Shader Input
 in vec3 vert_Position;
@@ -86,5 +86,5 @@ void main()
 	// Save out the texCoord
 	geom_TexCoord = texCoord;
 
-	geom_stampTexCoord = stampRot * stampScale * (vert_TexCoord+camera_tex) ;
+	geom_stampTexCoord = stampTransform * (texCoord - click_pos) + .5 ;
 }

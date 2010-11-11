@@ -80,9 +80,8 @@ void main()
 	viewVec = normalize(frag_View);
 
 	// Get the colour value
-	//color = texture(colormap, frag_TexCoord * 100.0)
-	//	  + texture(curStamp, stamp_TexCoord);
-	color = vec4(texture(curStamp, stamp_TexCoord).r * vec3(1.0, .0, .0), 1.0);
+	color = texture(colormap, frag_TexCoord * 100.0)
+		  + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 	// Initial variables and settings
 	ambient		= light_Ambient;
@@ -142,5 +141,5 @@ void main()
 	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
 	}
 	// Mix fog to get the final color
-//	frag_Color = mix(fog_col, frag_Color, fogFactor);
+	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }
