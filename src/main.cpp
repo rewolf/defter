@@ -26,8 +26,8 @@ using namespace std;
 #include "shockwave.h"
 #include "main.h"
 
-/* Vision includes */
-
+/* Vision includes and prototypes*/
+int vis_thread_func(void * d);
 #include "video_driver.h"
 #include "frame.h"
 #include "m_rec.h"
