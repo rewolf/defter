@@ -1,9 +1,10 @@
 
 # Source files, Headers for distribution, internal headers
+
 LIB_SRC_files	= regl3.cpp re_timer.cpp re_input.cpp re_math.cpp re_shader.cpp  re_model.cpp
 LIB_HDR_files	= regl3.h re_timer.h re_math.h re_input.h re_shader.h re_model.h
-SRC_files		= main.cpp deform.cpp  util.cpp skybox.cpp clipmap.cpp caching.cpp model_manager.cpp game_entity.cpp
-HDR_files		= main.h deform.h util.h skybox.h clipmap.h caching.h model_manager.h game_entity.h
+SRC_files		= main.cpp deform.cpp  util.cpp skybox.cpp clipmap.cpp caching.cpp model_manager.cpp game_entity.cpp shockwave.cpp
+HDR_files		= main.h deform.h util.h skybox.h clipmap.h caching.h model_manager.h game_entity.h shockwave.h
 
 # The compiled object filenames
 LIB_OBJ_files	= $(LIB_SRC_files:.cpp=.o)

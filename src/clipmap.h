@@ -22,7 +22,7 @@ public:
 	Clipmap (int nVerts, float quad_size, int levels, int heightmap_dim);
 	~Clipmap ();
 
-	bool		init			();
+	bool		Init			();
 	void		cull			(matrix4& mvp, vector2 shift);
 	void		render_inner	();
 	void		render_levels	();

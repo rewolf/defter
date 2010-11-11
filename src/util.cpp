@@ -315,14 +315,22 @@ GetStandardVAO(void)
 }
 
 //--------------------------------------------------------
+// Initialise the Stamp Manager
+//--------------------------------------------------------
+void
+InitStampMan(void)
+{
+	if (m_stampManager == NULL)
+		m_stampManager = new StampManager();
+}
+//--------------------------------------------------------
 // Return the Stamp Manager object
 //--------------------------------------------------------
 StampManager*
 GetStampMan(void)
 {
 	// Create the stamp manager if not already created
-	if (m_stampManager == NULL)
-		m_stampManager = new StampManager();
+	InitStampMan();
 
 	return (m_stampManager);
 }
@@ -590,6 +598,7 @@ Stamp::Stamp(void)
 {
 	m_stampName		= "";
 	m_isTexStamp	= false;
+	m_isHidden		= true;
 	m_texture		= 0;
 	m_shader		= NULL;
 
@@ -605,13 +614,27 @@ Stamp::~Stamp(void)
 
 //--------------------------------------------------------
 bool
-Stamp::CreateFuncStamp(string stampName, string vertPath, string fragPath)
+Stamp::CreateDynStamp(string stampName, ShaderProg *shader, GLuint textureID, bool isHidden)
 {
-	m_stampName = stampName;
+	m_stampName		= stampName;
+	m_shader		= shader;
+	m_isTexStamp	= true;
+	m_isHidden		= isHidden;
+	m_texture		= textureID;
 
-	m_isTexStamp = false;
+	return true;
+}
 
-	m_shader = new ShaderProg(vertPath, "", fragPath);
+//--------------------------------------------------------
+bool
+Stamp::CreateFuncStamp(string stampName, string vertPath, string fragPath, bool isHidden)
+{
+	m_stampName		= stampName;
+
+	m_isTexStamp	= false;
+	m_isHidden		= isHidden;
+
+	m_shader		= new ShaderProg(vertPath, "", fragPath);
 	glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
 
 	if (!m_shader->CompileAndLink())
@@ -626,11 +649,13 @@ Stamp::CreateFuncStamp(string stampName, string vertPath, string fragPath)
 
 //--------------------------------------------------------
 bool
-Stamp::CreateTexStamp(ShaderProg *shader, string stampName, string textureName)
+Stamp::CreateTexStamp(string stampName, ShaderProg *shader, string textureName, bool isHidden)
 {
-	m_shader = shader;
-	m_stampName = stampName;
-	m_isTexStamp = true;
+	m_stampName		= stampName;
+	m_shader		= shader;
+	m_isTexStamp	= true;
+	m_isHidden		= isHidden;
+
 	return (LoadPNG(&m_texture, textureName, true));
 }
 
@@ -646,6 +671,13 @@ bool
 Stamp::IsTexStamp(void)
 {
 	return (m_isTexStamp);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::IsHidden(void)
+{
+	return (m_isHidden);
 }
 
 //--------------------------------------------------------
@@ -679,6 +711,7 @@ Stamp::GetShaderID(void)
 StampManager::StampManager(void)
 {
 	m_error = true;
+	m_currentStamp = -1;
 
 	// Create the texture stamp shader
 	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
@@ -728,16 +761,23 @@ StampManager::StampManager(void)
 StampManager::~StampManager(void)
 {
 	RE_DELETE(m_shTexStamp);
-	for (int i = 0; i < (int)stampCollection.size(); i++)
-		delete stampCollection.at(i);
+	for (int i = 0; i < (int)m_stampCollection.size(); i++)
+		delete m_stampCollection.at(i);
 }
 
 //--------------------------------------------------------
 bool
-StampManager::AddTexStamp(string stampName, string textureName)
+StampManager::HasError(void)
+{
+	return (m_error);
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddDynstamp(string stampName, GLuint textureID, bool isHidden)
 {
 	Stamp* newStamp = new Stamp();
-	if (!newStamp->CreateTexStamp(m_shTexStamp, stampName, textureName))
+	if (!newStamp->CreateDynStamp(stampName, m_shTexStamp, textureID, isHidden))
 		return false;
 
 	return (FinaliseStamp(newStamp));
@@ -745,10 +785,10 @@ StampManager::AddTexStamp(string stampName, string textureName)
 
 //--------------------------------------------------------
 bool
-StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath)
+StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath, bool isHidden)
 {
 	Stamp* newStamp = new Stamp();
-	if (!newStamp->CreateFuncStamp(stampName, vertPath, fragPath))
+	if (!newStamp->CreateFuncStamp(stampName, vertPath, fragPath, isHidden))
 		return false;
 
 	newStamp->initShader = &setupGaussian;
@@ -758,10 +798,24 @@ StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath)
 
 //--------------------------------------------------------
 bool
+StampManager::AddTexStamp(string stampName, string textureName, bool isHidden)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateTexStamp(stampName, m_shTexStamp, textureName, isHidden))
+		return false;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
 StampManager::FinaliseStamp(Stamp* newStamp)
 {
-	stampCollection.push_back(newStamp);
-	stampIndexMap[newStamp->GetStampName()] = STAMPCOUNT++;
+	m_stampCollection.push_back(newStamp);
+	m_stampIndexMap[newStamp->GetStampName()] = STAMPCOUNT++;
+
+	if (m_currentStamp == -1 && !newStamp->IsHidden() && m_stampCollection.size() > 0)
+		m_currentStamp = 0;
 
 	return true;
 }
@@ -770,21 +824,59 @@ StampManager::FinaliseStamp(Stamp* newStamp)
 Stamp*
 StampManager::GetStamp(int stampIndex)
 {
-	return (stampCollection.at(stampIndex));
+	return (m_stampCollection.at(stampIndex));
+}
+
+//--------------------------------------------------------
+Stamp*
+StampManager::GetStamp(string stampName)
+{
+	return (m_stampCollection.at(m_stampIndexMap[stampName]));
+}
+
+//--------------------------------------------------------
+Stamp*
+StampManager::GetCurrentStamp(void)
+{
+	return (m_stampCollection.at(m_currentStamp));
 }
 
 //--------------------------------------------------------
 string
 StampManager::GetStampName(int stampIndex)
 {
-	return (stampCollection.at(stampIndex)->GetStampName());
+	return (m_stampCollection.at(stampIndex)->GetStampName());
 }
 
 //--------------------------------------------------------
 int
 StampManager::GetStampIndex(string stampName)
 {
-	return (stampIndexMap[stampName]);
+	return (m_stampIndexMap[stampName]);
+}
+
+//--------------------------------------------------------
+string
+StampManager::NextStamp(void)
+{
+	do
+	{
+		m_currentStamp = WRAP((m_currentStamp + 1), STAMPCOUNT);
+	} while (m_stampCollection.at(m_currentStamp)->IsHidden());
+
+	return (m_stampCollection.at(m_currentStamp)->GetStampName());
+}
+
+//--------------------------------------------------------
+string
+StampManager::PrevStamp(void)
+{
+	do
+	{
+		m_currentStamp = WRAP((m_currentStamp - 1), STAMPCOUNT);
+	} while (m_stampCollection.at(m_currentStamp)->IsHidden());
+
+	return (m_stampCollection.at(m_currentStamp)->GetStampName());
 }
 
 //--------------------------------------------------------

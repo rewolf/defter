@@ -70,12 +70,12 @@ public:
 	Caching*		m_pCaching;
 	ModelManager*	m_pModelManager;
 	UseMode			m_useMode;
+	Shockwave*		m_pShockwave;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
-	int				m_stampIndex;
 	vector4			m_stampSIRM;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
@@ -101,7 +101,7 @@ public:
 	GLushort*		m_bufferPtr;
 	
 	XferState		m_XferState;
-	XferState		m_otherState;
+	XferState		m_XferWaitState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 

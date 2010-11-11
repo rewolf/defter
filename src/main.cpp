@@ -25,7 +25,9 @@ using namespace std;
 #include "caching.h"
 #include "model_manager.h"
 #include "game_entity.h"
+#include "shockwave.h"
 #include "main.h"
+
 
 /******************************************************************************
  * Main 
@@ -70,6 +72,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pCaching			  = NULL;
 	m_pSkybox 			  = NULL;
 	m_pModelManager		  = NULL;
+	m_pShockwave		  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -92,6 +95,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pCaching);
 	RE_DELETE(m_pModelManager);
 	RE_DELETE(m_pCamera);
+	RE_DELETE(m_pShockwave);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -194,7 +198,6 @@ DefTer::InitGL()
 	m_useMode		= EDIT_MODE;
 
 	// Set the initial stamp mode and clicked state
-	m_stampIndex	= 0;
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
@@ -215,7 +218,7 @@ DefTer::InitGL()
 	m_shmGeomTess	= 0;
 
 	// Init Shaders
-	printf("Initialising Shader Manager...\t");
+	printf("Initialising shader manager...\t");
 	m_shManager		 = new ShaderManager();
 	error			 = !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
 	error			&= !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmParallax);
@@ -352,12 +355,22 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
+	// Initialise Stamp Manager
+	printf("Initialising stamp manager...\t");
+	InitStampMan();
+	if (GetStampMan()->HasError())
+	{
+		fprintf(stderr, "Error\n\tCould not initialise stamp man\n");
+		return false;
+	}
+	printf("Done\n");
+
 	// Create & initialise the clipmap
 	printf("Creating clipmap...\t\t");
 	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
 	printf("Done\n");
 	printf("Initialising clipmap...\t\t");
-	m_pClipmap->init();
+	m_pClipmap->Init();
 	printf("Done\n");
 
 	// Create the deformer object
@@ -384,12 +397,23 @@ DefTer::Init()
 	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
 	m_pCamera->SetTranslate(vector3(-halfTile, 0.0f, -halfTile));
 
+	// Create the Shockwave object that will allow shockwaves to happen
+	printf("Creating shockwave...\t\t");
+	fflush(stdout);
+	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2);
+	if (m_pShockwave->HasError())
+	{
+		fprintf(stderr, "Error\n\tCould not create shockwave\n");
+		return false;
+	}
+	printf("Done\n");
+
 	// Shader uniforms (Clipmap data)
 	m_shManager->UpdateUni2f("scales",  m_pClipmap->m_tex_to_metre, m_pClipmap->m_metre_to_tex);
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampIndex, vector4(0.0f), true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), vector4(0.0f), true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -422,7 +446,7 @@ DefTer::Init()
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
-	m_otherState		 = CHILLED;
+	m_XferWaitState		 = CHILLED;
 	m_cyclesPassed		 = -1;
 
 	// Init the PBOs
@@ -640,9 +664,9 @@ DefTer::UpdateCoarsemapStreamer(){
 	streamerTimer.start();
 	
 	// Check if there has been a deform while transferring
-	if (m_otherState != CHILLED && m_XferState <= READY){
+	if (m_XferWaitState != CHILLED && m_XferState <= READY){
 		m_XferState = READY;
-		m_otherState = CHILLED;
+		m_XferWaitState = CHILLED;
 	}
 
 
@@ -807,7 +831,7 @@ DefTer::ProcessInput(float dt)
 		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
-			m_pCaching->DeformHighDetail(m_clickPos, m_stampIndex, stampSIRM);
+			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
 		}
 		else
 		{
@@ -872,7 +896,7 @@ DefTer::ProcessInput(float dt)
 			
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampIndex, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, stampSIRM, true);
 
 			// Calculate the normals
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
@@ -882,7 +906,7 @@ DefTer::ProcessInput(float dt)
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
-			m_otherState = READY;
+			m_XferWaitState = READY;
 		}
 
 		// Reset to wireframe mode
@@ -929,6 +953,12 @@ DefTer::ProcessInput(float dt)
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 		delete[] framebuffer;		
+	}
+
+
+	// Apply a shockwave
+	if (m_input.WasKeyPressed(SDLK_F5)){
+		m_pShockwave->CreateShockwave(vector3(0.0f));
 	}
 
 
@@ -985,15 +1015,10 @@ DefTer::ProcessInput(float dt)
 
 	// Toggle the stamp values
 	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
-	{
-		m_stampIndex = WRAP((m_stampIndex + 1), STAMPCOUNT);
-		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
-	}
+		printf("Stamp: %s\n", GetStampMan()->NextStamp().c_str());
 	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
-	{
-		m_stampIndex = WRAP((m_stampIndex - 1), STAMPCOUNT);
-		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
-	}
+		printf("Stamp: %s\n", GetStampMan()->PrevStamp().c_str());
+
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
@@ -1159,8 +1184,25 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(-m_pCamera->m_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			m_pCaching->DeformHighDetail(foot, "Footprint", stampSIRM);
+			m_pCaching->DeformHighDetail(foot, stampSIRM, "Footprint");
 		}
+	}
+
+	// Update Shockwave
+	if (m_pShockwave->IsActive())
+	{
+		static int i = 0;
+		// Tell collision streamer to update data
+		m_XferWaitState = READY;
+
+		vector4 SIRM;
+		SIRM.x = 400.0f;
+		SIRM.y = -0.75f * m_pShockwave->GetHeight();
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		m_pShockwave->Update(dt);
+		SIRM.y = 0.75f * m_pShockwave->GetHeight();
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		i++;
 	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
