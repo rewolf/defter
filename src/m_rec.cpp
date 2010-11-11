@@ -143,7 +143,7 @@ bool m_rec::find_monitor(){
 
         }
     }
-    printf(":: FAILED :: Number of checks %i, Plells.size() = %i\n",num_checks,(int)plells.size());
+    //printf(":: FAILED :: Number of checks %i, Plells.size() = %i\n",num_checks,(int)plells.size());
     struct line temp_line;
     for (int n=0;n < plells.size();n++){
         struct pair2 * pn = plells[n];

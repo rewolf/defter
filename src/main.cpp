@@ -41,8 +41,7 @@ int vis_thread_func(void * d);
 int main(int argc, char* argv[])
 {
 
-
-
+ 
     SDL_Thread * vis_thread;
     vis_thread = SDL_CreateThread(vis_thread_func, NULL);
     if ( vis_thread == NULL ) {
@@ -77,8 +76,48 @@ int main(int argc, char* argv[])
 }
 
 int vis_thread_func(void * data){
-	while(true){
-	}
+
+	int vidwidth=640;
+    int vidheight=480;
+    int y_thresh=70;
+    video_driver vid(vidwidth,vidheight);
+    vid.open_device();
+    vid.init_device();
+    vid.start_capturing();
+    frame f((char*)vid.buffers[0].start,vidwidth,vidheight);
+    printf("Y thresh %i \n",y_thresh);
+    f.y_thresh = y_thresh;
+
+     m_rec monitor_rec(f);
+     h_detect hand(&f,&monitor_rec);
+     int lmx;
+     int lmy;
+
+     while(true){
+        int d = vid.read_frame();
+        if (d==0){
+            continue;
+        }
+        printf("===============================================\n");
+        f.buffer = (char*)vid.buffers[vid.last_index].start;
+        f.compute_canny();
+        if (monitor_rec.find_monitor()){
+            printf("Found\n");
+                if (monitor_rec.hand_detected){
+                    hand.hand_search(monitor_rec.handx,monitor_rec.handy,f.op);
+                    if (hand.fingertips.size() ==1){
+			printf("Fingertip\n");
+		    }
+                      
+                }
+        }
+                    
+            
+        
+         
+     }
+    
+
 }
 
 
