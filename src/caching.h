@@ -55,6 +55,7 @@ public:
 	void Render				(void);
 	void GetActiveTiles 	(Tile activeTiles[4]);
 	vector2 RadarToWorldPos	(vector2 screenPos);
+	vector2 WorldPosToRadar	(vector2 worldPos);
 
 	friend int hdd_cacher 	(void* data);
 

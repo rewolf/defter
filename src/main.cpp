@@ -198,6 +198,8 @@ DefTer::InitGL()
 
 	// Initialise to edit mode
 	m_useMode		= EDIT_MODE;
+	m_activeWeapon	= GUN;
+	m_bombActive	= false;
 
 	// Set the initial stamp mode and clicked state
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
@@ -275,6 +277,9 @@ DefTer::InitGL()
 	glUseProgram(m_shModel->m_programID);
 	glUniform1i(glGetUniformLocation(m_shModel->m_programID, "colormap"),  0);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "projection"), 1, GL_FALSE,	m_proj_mat.m);
+
+	glUseProgram(m_shHUD->m_programID);
+	glUniform1i(glGetUniformLocation(m_shModel->m_programID, "HUDelem"),  0);
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -826,7 +831,9 @@ DefTer::ProcessInput(float dt)
 			m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 			// flash screen
 			FlashScreen();
+#ifdef WIN32
 			::ShowCursor(0);
+#endif
 		}
 		else{
 			printf("Switched to EDIT MODE\n");
@@ -834,7 +841,9 @@ DefTer::ProcessInput(float dt)
 			m_useMode = EDIT_MODE;
 			// enable a model for the camera
 			m_pCamera->m_pModel = NULL;
+#ifdef WIN32
 			::ShowCursor(1);
+#endif
 		}
 	}
 
@@ -843,23 +852,8 @@ DefTer::ProcessInput(float dt)
 	MousePos mousePos = m_input.GetMousePos();
 	if (m_useMode == EDIT_MODE)
 		EditModeInput(dt, move, wheel_ticks);
-	else{
-		move.x += -compensate.x;
-		move.y += -compensate.y;
+	else
 		GameModeInput(dt, move, wheel_ticks);
-		// reset mouse
-#ifdef WIN32
-		int wx,wy,ww,wh;
-		POINT mousep;
-		SDL_GetWindowPosition(m_pWindow, &wx, &wy);
-		SDL_GetWindowSize(m_pWindow, &ww, &wh);
-		::GetCursorPos(&mousep);
-		compensate.x = wx+ww/2 - mousep.x;
-		compensate.y = wy+wh/2 - mousep.y;
-		::SetCursorPos(wx+ww/2, wy+wh/2);
-#else
-#endif
-	}
 
 	// Increase the game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
@@ -1033,17 +1027,102 @@ DefTer::ProcessInput(float dt)
 //--------------------------------------------------------
 void
 DefTer::GameModeInput(float dt, MouseDelta move, int ticks){
-	// Pitch
-	m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
-	// Yaw
-	m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
 
-	//Clamp the camera to prevent the user flipping
-	//upside down messing up everything
-	if (m_pCamera->m_rotate.x < -PI * 0.5f)
-		m_pCamera->m_rotate.x = -PI * 0.5f;
-	if (m_pCamera->m_rotate.x > PI * 0.5f)
-		m_pCamera->m_rotate.x = PI * 0.5f;
+	// Call input processing function based on mode (GAME or EDIT)
+	static MouseDelta compensate={.0f}; // compensates for the resetting of mouse
+	static bool mouse_look = true;
+	MousePos mousePos = m_input.GetMousePos();
+	if (!m_input.WasKeyPressed(SDLK_COMMA)){
+		move.x += -compensate.x;
+		move.y += -compensate.y;
+	}
+	compensate.x = compensate.y = .0f;
+
+
+	if (mouse_look){
+		// Pitch
+		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
+		// Yaw
+		m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
+
+		//Clamp the camera to prevent the user flipping
+		//upside down messing up everything
+		if (m_pCamera->m_rotate.x < -PI * 0.5f)
+			m_pCamera->m_rotate.x = -PI * 0.5f;
+		if (m_pCamera->m_rotate.x > PI * 0.5f)
+			m_pCamera->m_rotate.x = PI * 0.5f;
+	}
+
+	
+	// Iterate through weapons with [,]
+	bool weaponChanged = false;
+	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET)){
+		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon+1, N_WEAPONS);
+		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
+		weaponChanged = true;
+	}		
+	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET)){
+		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon-1, N_WEAPONS);
+		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
+		weaponChanged = true;
+	}
+
+	// FIRE!!
+	if (m_input.WasButtonPressed(1)){
+		MousePos p;
+		vector2 pos;
+		switch(m_activeWeapon){
+			case BOMB:
+				if (m_bombActive){
+					printf("Bomb already active\n");
+					//break;
+				}
+				// check if its on the radar
+				p	= m_input.GetMousePos();
+				pos = m_pCaching->RadarToWorldPos(vector2(p.x, SCREEN_H - p.y));
+				if (pos.x < 90000){ // test the value
+					m_bombActive = true;
+					m_bombTarget = pos;
+					m_activeWeapon = GUN;
+					printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
+					weaponChanged = true;
+				printf("-----------------------------------%s\n", m_bombTarget.str().c_str());
+					m_pShockwave->CreateShockwave(m_bombTarget, 400.0f);
+				}
+				break;
+			case GUN:
+				break;
+		}
+	}
+
+	// Change weapon
+	if (weaponChanged){
+		switch(m_activeWeapon){
+			case BOMB:
+				mouse_look = false;
+				m_pCamera->m_pModel = NULL;
+				break;
+			case GUN:
+				mouse_look = true;
+				m_pCamera->m_pModel = m_pCamera->m_pGunModel;
+				break;
+		}
+	}
+
+	// reset mouse
+	if (mouse_look){
+#ifdef WIN32
+		int wx,wy,ww,wh;
+		POINT mousep;
+		SDL_GetWindowPosition(m_pWindow, &wx, &wy);
+		SDL_GetWindowSize(m_pWindow, &ww, &wh);
+		::GetCursorPos(&mousep);
+		compensate.x = wx+ww/2 - mousep.x;
+		compensate.y = wy+wh/2 - mousep.y;
+		::SetCursorPos(wx+ww/2, wy+wh/2);
+#else
+#endif
+	}
 }
 
 //--------------------------------------------------------
@@ -1052,9 +1131,6 @@ DefTer::EditModeInput(float dt, MouseDelta move, int ticks){
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
 	{	
-		MousePos p = m_input.GetMousePos();
-		vector2 pos = m_pCaching->RadarToWorldPos(vector2(p.x, SCREEN_H - p.y));
-		printf("%s\n", pos.str().c_str());
 		// Pitch
 		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
 		// Yaw
@@ -1378,7 +1454,6 @@ DefTer::Render(float dt)
 	UpdateCoarsemapStreamer();
 
 	if (m_flash.enabled){
-		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glUseProgram(m_shFlash->m_programID);
 		glUniform4fv(glGetUniformLocation(m_shFlash->m_programID, "color"),  1, m_flash.color.v);
@@ -1388,6 +1463,41 @@ DefTer::Render(float dt)
 
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
+	}
+
+	if (m_useMode == GAME_MODE){
+		// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
+		if (m_activeWeapon == BOMB && !m_bombActive){
+			vector2 p((float*)&m_input.GetMousePos());
+			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
+			p.y = 1.0f - p.y/SCREEN_H * 2.0f;
+			
+			glDisable(GL_DEPTH_TEST);
+			glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
+			glUseProgram(m_shHUD->m_programID);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, .02f);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
+			glBindVertexArray(GetStandardVAO());
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			glEnable(GL_DEPTH_TEST);
+		}
+		else if (m_activeWeapon == GUN){
+		}
+
+		if (m_bombActive){
+			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
+			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
+			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
+			
+			glDisable(GL_DEPTH_TEST);
+			glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
+			glUseProgram(m_shHUD->m_programID);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, .02f);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
+			glBindVertexArray(GetStandardVAO());
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			glEnable(GL_DEPTH_TEST);
+		}
 	}
 
 	// Swap windows to show the rendered data

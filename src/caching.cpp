@@ -728,7 +728,7 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 }
 
 //--------------------------------------------------------
-// Returns the world position corresponding to the position on the radar
+// Returns the world position corresponding to the position on the radar. 99999 if out of bounds
 // Input position is screen coordinates
 vector2
 Caching::RadarToWorldPos(vector2 screenPos){
@@ -736,7 +736,20 @@ Caching::RadarToWorldPos(vector2 screenPos){
 	screenPos.y = RADAR_SIZE - screenPos.y;
 	screenPos *= 1.0f/RADAR_SIZE;
 	screenPos -= .5f;
+	if (fabsf(screenPos.x) > .5f || fabsf(screenPos.y) > .5f)
+		return vector2(99999.0f, 99999.0f);
 	return screenPos * 1.0f/m_metre_to_tex;
+}
+
+//--------------------------------------------------------
+// Returns the world position corresponding to the position on the radar. 99999 if out of bounds
+// Input position is screen coordinates
+vector2
+Caching::WorldPosToRadar(vector2 worldPos){
+	worldPos  = worldPos * m_metre_to_tex + .5f;
+	worldPos.y= 1.0f - worldPos.y;
+	worldPos  = worldPos * RADAR_SIZE + m_radar_pos;
+	return worldPos;
 }
 
 //--------------------------------------------------------

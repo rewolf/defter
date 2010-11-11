@@ -19,6 +19,11 @@ enum UseMode {
 	EDIT_MODE, GAME_MODE
 };
 
+enum WeaponMode {
+	GUN=0, BOMB, N_WEAPONS
+};
+char* WEAPON_NAME[] = {"Gun", "Bomb"};
+
 struct Flash{
 	reTimer	timer;
 	vector4	color;
@@ -122,6 +127,11 @@ public:
 
 	// Handles a screen flash
 	Flash			m_flash;
+
+	// Handles weapon stuff
+	WeaponMode		m_activeWeapon;
+	bool			m_bombActive;
+	vector2			m_bombTarget;
 };
 
 // thread that retrieves the coarsemap from the PBOs
