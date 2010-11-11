@@ -38,7 +38,7 @@ public:
 	void		Logic			(float dt); //override
 	void		Render			(float dt); //override
 
-	void		FlashScreen	(float inTime = .02f, float outTime = 1.8f, float maxAlpha = 0.9f, 
+	void		FlashScreen	(float inTime = .2f, float outTime = 1.8f, float maxAlpha = 0.9f, 
 							 vector4 color=vector4(1.0, .95f, 1.0f, 1.0f));
 
 private:

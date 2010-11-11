@@ -724,7 +724,7 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Change Mode
-	if (m_input.WasKeyPressed(SDLK_PAUSE)){
+	if (m_input.WasKeyPressed(SDLK_COMMA)){
 		if (m_useMode == EDIT_MODE){
 			printf("Switched to GAME MODE\n");
 			// Switch to game mode
