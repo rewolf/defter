@@ -298,6 +298,8 @@ KillUtil(void)
 {
 	glDeleteBuffers(3, util_vbo);
 	glDeleteVertexArrays(1, &util_vao);
+
+	RE_DELETE(m_stampManager);
 }
 
 //--------------------------------------------------------
@@ -417,11 +419,8 @@ ShaderManager::ShaderManager(void)
 ShaderManager::~ShaderManager(void)
 {
 	//Delete each shader object
-	for (int i = 0; i < curIndex; i++)
-		RE_DELETE(shaders[i]);
-
-	//Delete shader array
-	RE_DELETE_ARR(*shaders);
+	for (int i = 0; i < (int)shaders.size(); i++)
+		RE_DELETE(shaders.at(i));
 }
 
 //--------------------------------------------------------
@@ -429,14 +428,10 @@ ShaderManager::~ShaderManager(void)
 bool
 ShaderManager::AddShader(string vert, string geom, string frag, int *index)
 {
-	//If out of available shader spots then return an error
-	if ((curIndex + 1) > SHADERNUM)
-		return (false);
-
-	*index = curIndex;
+	*index = shaders.size();
 
 	//Create the new shader and increment the current index
-	shaders[curIndex++] = new ShaderProg(vert, geom, frag);
+	shaders.push_back(new ShaderProg(vert, geom, frag));
 
 	//Return successful
 	return (true);
@@ -447,8 +442,8 @@ ShaderManager::AddShader(string vert, string geom, string frag, int *index)
 void
 ShaderManager::BindAttrib(char *name, int val)
 {
-	for (int i = 0; i < curIndex; i++)
-		glBindAttribLocation(shaders[i]->m_programID, val, name);
+	for (int i = 0; i < (int)shaders.size(); i++)
+		glBindAttribLocation(shaders.at(i)->m_programID, val, name);
 }
 
 //--------------------------------------------------------
@@ -456,10 +451,10 @@ ShaderManager::BindAttrib(char *name, int val)
 bool
 ShaderManager::CompileAndLink(void)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
 		//Check for errors in compiling any shader
-		if (!shaders[i]->CompileAndLink())
+		if (!shaders.at(i)->CompileAndLink())
 			return false;
 	}
 
@@ -472,19 +467,19 @@ ShaderManager::CompileAndLink(void)
 void
 ShaderManager::SetActiveShader(int shader)
 {
-	if (shader >= SHADERNUM)
+	if (shader >= (int)shaders.size())
 		return;
-	glUseProgram(shaders[shader]->m_programID);
+	glUseProgram(shaders.at(shader)->m_programID);
 }
 
 //--------------------------------------------------------
 void
 ShaderManager::UpdateUni1i(char *name, int val)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform1i(glGetUniformLocation(shaders[i]->m_programID, name), val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform1i(glGetUniformLocation(shaders.at(i)->m_programID, name), val);
 	}
 }
 
@@ -492,10 +487,10 @@ ShaderManager::UpdateUni1i(char *name, int val)
 void
 ShaderManager::UpdateUni2i(char *name, int val1, int val2)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform2i(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2i(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2);
 	}
 }
 
@@ -503,10 +498,10 @@ ShaderManager::UpdateUni2i(char *name, int val1, int val2)
 void
 ShaderManager::UpdateUni1f(char *name, float val)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform1f(glGetUniformLocation(shaders[i]->m_programID, name), val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform1f(glGetUniformLocation(shaders.at(i)->m_programID, name), val);
 	}
 }
 
@@ -514,10 +509,10 @@ ShaderManager::UpdateUni1f(char *name, float val)
 void
 ShaderManager::UpdateUni2f(char *name, float val1, float val2)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform2f(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2f(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2);
 	}
 }
 
@@ -525,10 +520,10 @@ ShaderManager::UpdateUni2f(char *name, float val1, float val2)
 void
 ShaderManager::UpdateUni4f(char *name, float val1, float val2, float val3, float val4)
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform4f(glGetUniformLocation(shaders[i]->m_programID, name), val1, val2, val3, val4);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform4f(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2, val3, val4);
 	}
 }
 
@@ -536,10 +531,10 @@ ShaderManager::UpdateUni4f(char *name, float val1, float val2, float val3, float
 void
 ShaderManager::UpdateUni2fv(char *name, float val[2])
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform2fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, val);
 	}
 }
 
@@ -547,10 +542,10 @@ ShaderManager::UpdateUni2fv(char *name, float val[2])
 void
 ShaderManager::UpdateUni3fv(char *name, float val[3])
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniform3fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform3fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, val);
 	}
 }
 
@@ -558,10 +553,10 @@ ShaderManager::UpdateUni3fv(char *name, float val[3])
 void
 ShaderManager::UpdateUniMat3fv(char *name, float val[9])
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniformMatrix3fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, GL_FALSE, val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniformMatrix3fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, GL_FALSE, val);
 	}
 }
 
@@ -569,10 +564,10 @@ ShaderManager::UpdateUniMat3fv(char *name, float val[9])
 void
 ShaderManager::UpdateUniMat4fv(char *name, float val[16])
 {
-	for (int i = 0; i < curIndex; i++)
+	for (int i = 0; i < (int)shaders.size(); i++)
 	{
-		glUseProgram(shaders[i]->m_programID);
-		glUniformMatrix4fv(glGetUniformLocation(shaders[i]->m_programID, name), 1, GL_FALSE, val);
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniformMatrix4fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, GL_FALSE, val);
 
 	}
 }
@@ -604,8 +599,8 @@ Stamp::Stamp(void)
 //--------------------------------------------------------
 Stamp::~Stamp(void)
 {
-	//if (!m_isTexStamp)
-	//	RE_DELETE(m_shader);
+	if (!m_isTexStamp)
+		RE_DELETE(m_shader);
 }
 
 //--------------------------------------------------------
@@ -683,7 +678,7 @@ Stamp::GetShaderID(void)
 //--------------------------------------------------------
 StampManager::StampManager(void)
 {
-	m_error = false;
+	m_error = true;
 
 	// Create the texture stamp shader
 	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
@@ -698,56 +693,81 @@ StampManager::StampManager(void)
 	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
 	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
 
-	// Add in the stamps
-	Stamp newStamp;
-
 	// Gaussian function stamp
-	newStamp.initShader = &setupGaussian;
-	m_error &= !newStamp.CreateFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag");
-	stampCollection.push_back(newStamp);
+	if (!AddFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag"))
+		return;
 
 	// Testing image stamp
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "%", "images/stamps/percent.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("%", "images/texstamps/%.png"))
+		return;
 
 	// Footprint stamp
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Footprint", "images/stamps/leftfoot.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Footprint", "images/texstamps/Footprint.png"))
+		return;
 
 	// Smiley stamp 1
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley", "images/stamps/smiley.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Smiley", "images/texstamps/Smiley.png"))
+		return;
 	
 	// Smiley stamp 2
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Smiley2", "images/stamps/smiley2.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Smiley2", "images/texstamps/Smiley2.png"))
+		return;
 
 	// Pedobear
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Pedobear", "images/stamps/pedobear.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Pedobear", "images/texstamps/Pedobear.png"))
+		return;
 
 	// Mess
-	newStamp = Stamp();
-	m_error &= !newStamp.CreateTexStamp(m_shTexStamp, "Mess", "images/stamps/mess.png");
-	stampCollection.push_back(newStamp);
+	if (!AddTexStamp("Mess", "images/texstamps/Mess.png"))
+		return;
 
-	// Set how many stamps there currently are
-	STAMPCOUNT = stampCollection.size();
+	m_error = false;
 }
 
 //--------------------------------------------------------
 StampManager::~StampManager(void)
 {
 	RE_DELETE(m_shTexStamp);
+	for (int i = 0; i < (int)stampCollection.size(); i++)
+		delete stampCollection.at(i);
 }
 
 //--------------------------------------------------------
-Stamp
+bool
+StampManager::AddTexStamp(string stampName, string textureName)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateTexStamp(m_shTexStamp, stampName, textureName))
+		return false;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateFuncStamp(stampName, vertPath, fragPath))
+		return false;
+
+	newStamp->initShader = &setupGaussian;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::FinaliseStamp(Stamp* newStamp)
+{
+	stampCollection.push_back(newStamp);
+	stampIndexMap[newStamp->GetStampName()] = STAMPCOUNT++;
+
+	return true;
+}
+
+//--------------------------------------------------------
+Stamp*
 StampManager::GetStamp(int stampIndex)
 {
 	return (stampCollection.at(stampIndex));
@@ -757,17 +777,24 @@ StampManager::GetStamp(int stampIndex)
 string
 StampManager::GetStampName(int stampIndex)
 {
-	return (stampCollection.at(stampIndex).GetStampName());
+	return (stampCollection.at(stampIndex)->GetStampName());
+}
+
+//--------------------------------------------------------
+int
+StampManager::GetStampIndex(string stampName)
+{
+	return (stampIndexMap[stampName]);
 }
 
 //--------------------------------------------------------
 void
-setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity)
+setupGaussian(Stamp* stamp, vector2 clickPos, float scale, float intensity)
 {
 	const float epsilon = 0.000001f;
 
 	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
-	glUniform1f(glGetUniformLocation(stamp.GetShaderID(), "falloff"), falloff);
+	glUniform1f(glGetUniformLocation(stamp->GetShaderID(), "falloff"), falloff);
 }
 //--------------------------------------------------------
 //--------------------------------------------------------

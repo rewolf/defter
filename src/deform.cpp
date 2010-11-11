@@ -103,7 +103,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	int		copyW, copyH;
 	float	metre_scale;
 	matrix2 stampRot;
-	Stamp	stamp;
+	Stamp	*stamp;
 	GLuint	shaderID;
 
 	// Setup transforms
@@ -112,7 +112,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 
 	// Stamp controls
 	stamp			= GetStampMan()->GetStamp(stampIndex);
-	shaderID		= stamp.GetShaderID();
+	shaderID		= stamp->GetShaderID();
 
 	// Setup variables dependent on whether it is Coarse or High detail deformation
 	if (isCoarse)
@@ -198,10 +198,10 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glBindTexture(GL_TEXTURE_2D, backupTex);
 
 	//Bind the stamp texture if it uses one
-	if (stamp.IsTexStamp())
+	if (stamp->IsTexStamp())
 	{
 		glActiveTexture(GL_TEXTURE1);
-		stamp.BindTexture();
+		stamp->BindTexture();
 	}
 	
 	// Bind the shader and set the uniform values
@@ -209,7 +209,7 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glUniform2fv(glGetUniformLocation(shaderID, "clickPos"), 1, clickPos.v);
 	glUniform2f (glGetUniformLocation(shaderID, "stamp_scale"), SIRM.x, SIRM.x);
 	glUniformMatrix2fv(glGetUniformLocation(shaderID, "stamp_rotation"), 1, GL_FALSE, stampRot.m);
-	if (stamp.IsTexStamp())
+	if (stamp->IsTexStamp())
 	{
 		// Controls for mirroring the texture
 		vector2 mirror(0.0f, -1.0f);
@@ -221,8 +221,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 	glUniform1f(glGetUniformLocation(shaderID, "intensity"), SIRM.y);
 
 	// Call a predefined function if need be
-	if (stamp.initShader)
-		stamp.initShader(stamp, clickPos, SIRM.x, SIRM.y);
+	if (stamp->initShader)
+		stamp->initShader(stamp, clickPos, SIRM.x, SIRM.y);
 
 	// Bind the Vertex Array Object containing the Render Quad and its texture coordinates
 	glBindVertexArray(m_vao);
@@ -253,6 +253,15 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, copyX, copyY, copyX, copyY, copyW, copyH);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);	
 	}
+}
+
+//--------------------------------------------------------
+// Overridden method to allow for specifying the stamp name instead of its index
+void
+Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName, vector4 SIRM,
+	bool isCoarse, GLuint copySrcTex)
+{
+	displace_heightmap(texdata, clickPos, clickOffset, GetStampMan()->GetStampIndex(stampName), SIRM, isCoarse, copySrcTex);
 }
 
 //--------------------------------------------------------

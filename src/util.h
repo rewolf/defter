@@ -72,7 +72,7 @@ public:
 	void UpdateUniMat4fv	(char *name, float val[16]);
 	
 public:
-	ShaderProg*			shaders[SHADERNUM];
+	vector<ShaderProg*>	shaders;
 	int					curIndex;
 };
 
@@ -92,13 +92,13 @@ public:
 	void BindTexture		(void);
 	GLuint GetShaderID		(void);
 
-	void(*initShader)		(Stamp stamp, vector2 clickPos, float scale, float intensity);
+	void(*initShader)		(Stamp* stamp, vector2 clickPos, float scale, float intensity);
 
 private:
-	string			m_stampName;
-	bool			m_isTexStamp;
-	GLuint			m_texture;
-	ShaderProg*		m_shader;
+	string				m_stampName;
+	bool				m_isTexStamp;
+	GLuint				m_texture;
+	ShaderProg*			m_shader;
 };
 
 
@@ -110,16 +110,22 @@ public:
 	~StampManager			(void);
 
 	bool HasError			(void);
-	Stamp GetStamp			(int stampIndex);
+	Stamp* GetStamp			(int stampIndex);
 	string GetStampName		(int stampIndex);
+	int GetStampIndex		(string stampName);
 
 private:
-	bool			m_error;
-	ShaderProg*		m_shTexStamp;
-	vector<Stamp>	stampCollection;
+	bool AddTexStamp		(string stampName, string textureName);
+	bool AddFuncStamp		(string stampName, string vertPath, string fragPath);
+	bool FinaliseStamp		(Stamp* newStamp);
+
+	bool				m_error;
+	ShaderProg*			m_shTexStamp;
+	vector<Stamp*>		stampCollection;
+	map<string, int>	stampIndexMap;
 };
 
 // Functional Stamp setup callbacks
-void setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity);
+void setupGaussian(Stamp* stamp, vector2 clickPos, float scale, float intensity);
 
 #endif

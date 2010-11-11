@@ -81,11 +81,6 @@
 
 
 
-// Shader Manager settings
-#define SHADERNUM			(3)
-
-
-
 // Parallax Mapping Controls
 #define PARALLAXBIAS		(-0.00400f)
 #define PARALLAXSCALE		(0.00400f)
@@ -97,7 +92,8 @@
 extern int STAMPCOUNT;
 
 
-const vector3 	GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
+
+const vector3 GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 #define ACCELERATION		(3.5f)
 #define AIR_DRAG			(0.6f)
 #define FRICTION			(1.8f)

@@ -418,6 +418,14 @@ Caching::DeformHighDetail(vector2 clickPos, int stampIndex, vector4 stampSIRM)
 }
 
 //--------------------------------------------------------
+// Overridden method to allow for specifying stamp name instead of index
+void
+Caching::DeformHighDetail(vector2 clickPos, string stampName, vector4 stampSIRM)
+{
+	DeformHighDetail(clickPos, GetStampMan()->GetStampIndex(stampName), stampSIRM);
+}
+
+//--------------------------------------------------------
 // Renders the radar into a small viewport on the screen
 void
 Caching::Render(void)
