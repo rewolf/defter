@@ -26,12 +26,30 @@ using namespace std;
 #include "shockwave.h"
 #include "main.h"
 
+/* Vision includes */
+
+#include "video_driver.h"
+#include "frame.h"
+#include "m_rec.h"
+#include "v_util.h"
+#include "h_detect.h"
+
 
 /******************************************************************************
  * Main 
  ******************************************************************************/
 int main(int argc, char* argv[])
 {
+
+
+
+    SDL_Thread * vis_thread;
+    vis_thread = SDL_CreateThread(vis_thread_func, NULL);
+    if ( vis_thread == NULL ) {
+        fprintf(stderr, "Unable to create thread: %s\n", SDL_GetError());
+        return 0;
+    }
+
 	AppConfig conf;
 	conf.VSync		= VSYNC;
 	conf.gl_major	= 3;
@@ -56,6 +74,11 @@ int main(int argc, char* argv[])
 	PRINT_PROF;
 
 	return 0;
+}
+
+int vis_thread_func(void * data){
+	while(true){
+	}
 }
 
 
