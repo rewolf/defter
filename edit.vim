@@ -7,17 +7,12 @@
 :tabnew src/caching.h
 :vsp src/caching.cpp
 
-:tabnew shaders/simple.frag
-:set syntax=glsl
-:vsp shaders/simple.geom
-:set syntax=glsl
-:vsp shaders/simple.vert
-:set syntax=glsl
+:tabnew src/shockwave.h
+:vsp src/shockwave.cpp
 
-:tabnew shaders/tess.frag
+:tabnew shaders/shockwave.frag
 :set syntax=glsl
-:vsp shaders/tess.geom
+:vsp shaders/shockwave.geom
 :set syntax=glsl
-:vsp shaders/tess.vert
+:vsp shaders/shockwave.vert
 :set syntax=glsl
-

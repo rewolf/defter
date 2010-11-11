@@ -26,6 +26,7 @@ public:
 
 	GLuint			m_coarseBackup;
 	GLuint			m_highBackup;
+	map<string, Stamp> stampCollection;
 private:
 	ShaderProg*		m_shPDMapper;
 

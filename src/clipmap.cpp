@@ -69,7 +69,7 @@ Clipmap::~Clipmap()
 
 //--------------------------------------------------------
 bool
-Clipmap::init()
+Clipmap::Init()
 {
 	int i,j;
 	float quad_size, texel_size, left, ffar;
