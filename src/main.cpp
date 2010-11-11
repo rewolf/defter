@@ -204,7 +204,6 @@ DefTer::InitGL()
 	m_footprintDT	= 0.0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
-	m_is_wireframe	= false;
 
 	// Set initial shader index values
 	m_shmSimple		= 0;
@@ -373,7 +372,7 @@ DefTer::Init()
 	// Create the Shockwave object that will allow shockwaves to happen
 	printf("Creating shockwave...\t\t");
 	fflush(stdout);
-	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2);
+	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2, m_pDeform);
 	if (m_pShockwave->HasError())
 	{
 		fprintf(stderr, "Error\n\tCould not create shockwave\n");
@@ -801,12 +800,12 @@ DefTer::ProcessInput(float dt)
 	}
 
 	// Increase the game speed
-	if (m_input.IsKeyPressed(SDLK_LSHIFT))
+	if (m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT))
 	{
 		dt *= 5.0f;
 		m_is_super_speed = true;
 	}
-	if (m_is_super_speed && !m_input.IsKeyPressed(SDLK_LSHIFT))
+	if (m_is_super_speed && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
 	{
 		m_is_super_speed = false;
 	}
@@ -814,13 +813,9 @@ DefTer::ProcessInput(float dt)
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
-		vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
+		//vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
-
-		// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
@@ -829,73 +824,9 @@ DefTer::ProcessInput(float dt)
 		}
 		else
 		{
-			vector2 areaMin(m_clickPos - vector2(stampSIRM.x / 2.0f));
-			vector2 areaMax(areaMin	+ stampSIRM.x);
+			//EdgeDeform(m_clickPos, stampSIRM);
+			m_pDeform->EdgeDeform(m_coarsemap, m_clickPos, stampSIRM);
 
-			areaMin *= m_pClipmap->m_metre_to_tex;
-			areaMin += vector2(0.5f);
-			areaMax *= m_pClipmap->m_metre_to_tex;
-
-			areaMax += vector2(0.5f);
-
-			list<vector2> fuck;
-
-			// Left-Col
-			if (areaMin.x < 0.0)
-			{
-				// Left-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(1.0f, 1.0f));
-
-				// Left-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(1.0f, 0.0f));
-
-				// Left-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(1.0f, -1.0f));
-			}
-
-			// Centre-Col
-			if (areaMin.x < 1.0 && areaMax.x > 0.0)
-			{
-				// Centre-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(0.0f, 1.0f));
-
-				// Centre-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(0.0f));
-				
-				// Centre-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(0.0f, -1.0f));
-			}
-
-			// Right-Col
-			if (areaMax.x > 1.0)
-			{
-				// Right-Top
-				if (areaMin.y < 0.0)
-					fuck.push_back(vector2(-1.0f, 1.0f));
-
-				// Right-Centre
-				if (areaMax.y > 0.0 && areaMin.y < 1.0)
-					fuck.push_back(vector2(-1.0f, 0.0f));
-
-				// Right-Bottom
-				if (areaMax.y > 1.0)
-					fuck.push_back(vector2(-1.0f, -1.0f));
-			}
-			
-			// Displace the heightmap
-			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, stampSIRM, true);
-
-			// Calculate the normals
-			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->calculate_pdmap(m_coarsemap, m_clickPos, *shit, stampSIRM.x, true);
-			
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
 			// Restart timer
@@ -904,7 +835,7 @@ DefTer::ProcessInput(float dt)
 		}
 
 		// Reset to wireframe mode
-		if (m_is_wireframe)
+		if (WIREFRAMEON)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
@@ -951,9 +882,8 @@ DefTer::ProcessInput(float dt)
 
 
 	// Apply a shockwave
-	if (m_input.WasKeyPressed(SDLK_F5)){
-		m_pShockwave->CreateShockwave(vector3(0.0f));
-	}
+	if (m_input.WasKeyPressed(SDLK_F5))
+		m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
 
 
 	// Toggle footprints
@@ -966,11 +896,7 @@ DefTer::ProcessInput(float dt)
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
-		m_is_wireframe ^= true;
-		if (m_is_wireframe)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		WIREFRAMEON ^= true;
 	}
 
 
@@ -1125,6 +1051,17 @@ DefTer::ProcessInput(float dt)
 
 //--------------------------------------------------------
 void
+DefTer::GameModeInput(float dt, MouseDelta mouseDelta, int ticks){
+
+}
+
+//--------------------------------------------------------
+void
+DefTer::EditModeInput(float dt, MouseDelta mouseDelta, int ticks){
+}
+
+//--------------------------------------------------------
+void
 DefTer::Logic(float dt)
 {
 	float speed2, terrain_height;
@@ -1211,22 +1148,8 @@ DefTer::Logic(float dt)
 		}
 	}
 
-	// Update Shockwave
-	if (m_pShockwave->IsActive())
-	{
-		static int i = 0;
-		// Tell collision streamer to update data
-		m_XferWaitState = READY;
-
-		vector4 SIRM;
-		SIRM.x = 400.0f;
-		SIRM.y = -0.75f * m_pShockwave->GetHeight();
-		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
-		m_pShockwave->Update(dt);
-		SIRM.y = 0.75f * m_pShockwave->GetHeight();
-		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
-		i++;
-	}
+	// Update the shockwave class
+	m_pShockwave->Update(dt);
 
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
@@ -1298,17 +1221,22 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.pdmap);
 
 	BEGIN_PROF;
+
+	// Enable wireframe if needed
+	if (WIREFRAMEON)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	m_pClipmap->render_inner();
 	// Switch to the simple shader and render the rest
 	m_shManager->SetActiveShader(m_shmSimple);
 	m_pClipmap->render_levels();
 	
-	// Only render these when not in wireframe mode
-	if (!m_is_wireframe)
-		m_pSkybox->render(viewproj);
+	// Disable wireframe if was enabled
+	if (WIREFRAMEON)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	if (!m_is_wireframe)
-		m_pCaching->Render();
+	m_pSkybox->render(viewproj);
+	m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame

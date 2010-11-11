@@ -8,6 +8,12 @@
 
 #include "constants.h"
 
+// Extern inits
+int STAMPCOUNT		= 0;
+bool WIREFRAMEON	= false;
+
+
+
 //--------------------------------------------------------
 bool
 SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip)
@@ -257,7 +263,7 @@ GLuint	util_vao	= 0;
 // Hidden Util methods
 bool isInit						= false;
 StampManager* m_stampManager	= NULL;
-int STAMPCOUNT					= 0;
+
 
 void
 InitUtil(void)
