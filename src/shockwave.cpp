@@ -128,7 +128,7 @@ Shockwave::Update(float dt)
 	// if its large enough, start decaying
 	if (m_radius > .2f)
 		m_height *= .98f;
-	if (m_height < .05f)
+	if (m_height < .02f)
 		m_state = IDLE;
 }
 
@@ -139,5 +139,5 @@ Shockwave::CreateShockwave(vector3 position)
 	m_state = ACTIVE;
 	m_origin= vector2(position.x, position.z);
 	m_radius= .0f;
-	m_height= 1.0f;
+	m_height= .1f;
 }
