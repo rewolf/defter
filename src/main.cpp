@@ -23,7 +23,9 @@ using namespace std;
 #include "clipmap.h"
 #include "skybox.h"
 #include "caching.h"
+#include "shockwave.h"
 #include "main.h"
+
 
 /******************************************************************************
  * Main 
@@ -65,6 +67,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
 	m_pSkybox 			  = NULL;
+	m_pShockwave		  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -83,6 +86,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
+	RE_DELETE(m_pShockwave);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -353,7 +357,7 @@ DefTer::Init()
 	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
 	printf("Done\n");
 	printf("Initialising clipmap...\t\t");
-	m_pClipmap->init();
+	m_pClipmap->Init();
 	printf("Done\n");
 
 	// Create the deformer object
@@ -362,6 +366,17 @@ DefTer::Init()
 	if (m_pDeform->HasError())
 	{
 		fprintf(stderr, "Error\n\tCould not create deformer\n");
+		return false;
+	}
+	printf("Done\n");
+
+	// Create the Shockwave object that will allow shockwaves to happen
+	printf("Creating shockwave...\t\t");
+	fflush(stdout);
+	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2);
+	if (m_pShockwave->HasError())
+	{
+		fprintf(stderr, "Error\n\tCould not create shockwave\n");
 		return false;
 	}
 	printf("Done\n");
@@ -404,7 +419,7 @@ DefTer::Init()
 
 	// Init stuff pertaining to the download of changed heightmap data for collision purposes
 	m_XferState			 = CHILLED;
-	m_otherState		 = CHILLED;
+	m_XferWaitState		 = CHILLED;
 	m_cyclesPassed		 = -1;
 
 	// Init the PBOs
@@ -622,9 +637,9 @@ DefTer::UpdateCoarsemapStreamer(){
 	streamerTimer.start();
 	
 	// Check if there has been a deform while transferring
-	if (m_otherState != CHILLED && m_XferState <= READY){
+	if (m_XferWaitState != CHILLED && m_XferState <= READY){
 		m_XferState = READY;
-		m_otherState = CHILLED;
+		m_XferWaitState = CHILLED;
 	}
 
 
@@ -885,7 +900,7 @@ DefTer::ProcessInput(float dt)
 			// to the CPU for collision detection
 			// Restart timer
 			m_deformTimer.start();
-			m_otherState = READY;
+			m_XferWaitState = READY;
 		}
 
 		// Reset to wireframe mode
@@ -932,6 +947,12 @@ DefTer::ProcessInput(float dt)
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);	
 		delete[] framebuffer;		
+	}
+
+
+	// Apply a shockwave
+	if (m_input.WasKeyPressed(SDLK_F5)){
+		m_pShockwave->CreateShockwave(vector3(0.0f));
 	}
 
 
@@ -1188,6 +1209,23 @@ DefTer::Logic(float dt)
 			m_flipFoot		^= true;
 			m_pCaching->DeformHighDetail(foot, stampSIRM, "Footprint");
 		}
+	}
+
+	// Update Shockwave
+	if (m_pShockwave->IsActive())
+	{
+		static int i = 0;
+		// Tell collision streamer to update data
+		m_XferWaitState = READY;
+
+		vector4 SIRM;
+		SIRM.x = 400.0f;
+		SIRM.y = -0.75f * m_pShockwave->GetHeight();
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		m_pShockwave->Update(dt);
+		SIRM.y = 0.75f * m_pShockwave->GetHeight();
+		m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		i++;
 	}
 
 	// Pass the camera's texture coordinates and the shift amount necessary
