@@ -1079,8 +1079,7 @@ DefTer::Logic(float dt)
 {
 	float terrain_height;
 
-	speed2 = ((m_cam_translate - m_lastPosition) * invDT).Mag2();
-	terrain_height = InterpHeight(vector2(m_cam_translate.x, m_cam_translate.z));
+	terrain_height = InterpHeight(m_pCamera->GetHorizPosition());
 
 	// Increase game speed
 	if (m_input.IsKeyPressed(SDLK_LSHIFT))
