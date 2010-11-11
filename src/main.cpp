@@ -66,6 +66,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
 	m_shModel			  = NULL;
 	m_shFlash			  = NULL;
+	m_shHUD				  = NULL;
 	m_shManager			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
@@ -87,6 +88,7 @@ DefTer::~DefTer()
 	glUseProgram(0);
 	RE_DELETE(m_shModel);
 	RE_DELETE(m_shFlash);
+	RE_DELETE(m_shHUD);
 	KillUtil();
 	RE_DELETE(m_shManager);
 	RE_DELETE(m_pDeform);
@@ -227,6 +229,7 @@ DefTer::InitGL()
 
 	m_shModel		= new ShaderProg("shaders/model.vert", "", "shaders/model.frag");
 	m_shFlash		= new ShaderProg("shaders/flash.vert", "", "shaders/flash.frag");
+	m_shHUD			= new ShaderProg("shaders/hud.vert", "", "shaders/hud.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -236,6 +239,8 @@ DefTer::InitGL()
 	glBindAttribLocation(m_shModel->m_programID, 1, "vert_Normal");
 	glBindAttribLocation(m_shModel->m_programID, 2, "vert_TexCoord");
 	glBindAttribLocation(m_shFlash->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shHUD->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shModel->m_programID, 1, "vert_TexCoord");
 
 	if (error || !CheckError("Binding shader attributes"))
 	{
@@ -251,7 +256,7 @@ DefTer::InitGL()
 		printf("Error\n\tWill not continue without working shaders\n");
 		return false;
 	}
-	if (!m_shModel->CompileAndLink() || !m_shFlash->CompileAndLink()){
+	if (!m_shModel->CompileAndLink() || !m_shFlash->CompileAndLink() || !m_shHUD->CompileAndLink()){
 		printf("Error\n\tWill not continue without working MODEL shaders\n");
 		return false;
 	}
@@ -1379,7 +1384,7 @@ DefTer::Render(float dt)
 		glUniform4fv(glGetUniformLocation(m_shFlash->m_programID, "color"),  1, m_flash.color.v);
 		glBindVertexArray(GetStandardVAO());
 
-		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, 0);		
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);	
 
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);

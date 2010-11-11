@@ -61,6 +61,7 @@ private:
 public:
 	ShaderProg*		m_shModel;
 	ShaderProg*		m_shFlash;
+	ShaderProg*		m_shHUD;
 	ShaderManager*	m_shManager;
 	int				m_shmSimple;
 	int				m_shmParallax;

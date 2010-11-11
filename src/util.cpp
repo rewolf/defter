@@ -244,14 +244,14 @@ PrintFBOErr(GLenum err)
 // Util VBO Stuff
 GLfloat	square[]	= { -1.0f, -1.0f,
 						 1.0f, -1.0f,
-						 1.0f,  1.0f,
-						-1.0f,  1.0f };
+						-1.0f,  1.0f,
+						 1.0f,  1.0f };
 GLfloat	texcoords[]	= { 0.0f, 0.0f,
 						1.0f, 0.0f,
-						1.0f, 1.0f,
-						0.0f, 1.0f };
-GLubyte	indices[]	= { 3, 0, 2, 1 };
-GLuint	util_vbo[3]	= {0};
+						0.0f, 1.0f,
+						1.0f, 1.0f };
+
+GLuint	util_vbo[2]	= {0};
 GLuint	util_vao	= 0;
 
 // Hidden Util methods
@@ -271,7 +271,7 @@ InitUtil(void)
 	glBindVertexArray(util_vao);
 
 	// Generate three VBOs for vertices, texture coordinates and indices
-	glGenBuffers(3, util_vbo);
+	glGenBuffers(2, util_vbo);
 
 	// Setup the vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, util_vbo[0]);
@@ -283,9 +283,6 @@ InitUtil(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
-	// Setup the index buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, util_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte) * 4, indices, GL_STATIC_DRAW);
 
 	isInit = true;
 }
@@ -398,7 +395,7 @@ Splash::Render(SDL_Window* window)
 	glBindTexture(GL_TEXTURE_2D, m_splashmap);
 
 	// Draw the screen
-	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	// Swap windows to show splash
 	SDL_GL_SwapWindow(window);
