@@ -127,7 +127,7 @@ Shockwave::Update(float dt)
 	m_radius += (0.4f * dt);
 	// if its large enough, start decaying
 	if (m_radius > 0.2f)
-		m_height *= 0.98f;
+		m_height *= powf(0.98, 100 * dt);
 	if (m_height < 0.02f)
 		m_state = IDLE;
 }
