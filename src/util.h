@@ -72,7 +72,7 @@ public:
 	void UpdateUniMat4fv	(char *name, float val[16]);
 	
 public:
-	ShaderProg*			shaders[SHADERNUM];
+	vector<ShaderProg*>	shaders;
 	int					curIndex;
 };
 
