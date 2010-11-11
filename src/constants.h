@@ -81,6 +81,13 @@
 
 
 
+// Parallax Mapping Controls
+#define PARALLAXBIAS		(-0.00400f)
+#define PARALLAXSCALE		(0.00400f)
+#define PARALLAXITR			(4)
+
+
+
 // Changeable values
 extern int STAMPCOUNT;
 extern bool WIREFRAMEON;
