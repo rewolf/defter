@@ -139,5 +139,5 @@ Shockwave::CreateShockwave(vector3 position)
 	m_state = ACTIVE;
 	m_origin= vector2(position.x, position.z);
 	m_radius= .0f;
-	m_height= 1.0f;
+	m_height= 0.1f;
 }
