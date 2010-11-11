@@ -51,7 +51,7 @@ public:
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
-	ModelManager*	m_pModels;
+	ModelManager*	m_pModelManager;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
@@ -64,7 +64,7 @@ public:
 	vector2			m_clickPos;
 	vector2			m_clickPosPrev;
 
-	GameEntity*		m_pCamera;
+	Camera*			m_pCamera;
 	matrix4			m_proj_mat;
 	vector2			m_clipmap_shift;
 	bool			m_gravity_on;

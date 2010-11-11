@@ -2,19 +2,20 @@
 #define _GAME_ENTITY_H_
 
 
+//--------------------------------------------------------
 class GameEntity {
 public:
-	GameEntity		(Node* pModel);
-	~GameEntity		();
+	GameEntity				(Node* pModel);
+	virtual ~GameEntity		();
 
-	void		SetTranslate		(vector3 position);
-	void		ZeroVelocity		();
-	void		SetVelocity			(vector3 velocity);
-	void		AddVelocity			(vector3 velocity);
-	vector3		GetVelocity			();
-	vector2		GetHorizPosition	();
+	void			SetTranslate		(vector3 position);
+	void			ZeroVelocity		();
+	void			SetVelocity			(vector3 velocity);
+	void			AddVelocity			(vector3 velocity);
+	vector3			GetVelocity			();
+	vector2			GetHorizPosition	();
 
-	void		Update				();
+	virtual void	Update				();
 
 public:
 	Node*		m_pModel;
@@ -24,6 +25,16 @@ public:
 	vector3		m_scale;
 	vector3		m_frameAcceleration;
 	bool		m_onGround;
+};
+
+//--------------------------------------------------------
+class Camera : public GameEntity{
+public:
+	Camera			(Node* pGun);
+	~Camera			();
+
+public:
+	Node*			m_pGunModel;
 };
 
 #endif

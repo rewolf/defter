@@ -15,6 +15,7 @@ GameEntity::GameEntity(Node* pModel){
 //--------------------------------------------------------
 GameEntity::~GameEntity(){
 	delete m_pModel;
+	printf("pppp\n");
 }
 
 //--------------------------------------------------------
@@ -71,3 +72,25 @@ GameEntity::Update(){
 
 	m_lastTranslate	= temp;
 }
+
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
+
+//--------------------------------------------------------
+Camera::Camera(Node* pGun) : GameEntity(pGun){
+	m_pGunModel		= pGun;
+
+	Transform& tr = m_pGunModel->m_transform;
+	tr.translate.y 	-= .6f;
+	tr.translate.x 	+= .7f;
+	tr.translate.z  -= .5f;
+	tr.rotate.y		+= PI*.000f;
+	tr.scale		*= .16f;
+}
+
+//--------------------------------------------------------
+Camera::~Camera(){
+	delete m_pGunModel;
+	printf("here\n");
+}
+

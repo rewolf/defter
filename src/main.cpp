@@ -68,7 +68,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pClipmap			  = NULL;
 	m_pCaching			  = NULL;
 	m_pSkybox 			  = NULL;
-	m_pModels			  = NULL;
+	m_pModelManager		  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -88,7 +88,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pSkybox);
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
-	RE_DELETE(m_pModels);
+	RE_DELETE(m_pModelManager);
 	RE_DELETE(m_pModel);
 	if (m_elevationData)
 		delete [] m_elevationData;
@@ -366,16 +366,16 @@ DefTer::Init()
 	// Create the model manager
 	printf("Loading models...\t\t");
 	bool noModelError = true;
-	m_pModels = new ModelManager();
-	noModelError |= m_pModels->LoadModel("gun", 	"models/gun.reMo");
+	m_pModelManager = new ModelManager();
+	noModelError |= m_pModelManager->LoadModel("gun", 	"models/gun.reMo");
 	if (noModelError){
 		printf("Done\n");
 	}
-	m_pModel = m_pModels->GetModel("gun");
+	m_pModel = m_pModelManager->GetModel("gun");
 
 	
 	// Init the cameras position such that it is in the middle of a tile
-	m_pCamera 		= new GameEntity(m_pModels->GetModel("gun"));
+	m_pCamera 		= new Camera(m_pModelManager->GetModel("gun"));
 	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
 	m_pCamera->SetTranslate(vector3(-halfTile, 0.0f, -halfTile));
 
