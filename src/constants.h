@@ -86,6 +86,14 @@ extern int STAMPCOUNT;
 
 
 
+// Shockwave Settings
+// Height below which the shockwave ends
+#define SWTARGETHEIGHT		(0.01f)
+// Area (radius) that remains unaffected by the damping
+#define	SWNODECAYRADIUS		(0.1f)
+
+
+
 const vector3 GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 #define ACCELERATION		(3.5f)
 #define AIR_DRAG			(0.6f)

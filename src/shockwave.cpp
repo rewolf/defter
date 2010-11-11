@@ -19,6 +19,8 @@ Shockwave::Shockwave(TexData coarsemap, int dimension)
 	m_coarsemap		= coarsemap;
 	m_dimension		= dimension;
 	m_height		= 1.0f;
+	m_decayRate		= 1.0f;
+	m_velocity		= 0.0f;
 
 	// Setup shader
 	m_shWave = new ShaderProg("shaders/shockwave.vert", "", "shaders/shockwave.frag");
@@ -91,6 +93,19 @@ Shockwave::IsActive(void)
 }
 
 //--------------------------------------------------------
+bool
+Shockwave::IsFirst(void)
+{
+	if (m_firstWave)
+	{
+		m_firstWave ^= true;
+		return true;
+	}
+	else
+		return false;
+}
+
+//--------------------------------------------------------
 float
 Shockwave::GetHeight(void)
 {
@@ -102,6 +117,13 @@ vector2
 Shockwave::GetEpicenter(void)
 {
 	return (m_origin);
+}
+
+//--------------------------------------------------------
+float
+Shockwave::GetAOE(void)
+{
+	return (m_AOE);
 }
 
 //--------------------------------------------------------
@@ -131,20 +153,25 @@ Shockwave::Update(float dt)
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	// Move wave
-	m_radius += (0.4f * dt);
+	m_radius += (m_velocity * dt);
 	// if its large enough, start decaying
-	if (m_radius > 0.2f)
-		m_height *= powf(0.98, 100 * dt);
-	if (m_height < 0.02f)
+	// The height only starts to decay after the radius is larger than 0.1 (10% max)
+	if (m_radius > SWNODECAYRADIUS)
+		m_height *= powf(m_decayRate, dt);
+	if (m_height < SWTARGETHEIGHT)
 		m_state = IDLE;
 }
 
 //--------------------------------------------------------
 void
-Shockwave::CreateShockwave(vector2 position)
+Shockwave::CreateShockwave(vector2 position, float areaOfEffect, float height, float velocity)
 {
-	m_state = ACTIVE;
-	m_origin= position;
-	m_radius= 0.0f;
-	m_height= 0.1f;
+	m_state		= ACTIVE;
+	m_firstWave	= true;
+	m_origin	= position;
+	m_radius	= 0.0f;
+	m_AOE		= areaOfEffect;
+	m_height	= height;
+	m_velocity	= velocity;
+	m_decayRate = powf(SWTARGETHEIGHT / m_height, m_velocity / (1.0 - SWNODECAYRADIUS));
 }
