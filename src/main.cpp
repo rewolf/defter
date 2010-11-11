@@ -908,7 +908,7 @@ DefTer::ProcessInput(float dt)
 
 	// Apply a shockwave
 	if (m_input.WasKeyPressed(SDLK_F5)){
-		m_pShockwave->CreateShockwave(vector3(0.0f));
+		m_pShockwave->CreateShockwave(vector3(200.0f));
 	}
 
 
@@ -1175,14 +1175,12 @@ DefTer::Logic(float dt)
 		m_XferWaitState = READY;
 
 		vector4 SIRM;
-		SIRM.x = 600.0f;
+		SIRM.x = 300.0f;
 		SIRM.y = -0.75f * m_pShockwave->GetHeight();
-		EdgeDeform(vector2(0.0f), SIRM, "Shockwave");
-		//m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
+		EdgeDeform(vector2(0.5f), SIRM, "Shockwave");
 		m_pShockwave->Update(dt);
 		SIRM.y = 0.75f * m_pShockwave->GetHeight();
-		//m_pDeform->displace_heightmap(m_coarsemap, vector2(.0f, .0f), vector2(.0f, .0f), SIRM, true, "Shockwave");
-		EdgeDeform(vector2(0.0f), SIRM, "Shockwave");
+		EdgeDeform(vector2(0.5f), SIRM, "Shockwave");
 		i++;
 	}
 
