@@ -14,7 +14,7 @@ out	vec2 frag_TexCoord;
 out vec4 frag_Pos;
 
 void main(){
-	frag_Normal		= normalize(vert_Normal);
+	frag_Normal		= normalize(mat3(modelview)*vert_Normal);
 	frag_TexCoord	= vert_TexCoord;
 	frag_Pos		= modelview * vec4(vert_Position, 1.0);
 	gl_Position		= mvp * vec4(vert_Position, 1.0);

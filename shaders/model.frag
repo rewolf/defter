@@ -22,7 +22,7 @@ void main(){
 	vec3	eye;
 
 	light  	= normalize(mat3(view) * lightW);
-	normal	= normalize(mat3(view) * frag_Normal);
+	normal	= normalize(frag_Normal);
 	reflec	= -reflect(light, normal);
 	eye		= - normalize(frag_Pos.xyz);
 
