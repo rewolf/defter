@@ -16,6 +16,8 @@ uniform sampler2D detail1;
 uniform sampler2D detail2;
 uniform sampler2D detail3;
 
+uniform sampler2D curStamp;
+
 uniform vec2 click_pos;
 uniform vec2 scales;
 uniform mat4 view;
@@ -29,6 +31,7 @@ uniform vec2 hdasq_its;
 // Shader Input
 in vec3 frag_View;
 in vec2 frag_TexCoord;
+in vec2 stamp_TexCoord;
 
 
 // Shader Ouput
@@ -77,7 +80,9 @@ void main()
 	viewVec = normalize(frag_View);
 
 	// Get the colour value
-	color = texture(colormap, frag_TexCoord * 100.0);
+	//color = texture(colormap, frag_TexCoord * 100.0)
+	//	  + texture(curStamp, stamp_TexCoord);
+	color = vec4(texture(curStamp, stamp_TexCoord).r * vec3(1.0, .0, .0), 1.0);
 
 	// Initial variables and settings
 	ambient		= light_Ambient;
@@ -137,5 +142,5 @@ void main()
 	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
 	}
 	// Mix fog to get the final color
-	frag_Color = mix(fog_col, frag_Color, fogFactor);
+//	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }
