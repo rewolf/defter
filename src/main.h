@@ -46,6 +46,7 @@ public:
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
+	Shockwave*		m_pShockwave;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
@@ -80,7 +81,7 @@ public:
 	GLushort*		m_bufferPtr;
 	
 	XferState		m_XferState;
-	XferState		m_otherState;
+	XferState		m_XferWaitState;
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 
