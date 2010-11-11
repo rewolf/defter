@@ -728,6 +728,18 @@ Caching::SetActiveStatus(bool newStatus, vector2 TileIndex, vector2 size)
 }
 
 //--------------------------------------------------------
+// Returns the world position corresponding to the position on the radar
+// Input position is screen coordinates
+vector2
+Caching::RadarToWorldPos(vector2 screenPos){
+	screenPos -= m_radar_pos;
+	screenPos.y = RADAR_SIZE - screenPos.y;
+	screenPos *= 1.0f/RADAR_SIZE;
+	screenPos -= .5f;
+	return screenPos * 1.0f/m_metre_to_tex;
+}
+
+//--------------------------------------------------------
 // Called by the GL thread.  Puts the tile on the queue for loading
 void
 Caching::Load(Tile* tile)

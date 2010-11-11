@@ -89,7 +89,7 @@ extern int STAMPCOUNT;
 
 // Shockwave Settings
 // Height below which the shockwave ends
-#define SWTARGETHEIGHT		(0.01f)
+#define SWTARGETHEIGHT		(0.005f)
 // Area (radius) that remains unaffected by the damping
 #define	SWNODECAYRADIUS		(0.1f)
 

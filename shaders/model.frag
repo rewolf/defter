@@ -1,6 +1,7 @@
 #version 150
 
 uniform vec3	diffuseC;
+uniform vec3	ambientC;
 uniform	vec4	specularC;
 uniform mat4 	view;
 
@@ -16,10 +17,11 @@ const vec3 lightW		= normalize(vec3(1.0, 4.0, -10.0));
 void main(){
 	vec3 	normal;
 	vec3	light;
-	vec3 	diffuse;
 	vec3	reflec;
-	vec3	specular;
 	vec3	eye;
+	vec3 	diffuse;
+	vec3	specular;
+	vec3	ambient;
 
 	light  	= normalize(mat3(view) * lightW);
 	normal	= normalize(frag_Normal);
@@ -28,6 +30,7 @@ void main(){
 
 	diffuse	= diffuseC * max(0, dot(normal, light));
 	specular= specularC.rgb * pow(max(0, dot(reflec, eye)), 32);
+	ambient = .2* ambientC;
 
-	out_Color = vec4(diffuse + specular, 1.0);
+	out_Color = vec4(ambient + diffuse + specular, 1.0);
 }

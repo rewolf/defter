@@ -54,6 +54,7 @@ public:
 	void DeformHighDetail	(vector2 clickPos, vector4 stampSIRM, string stampName = "");
 	void Render				(void);
 	void GetActiveTiles 	(Tile activeTiles[4]);
+	vector2 RadarToWorldPos	(vector2 screenPos);
 
 	friend int hdd_cacher 	(void* data);
 

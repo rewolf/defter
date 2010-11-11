@@ -833,7 +833,8 @@ DefTer::ProcessInput(float dt)
 		}
 	}
 
-	static MouseDelta compensate={.0f};
+	// Call input processing function based on mode (GAME or EDIT)
+	static MouseDelta compensate={.0f}; // compensates for the resetting of mouse
 	MousePos mousePos = m_input.GetMousePos();
 	if (m_useMode == EDIT_MODE)
 		EditModeInput(dt, move, wheel_ticks);
@@ -851,42 +852,8 @@ DefTer::ProcessInput(float dt)
 		compensate.x = wx+ww/2 - mousep.x;
 		compensate.y = wy+wh/2 - mousep.y;
 		::SetCursorPos(wx+ww/2, wy+wh/2);
+#else
 #endif
-	}
-
-	// Change the selected deformation location
-	if (m_input.IsButtonPressed(3))
-	{
-		MousePos pos = m_input.GetMousePos();
-		float val;
-
-		// Get value in z-buffer
-		glReadPixels((GLint)pos.x, (GLint)(SCREEN_H - pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
-
-		vector3 frag(pos.x, pos.y, val);
-		// Derive inverse of view transform (could just use transpose of view matrix
-		matrix4 inverse = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
-						* rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
-
-		// Request unprojected coordinate
-		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
-
-		// Check that the position is in valid range when using coarse stamping
-		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
-		{
-			m_clicked = false;
-		}
-		else
-		{
-			// Factor in the camera translation
-			m_stampSIRM.z	 = PI / 2.0f + atan2f(p.z, p.x);
-			p				+= m_pCamera->m_translate;
-			m_clickPos		 = vector2(p.x, p.z);
-			m_clicked		 = true;
-		}
-
-		//Update the clicked position in shaders, etc...
-		UpdateClickPos();
 	}
 
 	// Increase the game speed
@@ -900,36 +867,6 @@ DefTer::ProcessInput(float dt)
 		m_is_super_speed = false;
 	}
 
-	// Perform deformations
-	if (m_clicked && wheel_ticks != 0)
-	{
-		vector4 stampSIRM	 = m_stampSIRM;
-		stampSIRM.y			*= wheel_ticks;
-
-		// Perform either  a HD or coarse deformation
-		if (m_is_hd_stamp)
-		{
-			// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
-
-			// Reset to wireframe mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else
-		{
-			EdgeDeform(m_clickPos, stampSIRM);
-
-			// Once this is finally complete, change variables relating to streaming the coarsemap
-			// to the CPU for collision detection
-			// Restart timer
-			m_deformTimer.start();
-			m_XferWaitState = READY;
-		}
-	}
 
 	// Take screenshot
 	static int lastScreenshot = 1;
@@ -973,13 +910,6 @@ DefTer::ProcessInput(float dt)
 	}
 
 
-	// Apply a shockwave
-	if (m_input.WasKeyPressed(SDLK_F5))
-	{
-		if (!m_pShockwave->IsActive())
-			m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
-	}
-
 
 	// Toggle footprints
 	if (m_input.WasKeyPressed(SDLK_f)){
@@ -999,20 +929,6 @@ DefTer::ProcessInput(float dt)
 	}
 
 
-	// Toggle between HD and coarse mode
-	if (m_input.WasKeyPressed(SDLK_h))
-	{
-		m_clicked = false;
-
-		m_is_hd_stamp ^= true;
-
-		// Update the click position
-		UpdateClickPos();
-
-		m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
-
-		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
-	}
 
 
 	// Controls to change the HDShader
@@ -1031,46 +947,6 @@ DefTer::ProcessInput(float dt)
 		m_hdShaderIndex = m_shmGeomTess;
 		printf("HD Shader: Geometry Tessellation\n");
 	}
-
-	// Toggle the stamp values
-	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
-		printf("Stamp: %s\n", GetStampMan()->NextStamp().c_str());
-	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
-		printf("Stamp: %s\n", GetStampMan()->PrevStamp().c_str());
-
-	// Change the scale of the stamp
-	if (m_input.IsKeyPressed(SDLK_PAGEUP))
-	{
-		m_stampSIRM.x = min(m_stampSIRM.x + (20.0f * dt), 200.0f);
-		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
-	}
-	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
-	{
-		m_stampSIRM.x = max(m_stampSIRM.x - (20.0f * dt), 1.0f);
-		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
-	}
-	// Change the intensity of the stamp
-	if (m_input.IsKeyPressed(SDLK_PLUS) || m_input.IsKeyPressed(SDLK_KP_PLUS))
-	{
-		m_stampSIRM.y = min(m_stampSIRM.y + (0.5f * dt), 1.0f);
-		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
-	}
-	else if (m_input.IsKeyPressed(SDLK_MINUS) || m_input.IsKeyPressed(SDLK_KP_MINUS))
-	{
-		m_stampSIRM.y = max(m_stampSIRM.y - (0.5f * dt), 0.01f);
-		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
-	}
-	// Toggle stamp mirroring
-	if (m_input.WasKeyPressed(SDLK_m))
-	{
-		if (m_stampSIRM.w == 0.0f)
-			m_stampSIRM.w = 1.0f;
-		else
-			m_stampSIRM.w = 0.0f;
-
-		printf("Stamp Mirroring: %s\n",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
-	}
-
 
 	// Toggle gravity
 	if (m_input.WasKeyPressed(SDLK_g))
@@ -1153,9 +1029,9 @@ DefTer::ProcessInput(float dt)
 void
 DefTer::GameModeInput(float dt, MouseDelta move, int ticks){
 	// Pitch
-	m_pCamera->m_rotate.x -= dt*move.y*PI*.2f;
+	m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
 	// Yaw
-	m_pCamera->m_rotate.y -= dt*move.x*PI*.2f;
+	m_pCamera->m_rotate.y -= dt*move.x*PI*.1f;
 
 	//Clamp the camera to prevent the user flipping
 	//upside down messing up everything
@@ -1170,7 +1046,10 @@ void
 DefTer::EditModeInput(float dt, MouseDelta move, int ticks){
 	// Rotate Camera
 	if (m_input.IsButtonPressed(1))
-	{
+	{	
+		MousePos p = m_input.GetMousePos();
+		vector2 pos = m_pCaching->RadarToWorldPos(vector2(p.x, SCREEN_H - p.y));
+		printf("%s\n", pos.str().c_str());
 		// Pitch
 		m_pCamera->m_rotate.x -= dt*move.y*PI*.1f;
 		// Yaw
@@ -1182,6 +1061,133 @@ DefTer::EditModeInput(float dt, MouseDelta move, int ticks){
 			m_pCamera->m_rotate.x = -PI * 0.5f;
 		if (m_pCamera->m_rotate.x > PI * 0.5f)
 			m_pCamera->m_rotate.x = PI * 0.5f;
+	}
+	
+	// Change the selected deformation location
+	if (m_input.IsButtonPressed(3))
+	{
+		MousePos pos = m_input.GetMousePos();
+		float val;
+
+		// Get value in z-buffer
+		glReadPixels((GLint)pos.x, (GLint)(SCREEN_H - pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
+
+		vector3 frag(pos.x, pos.y, val);
+		// Derive inverse of view transform (could just use transpose of view matrix
+		matrix4 inverse = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+						* rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
+
+		// Request unprojected coordinate
+		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
+
+		// Check that the position is in valid range when using coarse stamping
+		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
+		{
+			m_clicked = false;
+		}
+		else
+		{
+			// Factor in the camera translation
+			m_stampSIRM.z	 = PI / 2.0f + atan2f(p.z, p.x);
+			p				+= m_pCamera->m_translate;
+			m_clickPos		 = vector2(p.x, p.z);
+			m_clicked		 = true;
+		}
+
+		//Update the clicked position in shaders, etc...
+		UpdateClickPos();
+	}
+	
+	// Perform deformations
+	if (m_clicked && ticks != 0)
+	{
+		vector4 stampSIRM	 = m_stampSIRM;
+		stampSIRM.y			*= ticks;
+
+		// Perform either  a HD or coarse deformation
+		if (m_is_hd_stamp)
+		{
+			// Check if in wireframe mode and remember to switch to fill mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
+
+			// Reset to wireframe mode
+			if (m_is_wireframe)
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			EdgeDeform(m_clickPos, stampSIRM);
+
+			// Once this is finally complete, change variables relating to streaming the coarsemap
+			// to the CPU for collision detection
+			// Restart timer
+			m_deformTimer.start();
+			m_XferWaitState = READY;
+		}
+	}
+
+	// Toggle between HD and coarse mode
+	if (m_input.WasKeyPressed(SDLK_h))
+	{
+		m_clicked = false;
+
+		m_is_hd_stamp ^= true;
+
+		// Update the click position
+		UpdateClickPos();
+
+		m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+
+		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
+	}
+	
+	// Toggle the stamp values
+	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
+		printf("Stamp: %s\n", GetStampMan()->NextStamp().c_str());
+	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
+		printf("Stamp: %s\n", GetStampMan()->PrevStamp().c_str());
+
+	// Change the scale of the stamp
+	if (m_input.IsKeyPressed(SDLK_PAGEUP))
+	{
+		m_stampSIRM.x = min(m_stampSIRM.x + (20.0f * dt), 200.0f);
+		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
+	}
+	else if (m_input.IsKeyPressed(SDLK_PAGEDOWN))
+	{
+		m_stampSIRM.x = max(m_stampSIRM.x - (20.0f * dt), 1.0f);
+		printf("Stamp Scale: %.1f\n", m_stampSIRM.x);
+	}
+	// Change the intensity of the stamp
+	if (m_input.IsKeyPressed(SDLK_PLUS) || m_input.IsKeyPressed(SDLK_KP_PLUS))
+	{
+		m_stampSIRM.y = min(m_stampSIRM.y + (0.5f * dt), 1.0f);
+		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
+	}
+	else if (m_input.IsKeyPressed(SDLK_MINUS) || m_input.IsKeyPressed(SDLK_KP_MINUS))
+	{
+		m_stampSIRM.y = max(m_stampSIRM.y - (0.5f * dt), 0.01f);
+		printf("Stamp Intensity: %.2f\n", m_stampSIRM.y);
+	}
+	// Toggle stamp mirroring
+	if (m_input.WasKeyPressed(SDLK_m))
+	{
+		if (m_stampSIRM.w == 0.0f)
+			m_stampSIRM.w = 1.0f;
+		else
+			m_stampSIRM.w = 0.0f;
+
+		printf("Stamp Mirroring: %s\n",  (m_stampSIRM.w == 1.0f) ? "ON" : "OFF");
+	}
+
+	// Apply a shockwave
+	if (m_input.WasKeyPressed(SDLK_F5))
+	{
+		if (!m_pShockwave->IsActive())
+			m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
 	}
 }
 
@@ -1430,6 +1436,7 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr){
 			1, GL_FALSE, (m_proj_mat * transform).m);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "modelview"), 1, GL_FALSE, transform.m);
 	glUniform3fv(glGetUniformLocation(m_shModel->m_programID, "diffuseC"), 1, pNode->m_mesh.diffuse.v);
+	glUniform3fv(glGetUniformLocation(m_shModel->m_programID, "ambientC"), 1, pNode->m_mesh.ambient.v);
 	glUniform4f(glGetUniformLocation(m_shModel->m_programID, "specularC"), 
 			pNode->m_mesh.specular.x, pNode->m_mesh.specular.y, pNode->m_mesh.specular.z,
 			pNode->m_mesh.specPower);
