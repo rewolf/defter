@@ -22,6 +22,8 @@ public:
 	~DefTer();
 
 	void		ProcessInput	(float dt);	//override
+	void		GameModeInput	(float dt, MouseDelta mouseDelta, int ticks);
+	void		EditModeInput	(float dt, MouseDelta mouseDelta, int ticks);
 	void		Logic			(float dt); //override
 	void		Render			(float dt); //override
 

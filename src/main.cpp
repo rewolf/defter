@@ -819,8 +819,6 @@ DefTer::ProcessInput(float dt)
 
 		//Update the clicked position in shaders, etc...
 		UpdateClickPos();
-
-		printf("%.2f | %.2f\n", m_clickPos.x, m_clickPos.y);
 	}
 
 	// Increase the game speed
@@ -1081,6 +1079,17 @@ DefTer::ProcessInput(float dt)
 	}
 	
 	reGL3App::ProcessInput(dt);
+}
+
+//--------------------------------------------------------
+void
+DefTer::GameModeInput(float dt, MouseDelta mouseDelta, int ticks){
+
+}
+
+//--------------------------------------------------------
+void
+DefTer::EditModeInput(float dt, MouseDelta mouseDelta, int ticks){
 }
 
 //--------------------------------------------------------

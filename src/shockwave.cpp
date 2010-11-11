@@ -155,6 +155,9 @@ Shockwave::Update(float dt)
 	// Move wave
 	m_radius += (m_velocity * dt);
 	// if its large enough, start decaying
+	// H(n+1) = c^{dt} * H(n)
+	// => H(t) = c^{t} * H(0)   // where t=0 is when decaying starts
+	// => t = log(H(t)/H(0)) / log( c^{100} )  // 
 	// The height only starts to decay after the radius is larger than 0.1 (10% max)
 	if (m_radius > SWNODECAYRADIUS)
 		m_height *= powf(m_decayRate, dt);
@@ -173,5 +176,8 @@ Shockwave::CreateShockwave(vector2 position, float areaOfEffect, float height, f
 	m_AOE		= areaOfEffect;
 	m_height	= height;
 	m_velocity	= velocity;
-	m_decayRate = powf(SWTARGETHEIGHT / m_height, m_velocity / (1.0 - SWNODECAYRADIUS));
+	// r = vt   ;  H(t) = c^{t} H(0)
+	// t = (R-R0)/v  => time taken since the decay starts
+	// H( (R-R0)/v  )  <  eps;
+	m_decayRate = powf(SWTARGETHEIGHT / m_height, m_velocity / (1.0f - SWNODECAYRADIUS));
 }
