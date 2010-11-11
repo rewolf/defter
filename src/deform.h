@@ -19,10 +19,7 @@ public:
 	void init_backups		(void);
 
 	// Two methods, one takes in a stamp ID the other the stamp name
-	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, int stampIndex,
-							vector4 SIRM, bool isCoarse, GLuint copySrcTex = 0);
-	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName,
-							vector4 SIRM, bool isCoarse, GLuint copySrcTex = 0);
+	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, vector4 SIRM, bool isCoarse, string stampName = "", GLuint copySrcTex = 0);
 
 	void calculate_pdmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, float scale, bool isCoarse, bool init = false);
 	void create_pdmap		(TexData texdata, bool isCoarse);

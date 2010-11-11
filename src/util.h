@@ -28,6 +28,7 @@ void PrintFBOErr			(GLenum);
 void KillUtil				(void);
 GLuint GetStandardVAO		(void);
 
+void InitStampMan			(void);
 StampManager* GetStampMan	(void);
 
 
@@ -84,11 +85,13 @@ public:
 	Stamp					(void);
 	~Stamp					(void);
 
-	bool CreateFuncStamp	(string stampName, string vertPath, string fragPath);
-	bool CreateTexStamp		(ShaderProg *shader, string stampName, string textureName);
+	bool CreateDynStamp		(string stampName, ShaderProg *shader, GLuint textureID, bool isHidden);
+	bool CreateFuncStamp	(string stampName, string vertPath, string fragPath, bool isHidden);
+	bool CreateTexStamp		(string stampName, ShaderProg *shader, string textureName, bool isHidden);
 
 	string GetStampName		(void);
 	bool IsTexStamp			(void);
+	bool IsHidden			(void);
 	void BindTexture		(void);
 	GLuint GetShaderID		(void);
 
@@ -97,6 +100,7 @@ public:
 private:
 	string				m_stampName;
 	bool				m_isTexStamp;
+	bool				m_isHidden;
 	GLuint				m_texture;
 	ShaderProg*			m_shader;
 };
@@ -111,18 +115,26 @@ public:
 
 	bool HasError			(void);
 	Stamp* GetStamp			(int stampIndex);
+	Stamp* GetStamp			(string stampName);
+	Stamp* GetCurrentStamp	(void);
 	string GetStampName		(int stampIndex);
 	int GetStampIndex		(string stampName);
 
+	string NextStamp		(void);
+	string PrevStamp		(void);
+	
+	bool AddDynstamp		(string stampName, GLuint textureID, bool isHidden = true);
+	bool AddFuncStamp		(string stampName, string vertPath, string fragPath, bool isHidden = false);
+	bool AddTexStamp		(string stampName, string textureName, bool isHidden = false);
+
 private:
-	bool AddTexStamp		(string stampName, string textureName);
-	bool AddFuncStamp		(string stampName, string vertPath, string fragPath);
 	bool FinaliseStamp		(Stamp* newStamp);
 
 	bool				m_error;
 	ShaderProg*			m_shTexStamp;
-	vector<Stamp*>		stampCollection;
-	map<string, int>	stampIndexMap;
+	vector<Stamp*>		m_stampCollection;
+	map<string, int>	m_stampIndexMap;
+	int					m_currentStamp;
 };
 
 // Functional Stamp setup callbacks
