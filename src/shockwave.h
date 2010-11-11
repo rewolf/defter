@@ -19,9 +19,12 @@ public:
 
 	bool	HasError			(void);
 	bool	IsActive			(void);
+	bool	IsFirst				(void);
 	float	GetHeight			(void);
+	vector2	GetEpicenter		(void);
+	float	GetAOE				(void);
 	void	Update				(float dt);
-	void	CreateShockwave		(vector3 position);
+	void	CreateShockwave		(vector2 position, float areaOfEffect = 50.0f, float height = 0.1f, float velocity = 0.4f);
 
 private:
 	ShaderProg*		m_shWave;
@@ -36,6 +39,10 @@ private:
 	vector2			m_origin;
 	float			m_radius;
 	float			m_height;
+	float			m_decayRate;
+	float			m_velocity;
+	float			m_AOE;
+	bool			m_firstWave;
 };
 
 #endif

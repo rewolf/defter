@@ -69,7 +69,7 @@ bool Input::WasKeyPressed(SDLKey key)
 	if (key & (1<<30))
 		key^=(1<<30);
 	bool ret = m_waskeydown[key];
-	m_waskeydown[key] = false;
+	//m_waskeydown[key] = false;
 	return ret;
 }
 
@@ -83,7 +83,7 @@ bool Input::IsKeyPressed(SDLKey key)
 bool Input::WasButtonPressed(Uint8 but)
 {
 	bool ret = m_wasbuttondown[but];
-	m_wasbuttondown[but] = false;
+	//m_wasbuttondown[but] = false;
 	return ret;
 }
 
@@ -110,4 +110,9 @@ MouseDelta Input::GetMouseDelta()
 	m_mouse_delta.x = 0;
 	m_mouse_delta.y = 0;
 	return temp;
+}
+
+void Input::ClearStates(){
+	memset(m_waskeydown, 0, 384);
+	memset(m_wasbuttondown, 0, 256);
 }

@@ -40,6 +40,7 @@ public:
 	void WheelUp();
 	void WheelDown();
 	void MoveMouse(SDL_MouseMotionEvent evt);
+	void ClearStates();
 
 	bool IsKeyPressed(SDLKey key);
 	bool WasKeyPressed(SDLKey key);
