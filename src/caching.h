@@ -25,7 +25,7 @@ struct CacheRequest
 {
 	REQUEST_TYPE	type;
 	GLuint			pbo;
-	GLubyte*		ptr;
+	GLushort*		ptr;
 	Tile*			tile;
 	bool			useZero;
 	int				m_waitCount;

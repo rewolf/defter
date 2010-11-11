@@ -117,7 +117,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	memset(zeroData, 0, highDim*highDim);
+	memset(zeroData, 0, highDim*highDim*sizeof(GLushort));
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, highDim, highDim, 0, GL_RED, GL_UNSIGNED_SHORT, zeroData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, m_zeroTex.pdmap);
@@ -166,7 +166,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	m_doneUnloadQueueMutex	= SDL_CreateMutex();
 	
 	// Initialise PBO pool
-	int texSize = sizeof(GLbyte) * highDim * highDim;
+	int texSize = sizeof(GLushort) * highDim * highDim;
 	glGenBuffers(PBO_POOL * 2, m_pbos);
 	for (int i = 0 ; i < PBO_POOL; i++)
 	{
@@ -798,7 +798,7 @@ Caching::UpdatePBOs()
 
 		// Now that it has been transferring to PBO for some time, try map to sys memory
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
-		unload.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+		unload.ptr = (GLushort*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 		CheckError("Mapping unload/pack buffer");
 		// if this failed, worry
 		if (!unload.ptr)
@@ -829,7 +829,7 @@ Caching::UpdatePBOs()
 
 			// Map PBO to system memory for texture loading
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, load.pbo);
-			load.ptr = (GLubyte*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+			load.ptr = (GLushort*) glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
 			CheckError("Mapping load/unpack buffer");
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 			if (!load.ptr)
@@ -876,7 +876,7 @@ Caching::UpdatePBOs()
 			// Begin the transfer to PBO from GPU texture memory
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, unload.pbo);
 			glBindTexture(GL_TEXTURE_2D, unload.tile->m_texdata.heightmap);
-			glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+			glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, 0);
 			DEBUG("Transferring FROM texture\n");
 			CheckError("Reading texture data from GPU to PBO");
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -943,7 +943,7 @@ Caching::UpdatePBOs()
 			DEBUG("Transferring TO texture (%d, %d)\n",
 					load.tile->m_texdata.heightmap, load.tile->m_texdata.normalmap);
 			glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.heightmap);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_BYTE, 0);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_SHORT, 0);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
@@ -1108,7 +1108,7 @@ Caching::LoadTextureData(CacheRequest load)
 	//FreeImage_FlipVertical(image);
 	bits = (BYTE*) FreeImage_GetBits(image);
 
-	memcpy(load.ptr, bits, sizeof(GLubyte) * m_highDim * m_highDim);
+	memcpy(load.ptr, bits, sizeof(GLushort) * m_highDim * m_highDim);
 
 	FreeImage_Unload(image);
 	return true;
@@ -1125,10 +1125,10 @@ Caching::SaveTextureData(CacheRequest unload)
 	sprintf(filename, "cache/tile%02d_%02d.png", unload.tile->m_row, unload.tile->m_col);
 
 	mkdir("cache");
-	image = FreeImage_Allocate(m_highDim, m_highDim, 16);
+	image = FreeImage_AllocateT(FIT_UINT16, m_highDim, m_highDim);
 
 	bits = (BYTE*) FreeImage_GetBits(image);
-	memcpy(bits, unload.ptr, m_highDim * m_highDim);
+	memcpy(bits, unload.ptr, m_highDim * m_highDim *sizeof(GLushort));
 
 	//FreeImage_FlipVertical(image);
 

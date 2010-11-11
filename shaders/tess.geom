@@ -91,7 +91,7 @@ void main()
 
 	if (!any(lessThan(x, w*1.1)))
 		return;
-	if (!any(lessThan(y, w*1.1)))
+	if (!any(lessThan(y, w*1.5)))
 		return;
 	if (!any(lessThan(z, w*1.1)))
 		return;
@@ -233,7 +233,7 @@ bool prepareVert(in int idx){
 			break;
 	};
 	out_norms[idx] += add * factor;
-	out_verts[idx] = temp + cc.yxyy * detail * .5 *factor;
+	out_verts[idx] = temp + cc.yxyy * detail * .25 *factor;
 	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
 	//out_verts[idx].w = 1.0;
 	return (detail > .0f);
