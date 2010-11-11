@@ -22,7 +22,7 @@ public:
 	Clipmap (int nVerts, float quad_size, int levels, int heightmap_dim);
 	~Clipmap ();
 
-	bool		init			();
+	bool		Init			();
 	void		cull			(matrix4& mvp, vector2 shift);
 	void		render_inner	();
 	void		render_levels	();
@@ -53,8 +53,6 @@ public:
 	float		m_texel_size;
 	float		m_tex_to_metre;
 	float		m_metre_to_tex;
-
-	bool 		m_cullingEnabled;
 
 	string		m_clipmap_stats;
 };

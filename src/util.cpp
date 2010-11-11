@@ -6,13 +6,7 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "util.h"
-#include "FreeImage.h"
-
-extern const int SCREEN_W;
-extern const int SCREEN_H;
-extern const float ASPRAT;
+#include "constants.h"
 
 //--------------------------------------------------------
 bool
@@ -213,7 +207,6 @@ CheckError(string text)
 	}
 	return true;
 }
-
 void
 PrintFBOErr(GLenum err)
 {
@@ -246,3 +239,657 @@ PrintFBOErr(GLenum err)
 			break;
 	}
 }
+
+
+// Util VBO Stuff
+GLfloat	square[]	= { -1.0f, -1.0f,
+						 1.0f, -1.0f,
+						 1.0f,  1.0f,
+						-1.0f,  1.0f };
+GLfloat	texcoords[]	= { 0.0f, 0.0f,
+						1.0f, 0.0f,
+						1.0f, 1.0f,
+						0.0f, 1.0f };
+GLuint	indices[]	= { 3, 0, 2, 1 };
+GLuint	util_vbo[3]	= {0};
+GLuint	util_vao	= 0;
+
+// Hidden Util methods
+bool isInit						= false;
+StampManager* m_stampManager	= NULL;
+int STAMPCOUNT					= 0;
+
+void
+InitUtil(void)
+{
+	// Do not re-initialise
+	if (isInit)
+		return;
+
+	// Create the vertex array
+	glGenVertexArrays(1, &util_vao);
+	glBindVertexArray(util_vao);
+
+	// Generate three VBOs for vertices, texture coordinates and indices
+	glGenBuffers(3, util_vbo);
+
+	// Setup the vertex buffer
+	glBindBuffer(GL_ARRAY_BUFFER, util_vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, square, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Setup the texcoord buffer
+	glBindBuffer(GL_ARRAY_BUFFER, util_vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, texcoords, GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Setup the index buffer
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, util_vbo[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+
+	isInit = true;
+}
+
+//--------------------------------------------------------
+// Util Desctuctor
+//--------------------------------------------------------
+void
+KillUtil(void)
+{
+	glDeleteBuffers(3, util_vbo);
+	glDeleteVertexArrays(1, &util_vao);
+
+	RE_DELETE(m_stampManager);
+}
+
+//--------------------------------------------------------
+// Return the GLuint for the standard VAO
+//--------------------------------------------------------
+GLuint
+GetStandardVAO(void)
+{
+	if (!isInit)
+		InitUtil();
+
+	return (util_vao);
+}
+
+//--------------------------------------------------------
+// Initialise the Stamp Manager
+//--------------------------------------------------------
+void
+InitStampMan(void)
+{
+	if (m_stampManager == NULL)
+		m_stampManager = new StampManager();
+}
+//--------------------------------------------------------
+// Return the Stamp Manager object
+//--------------------------------------------------------
+StampManager*
+GetStampMan(void)
+{
+	// Create the stamp manager if not already created
+	InitStampMan();
+
+	return (m_stampManager);
+}
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Splash Screen Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+Splash::Splash(void)
+{
+	m_error = true;
+
+	// Setup shader
+	m_shSplash = new ShaderProg("shaders/splash.vert", "", "shaders/splash.frag");
+	glBindAttribLocation(m_shSplash->m_programID, 0, "vert_Position");
+	glBindAttribLocation(m_shSplash->m_programID, 1, "vert_texCoord");
+	if (!m_shSplash->CompileAndLink())
+		return;
+
+	// Load the splash map
+	if (!LoadPNG(&m_splashmap, SPLASHMAP_TEXTURE, false, true))
+		return;
+
+	// Set uniforms
+	glUseProgram(m_shSplash->m_programID);
+	glUniform1i(glGetUniformLocation(m_shSplash->m_programID, "splashmap"), 0);
+
+	// set that no error has occured
+	m_error = false;
+}
+
+//--------------------------------------------------------
+Splash::~Splash(void)
+{
+	RE_DELETE(m_shSplash);
+	glDeleteTextures(1, &m_splashmap);
+}
+
+//--------------------------------------------------------
+// Return the error status
+bool
+Splash::HasError(void)
+{
+	return m_error;
+}
+
+//--------------------------------------------------------
+// Render the splash screen
+void
+Splash::Render(SDL_Window* window)
+{
+	// Clear the screen
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+	// Bind the vertex array
+	glBindVertexArray(GetStandardVAO());
+
+	// Set the textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_splashmap);
+
+	// Draw the screen
+	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+	// Swap windows to show splash
+	SDL_GL_SwapWindow(window);
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Shader Manager Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+ShaderManager::ShaderManager(void)
+{
+	curIndex = 0;
+}
+
+//--------------------------------------------------------
+ShaderManager::~ShaderManager(void)
+{
+	//Delete each shader object
+	for (int i = 0; i < (int)shaders.size(); i++)
+		RE_DELETE(shaders.at(i));
+}
+
+//--------------------------------------------------------
+// Add a new set of shaders
+bool
+ShaderManager::AddShader(string vert, string geom, string frag, int *index)
+{
+	*index = shaders.size();
+
+	//Create the new shader and increment the current index
+	shaders.push_back(new ShaderProg(vert, geom, frag));
+
+	//Return successful
+	return (true);
+}
+
+//--------------------------------------------------------
+// Bind the specific variable to a location in the shaders
+void
+ShaderManager::BindAttrib(char *name, int val)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+		glBindAttribLocation(shaders.at(i)->m_programID, val, name);
+}
+
+//--------------------------------------------------------
+// Compile and link the shaders
+bool
+ShaderManager::CompileAndLink(void)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		//Check for errors in compiling any shader
+		if (!shaders.at(i)->CompileAndLink())
+			return false;
+	}
+
+	//Success
+	return true;
+}
+
+//--------------------------------------------------------
+// Set the active shader to be used
+void
+ShaderManager::SetActiveShader(int shader)
+{
+	if (shader >= (int)shaders.size())
+		return;
+	glUseProgram(shaders.at(shader)->m_programID);
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni1i(char *name, int val)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform1i(glGetUniformLocation(shaders.at(i)->m_programID, name), val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2i(char *name, int val1, int val2)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2i(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni1f(char *name, float val)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform1f(glGetUniformLocation(shaders.at(i)->m_programID, name), val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2f(char *name, float val1, float val2)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2f(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni4f(char *name, float val1, float val2, float val3, float val4)
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform4f(glGetUniformLocation(shaders.at(i)->m_programID, name), val1, val2, val3, val4);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni2fv(char *name, float val[2])
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform2fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUni3fv(char *name, float val[3])
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniform3fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUniMat3fv(char *name, float val[9])
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniformMatrix3fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, GL_FALSE, val);
+	}
+}
+
+//--------------------------------------------------------
+void
+ShaderManager::UpdateUniMat4fv(char *name, float val[16])
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniformMatrix4fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, GL_FALSE, val);
+
+	}
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Stamp Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+Stamp::Stamp(void)
+{
+	m_stampName		= "";
+	m_isTexStamp	= false;
+	m_isHidden		= true;
+	m_texture		= 0;
+	m_shader		= NULL;
+
+	initShader		= NULL;
+}
+
+//--------------------------------------------------------
+Stamp::~Stamp(void)
+{
+	if (!m_isTexStamp)
+		RE_DELETE(m_shader);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::CreateDynStamp(string stampName, ShaderProg *shader, GLuint textureID, bool isHidden)
+{
+	m_stampName		= stampName;
+	m_shader		= shader;
+	m_isTexStamp	= true;
+	m_isHidden		= isHidden;
+	m_texture		= textureID;
+
+	return true;
+}
+
+//--------------------------------------------------------
+bool
+Stamp::CreateFuncStamp(string stampName, string vertPath, string fragPath, bool isHidden)
+{
+	m_stampName		= stampName;
+
+	m_isTexStamp	= false;
+	m_isHidden		= isHidden;
+
+	m_shader		= new ShaderProg(vertPath, "", fragPath);
+	glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
+
+	if (!m_shader->CompileAndLink())
+		return false;
+
+	// Set constant uniforms
+	glUseProgram(m_shader->m_programID);
+	glUniform1i(glGetUniformLocation(m_shader->m_programID, "in_heightmap"), 0);
+
+	return true;
+}
+
+//--------------------------------------------------------
+bool
+Stamp::CreateTexStamp(string stampName, ShaderProg *shader, string textureName, bool isHidden)
+{
+	m_stampName		= stampName;
+	m_shader		= shader;
+	m_isTexStamp	= true;
+	m_isHidden		= isHidden;
+
+	return (LoadPNG(&m_texture, textureName, true));
+}
+
+//--------------------------------------------------------
+string
+Stamp::GetStampName(void)
+{
+	return (m_stampName);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::IsTexStamp(void)
+{
+	return (m_isTexStamp);
+}
+
+//--------------------------------------------------------
+bool
+Stamp::IsHidden(void)
+{
+	return (m_isHidden);
+}
+
+//--------------------------------------------------------
+void
+Stamp::BindTexture(void)
+{
+	glBindTexture(GL_TEXTURE_2D, m_texture);
+}
+
+//--------------------------------------------------------
+GLuint
+Stamp::GetShaderID(void)
+{
+	return (m_shader->m_programID);
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+
+
+
+
+
+//--------------------------------------------------------
+//--------------------------------------------------------
+// Stamp Manager Class Def
+//--------------------------------------------------------
+//--------------------------------------------------------
+StampManager::StampManager(void)
+{
+	m_error = true;
+	m_currentStamp = -1;
+
+	// Create the texture stamp shader
+	m_shTexStamp = new ShaderProg("shaders/tex_stamps.vert", "", "shaders/tex_stamps.frag");
+	
+	glBindAttribLocation(m_shTexStamp->m_programID, 0, "vert_Position");
+
+	// Compile and check for errors
+	m_error &= !m_shTexStamp->CompileAndLink();
+
+	// Set uniform values
+	glUseProgram(m_shTexStamp->m_programID);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_heightmap"), 0);
+	glUniform1i(glGetUniformLocation(m_shTexStamp->m_programID, "in_stampmap"), 1);
+
+	// Gaussian function stamp
+	if (!AddFuncStamp("Gaussian", "shaders/gaussian.vert", "shaders/gaussian.frag"))
+		return;
+
+	// Testing image stamp
+	if (!AddTexStamp("%", "images/texstamps/%.png"))
+		return;
+
+	// Footprint stamp
+	if (!AddTexStamp("Footprint", "images/texstamps/Footprint.png"))
+		return;
+
+	// Smiley stamp 1
+	if (!AddTexStamp("Smiley", "images/texstamps/Smiley.png"))
+		return;
+	
+	// Smiley stamp 2
+	if (!AddTexStamp("Smiley2", "images/texstamps/Smiley2.png"))
+		return;
+
+	// Pedobear
+	if (!AddTexStamp("Pedobear", "images/texstamps/Pedobear.png"))
+		return;
+
+	// Mess
+	if (!AddTexStamp("Mess", "images/texstamps/Mess.png"))
+		return;
+
+	m_error = false;
+}
+
+//--------------------------------------------------------
+StampManager::~StampManager(void)
+{
+	RE_DELETE(m_shTexStamp);
+	for (int i = 0; i < (int)m_stampCollection.size(); i++)
+		delete m_stampCollection.at(i);
+}
+
+//--------------------------------------------------------
+bool
+StampManager::HasError(void)
+{
+	return (m_error);
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddDynstamp(string stampName, GLuint textureID, bool isHidden)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateDynStamp(stampName, m_shTexStamp, textureID, isHidden))
+		return false;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddFuncStamp(string stampName, string vertPath, string fragPath, bool isHidden)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateFuncStamp(stampName, vertPath, fragPath, isHidden))
+		return false;
+
+	newStamp->initShader = &setupGaussian;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::AddTexStamp(string stampName, string textureName, bool isHidden)
+{
+	Stamp* newStamp = new Stamp();
+	if (!newStamp->CreateTexStamp(stampName, m_shTexStamp, textureName, isHidden))
+		return false;
+
+	return (FinaliseStamp(newStamp));
+}
+
+//--------------------------------------------------------
+bool
+StampManager::FinaliseStamp(Stamp* newStamp)
+{
+	m_stampCollection.push_back(newStamp);
+	m_stampIndexMap[newStamp->GetStampName()] = STAMPCOUNT++;
+
+	if (m_currentStamp == -1 && !newStamp->IsHidden() && m_stampCollection.size() > 0)
+		m_currentStamp = 0;
+
+	return true;
+}
+
+//--------------------------------------------------------
+Stamp*
+StampManager::GetStamp(int stampIndex)
+{
+	return (m_stampCollection.at(stampIndex));
+}
+
+//--------------------------------------------------------
+Stamp*
+StampManager::GetStamp(string stampName)
+{
+	return (m_stampCollection.at(m_stampIndexMap[stampName]));
+}
+
+//--------------------------------------------------------
+Stamp*
+StampManager::GetCurrentStamp(void)
+{
+	return (m_stampCollection.at(m_currentStamp));
+}
+
+//--------------------------------------------------------
+string
+StampManager::GetStampName(int stampIndex)
+{
+	return (m_stampCollection.at(stampIndex)->GetStampName());
+}
+
+//--------------------------------------------------------
+int
+StampManager::GetStampIndex(string stampName)
+{
+	return (m_stampIndexMap[stampName]);
+}
+
+//--------------------------------------------------------
+string
+StampManager::NextStamp(void)
+{
+	do
+	{
+		m_currentStamp = WRAP((m_currentStamp + 1), STAMPCOUNT);
+	} while (m_stampCollection.at(m_currentStamp)->IsHidden());
+
+	return (m_stampCollection.at(m_currentStamp)->GetStampName());
+}
+
+//--------------------------------------------------------
+string
+StampManager::PrevStamp(void)
+{
+	do
+	{
+		m_currentStamp = WRAP((m_currentStamp - 1), STAMPCOUNT);
+	} while (m_stampCollection.at(m_currentStamp)->IsHidden());
+
+	return (m_stampCollection.at(m_currentStamp)->GetStampName());
+}
+
+//--------------------------------------------------------
+void
+setupGaussian(Stamp* stamp, vector2 clickPos, float scale, float intensity)
+{
+	const float epsilon = 0.000001f;
+
+	float falloff = - log(epsilon / fabsf(intensity)) / (scale * scale);
+	glUniform1f(glGetUniformLocation(stamp->GetShaderID(), "falloff"), falloff);
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------

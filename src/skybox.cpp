@@ -6,26 +6,24 @@
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
 
-#include "regl3.h"
-#include "re_math.h"
-using namespace reMath;
-#include "re_shader.h"
+#include "constants.h"
 #include "skybox.h"
-#include "util.h"
-
 
 //--------------------------------------------------------
 Skybox::Skybox()
 {
-	m_no_error = true;
+	m_error = true;
 	m_shSky = new ShaderProg("shaders/skybox.vert","","shaders/skybox.frag");
 
-	m_no_error = m_no_error && m_shSky->CompileAndLink();
+	if (!m_shSky->CompileAndLink())
+		return;
+
 	glUseProgram(m_shSky->m_programID);
 	glUniform1i(glGetUniformLocation(m_shSky->m_programID, "sky"), 0);
 
 	// Load texture
-	LoadPNG(&m_tex, "images/skybox002.png");
+	if (!LoadPNG(&m_tex, SKYBOX_TEXTURE))
+		return;
 
 	// make the box
 	const float boxverts[12 * 3] = {
@@ -82,6 +80,8 @@ Skybox::Skybox()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbo[2]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	m_error = false;
 }
 
 
@@ -94,6 +94,13 @@ Skybox::~Skybox()
 }
 
 //--------------------------------------------------------
+bool
+Skybox::HasError(void)
+{
+	return (m_error);
+}
+
+//--------------------------------------------------------
 void
 Skybox::render(matrix4 &transform)
 {
@@ -101,8 +108,7 @@ Skybox::render(matrix4 &transform)
 	glBindTexture(GL_TEXTURE_2D, m_tex);
 	glUseProgram(m_shSky->m_programID);
 
-	glUniformMatrix4fv(glGetUniformLocation(m_shSky->m_programID, "mvpMatrix"), 1, GL_FALSE,
-			transform.m);
+	glUniformMatrix4fv(glGetUniformLocation(m_shSky->m_programID, "mvpMatrix"), 1, GL_FALSE, transform.m);
 
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, 30, GL_UNSIGNED_BYTE, 0);

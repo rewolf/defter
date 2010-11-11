@@ -9,67 +9,28 @@
 #ifndef _DEFORM_H_
 #define _DEFORM_H_
 
-struct Stamp
-{
-	bool			m_isTexStamp;
-	GLuint			m_texture;
-	ShaderProg*		m_shader;
-
-	void(*initShader) (Stamp stamp, vector2 clickPos, float scale, float intensity);
-
-	Stamp()
-	{
-		m_isTexStamp	= false;
-		m_texture		= 0;
-		m_shader		= NULL;
-
-		initShader		= NULL;
-	}
-
-	bool SetupShader(string vertPath, string fragPath)
-	{
-		m_isTexStamp = false;
-
-		m_shader = new ShaderProg(vertPath, "", fragPath);
-		glBindAttribLocation(m_shader->m_programID, 0, "vert_Position");
-
-		if (!m_shader->CompileAndLink())
-			return false;
-
-		glUseProgram(m_shader->m_programID);
-		// Set constant uniforms
-		glUniform1i(glGetUniformLocation(m_shader->m_programID, "in_heightmap"), 0);
-
-		return true;
-	}
-
-	bool LoadTexture(string textureName)
-	{
-		m_isTexStamp = true;
-		return (LoadPNG(&m_texture, textureName, true));
-	}
-};
-
 class Deform
 {
 public:
 	Deform					(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex);
 	~Deform();
 
+	bool HasError			(void);
 	void init_backups		(void);
-	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, string stampName,
-							vector4 SIRM, bool isCoarse, GLuint copySrcTex = 0);
+
+	// Two methods, one takes in a stamp ID the other the stamp name
+	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, vector4 SIRM, bool isCoarse, string stampName = "", GLuint copySrcTex = 0);
+
 	void calculate_pdmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, float scale, bool isCoarse, bool init = false);
 	void create_pdmap		(TexData texdata, bool isCoarse);
-
-	bool			m_no_error;
 
 	GLuint			m_coarseBackup;
 	GLuint			m_highBackup;
 	map<string, Stamp> stampCollection;
 private:
-	ShaderProg*		m_shTexStamp;
 	ShaderProg*		m_shPDMapper;
+
+	bool			m_error;
 
 	// FBOs
 	GLuint			m_fbo_heightmap;
@@ -84,8 +45,5 @@ private:
 	float			m_metre_to_detail_tex;
 	bool			m_initialised;
 };
-
-// Functional Stamp setup callbacks
-void setupGaussian(Stamp stamp, vector2 clickPos, float scale, float intensity);
 
 #endif

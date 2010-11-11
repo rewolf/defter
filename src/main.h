@@ -29,8 +29,6 @@ private:
 	bool		Init			(void);
 	bool		InitGL			(void);
 
-	bool		InitSplash		(void);
-	void		RenderSplash	(void);
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
 	void		UpdateClickPos	(void);
@@ -38,13 +36,12 @@ private:
 	float		InterpHeight	(vector2 worldPos);
 
 public:
-	ShaderProg*		m_shSplash;
-	GLuint			m_vbo[3];
-	GLuint			m_vao;
-	GLuint			m_splashmap;
-
-	ShaderProg*		m_shMain;	// use the provided shader program class
-	ShaderProg*		m_shInner;
+	ShaderManager*	m_shManager;
+	int				m_shmSimple;
+	int				m_shmParallax;
+	int				m_shmGeomTess;
+	int				m_hdShaderIndex;
+	Splash*			m_pSplash;
 	Deform*			m_pDeform;
 	Skybox*			m_pSkybox;
 	Clipmap*		m_pClipmap;
@@ -55,7 +52,6 @@ public:
 	int				m_coarsemap_dim;
 	GLuint			m_colormap_tex;
 
-	string			m_stampName;
 	vector4			m_stampSIRM;
 	bool			m_is_hd_stamp;
 	bool			m_clicked;
@@ -72,6 +68,7 @@ public:
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
+	bool			m_is_wireframe;
 
 	// Coarsemap continuous unpacking stuff
 	GLushort*		m_elevationData;
@@ -88,13 +85,17 @@ public:
 	reTimer			m_deformTimer;
 	int				m_cyclesPassed;
 
-	// footprints
+	// Footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
 	bool			m_drawing_feet;
 
-	// Use the second shader for inner grid
-	bool			m_enableTess;
+	// Stuff for awesome screenshot
+	matrix4			m_screenshotProj;
+	GLuint			m_screenshotTex;
+	GLuint			m_screenshotDepth;
+	GLuint			m_screenshotFBO;
+
 };
 
 // thread that retrieves the coarsemap from the PBOs
