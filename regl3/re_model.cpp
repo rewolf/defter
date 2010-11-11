@@ -242,9 +242,23 @@ re_LoadMeshData(FILE* fp, Node* pNode){
 	tcoords		= new vector2[nTexCoords];
 	indices		= new GLuint[nIndices];
 	
-	// Read in vertices
-	for (int i = 0 ; i < nVertices; i++)
+	// Read in vertices and calc boundingbox
+	for (int i = 0 ; i < nVertices; i++){
 		__fscanF(fp, "%f %f %f", &vertices[i].x, &vertices[i].y, &vertices[i].z);
+		if (vertices[i].x < pNode->m_mesh.bounds.min.x)
+			pNode->m_mesh.bounds.min.x = vertices[i].x;
+		if (vertices[i].x > pNode->m_mesh.bounds.max.x)
+			pNode->m_mesh.bounds.max.x = vertices[i].x;
+		if (vertices[i].y < pNode->m_mesh.bounds.min.y)
+			pNode->m_mesh.bounds.min.y = vertices[i].y;
+		if (vertices[i].y > pNode->m_mesh.bounds.max.y)
+			pNode->m_mesh.bounds.max.y = vertices[i].y;
+		if (vertices[i].z < pNode->m_mesh.bounds.min.z)
+			pNode->m_mesh.bounds.min.z = vertices[i].z;
+		if (vertices[i].z > pNode->m_mesh.bounds.max.z)
+			pNode->m_mesh.bounds.max.z = vertices[i].z;
+	}
+
 	// Read in normals
 	for (int i = 0 ; i < nNormals; i++)
 		__fscanF(fp, "%f %f %f", &normals[i].x, &normals[i].y, &normals[i].z);

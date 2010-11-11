@@ -89,7 +89,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pClipmap);
 	RE_DELETE(m_pCaching);
 	RE_DELETE(m_pModelManager);
-	RE_DELETE(m_pModel);
+	RE_DELETE(m_pCamera);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -371,8 +371,6 @@ DefTer::Init()
 	if (noModelError){
 		printf("Done\n");
 	}
-	m_pModel = m_pModelManager->GetModel("gun");
-
 	
 	// Init the cameras position such that it is in the middle of a tile
 	m_pCamera 		= new Camera(m_pModelManager->GetModel("gun"));
@@ -450,13 +448,6 @@ DefTer::Init()
 	glGenFramebuffers(1, &m_screenshotFBO);
 	float asprat = float(SCREENSHOT_W)/SCREENSHOT_H;
 	m_screenshotProj = perspective_proj(PI*.5f, asprat, NEAR_PLANE, FAR_PLANE);
-
-	// Test model
-
-	m_pModel->m_transform.translate.y = InterpHeight(vector2(
-		m_pModel->m_transform.translate.x, m_pModel->m_transform.translate.z));
-	m_pModel->m_transform.valid = false;
-
 
 	return true;
 }
@@ -1240,7 +1231,8 @@ DefTer::RenderModel(GameEntity* pEnt, matrix4 view){
 	glUseProgram(m_shModel->m_programID);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "view"), 1, GL_FALSE, view.m);
 
-	RenderNode(pEnt->m_pModel, view * model_tr);
+	if (pEnt->m_pModel)
+		RenderNode(pEnt->m_pModel, view * model_tr);
 }
 
 //--------------------------------------------------------

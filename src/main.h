@@ -97,9 +97,6 @@ public:
 	GLuint			m_screenshotTex;
 	GLuint			m_screenshotDepth;
 	GLuint			m_screenshotFBO;
-
-	// Test model
-	Node*			m_pModel;
 };
 
 // thread that retrieves the coarsemap from the PBOs

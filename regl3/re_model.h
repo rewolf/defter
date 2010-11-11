@@ -3,18 +3,23 @@
 
 #define MESH_MAX	64
 
+struct BoundingBox{
+	vector3 min;
+	vector3 max;
+};
 
 //--------------------------------------------------------
 struct Mesh{
-	GLuint	tex;
-	GLuint	vao;
-	GLuint	vbo[4];
-	int		nIndices;
+	BoundingBox		bounds;
+	GLuint			tex;
+	GLuint			vao;
+	GLuint			vbo[4];
+	int				nIndices;
 
-	vector3	diffuse;
-	vector3 ambient;
-	vector3 specular;
-	float	specPower;
+	vector3			diffuse;
+	vector3 		ambient;
+	vector3 		specular;
+	float			specPower;
 };
 
 //--------------------------------------------------------
