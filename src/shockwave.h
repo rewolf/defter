@@ -20,8 +20,9 @@ public:
 	bool	HasError			(void);
 	bool	IsActive			(void);
 	float	GetHeight			(void);
+	vector2	GetEpicenter		(void);
 	void	Update				(float dt);
-	void	CreateShockwave		(vector3 position);
+	void	CreateShockwave		(vector2 position);
 
 private:
 	ShaderProg*		m_shWave;

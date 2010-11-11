@@ -98,6 +98,13 @@ Shockwave::GetHeight(void)
 }
 
 //--------------------------------------------------------
+vector2
+Shockwave::GetEpicenter(void)
+{
+	return (m_origin);
+}
+
+//--------------------------------------------------------
 void
 Shockwave::Update(float dt)
 {
@@ -134,10 +141,10 @@ Shockwave::Update(float dt)
 
 //--------------------------------------------------------
 void
-Shockwave::CreateShockwave(vector3 position)
+Shockwave::CreateShockwave(vector2 position)
 {
 	m_state = ACTIVE;
-	m_origin= vector2(position.x, position.z);
+	m_origin= position;
 	m_radius= 0.0f;
 	m_height= 0.1f;
 }
