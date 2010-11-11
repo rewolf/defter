@@ -59,7 +59,7 @@
 
 // App Settings
 #define FSAA				(0)
-#define SLEEP_TIME			(0.0f)
+#define SLEEP_TIME			(0.03f)
 #define VSYNC				(false)
 
 
