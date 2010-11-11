@@ -187,7 +187,6 @@ DefTer::InitGL()
 	m_lastPosition  = m_cam_translate;
 
 	// Set the initial stamp mode and clicked state
-	m_stampIndex	= 0;
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
 	m_is_hd_stamp	= false;
 	m_clicked		= false;
@@ -209,7 +208,7 @@ DefTer::InitGL()
 	m_shmGeomTess	= 0;
 
 	// Init Shaders
-	printf("Initialising Shader Manager...\t");
+	printf("Initialising shader manager...\t");
 	m_shManager		 = new ShaderManager();
 	error			 = !m_shManager->AddShader("shaders/simple.vert","shaders/simple.geom","shaders/simple.frag", &m_shmSimple);
 	error			&= !m_shManager->AddShader("shaders/parallax.vert","shaders/parallax.geom","shaders/parallax.frag", &m_shmParallax);
@@ -339,6 +338,16 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
+	// Initialise Stamp Manager
+	printf("Initialising stamp manager...\t");
+	InitStampMan();
+	if (GetStampMan()->HasError())
+	{
+		fprintf(stderr, "Error\n\tCould not initialise stamp man\n");
+		return false;
+	}
+	printf("Done\n");
+
 	// Create & initialise the clipmap
 	printf("Creating clipmap...\t\t");
 	m_pClipmap = new Clipmap(CLIPMAP_DIM, CLIPMAP_RES, CLIPMAP_LEVELS, m_coarsemap_dim);
@@ -362,7 +371,7 @@ DefTer::Init()
 
 	// Generate the normal map and run a zero deform to init shaders
 	printf("Creating initial deform...\t");
-	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), m_stampIndex, vector4(0.0f), true);
+	m_pDeform->displace_heightmap(m_coarsemap, vector2(0.5f), vector2(0.0f), vector4(0.0f), true);
 	m_pDeform->create_pdmap(m_coarsemap, true);
 	if (!CheckError("Creating initial deform"))
 		return false;
@@ -801,7 +810,7 @@ DefTer::ProcessInput(float dt)
 		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
-			m_pCaching->DeformHighDetail(m_clickPos, m_stampIndex, stampSIRM);
+			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
 		}
 		else
 		{
@@ -866,7 +875,7 @@ DefTer::ProcessInput(float dt)
 			
 			// Displace the heightmap
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, m_stampIndex, stampSIRM, true);
+				m_pDeform->displace_heightmap(m_coarsemap, m_clickPos, *shit, stampSIRM, true);
 
 			// Calculate the normals
 			for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
@@ -979,15 +988,10 @@ DefTer::ProcessInput(float dt)
 
 	// Toggle the stamp values
 	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
-	{
-		m_stampIndex = WRAP((m_stampIndex + 1), STAMPCOUNT);
-		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
-	}
+		printf("Stamp: %s\n", GetStampMan()->NextStamp().c_str());
 	else if (m_input.WasKeyPressed(SDLK_LEFTBRACKET))
-	{
-		m_stampIndex = WRAP((m_stampIndex - 1), STAMPCOUNT);
-		printf("Stamp: %s\n", GetStampMan()->GetStampName(m_stampIndex).c_str());
-	}
+		printf("Stamp: %s\n", GetStampMan()->PrevStamp().c_str());
+
 	// Change the scale of the stamp
 	if (m_input.IsKeyPressed(SDLK_PAGEUP))
 	{
@@ -1182,7 +1186,7 @@ DefTer::Logic(float dt)
 			foot 			+= rotate_tr2(m_cam_rotate.y) * vector2(m_flipFoot ? 0.3f : -0.3f, 0.0f);
 			m_footprintDT 	 = 0.0f;
 			m_flipFoot		^= true;
-			m_pCaching->DeformHighDetail(foot, "Footprint", stampSIRM);
+			m_pCaching->DeformHighDetail(foot, stampSIRM, "Footprint");
 		}
 	}
 
