@@ -15,6 +15,19 @@ enum XferState {
 	CHILLED, READY, BUFFERING, RETRIEVING, DONE
 };
 
+enum UseMode {
+	EDIT_MODE, GAME_MODE
+};
+
+struct Flash{
+	reTimer	timer;
+	vector4	color;
+	float	maxAlpha;
+	float	inlength;
+	float	outlength;
+	bool	enabled;
+};
+
 class DefTer : public reGL3App
 {
 public:
@@ -24,6 +37,9 @@ public:
 	void		ProcessInput	(float dt);	//override
 	void		Logic			(float dt); //override
 	void		Render			(float dt); //override
+
+	void		FlashScreen	(float inTime = .02f, float outTime = 1.8f, float maxAlpha = 0.9f, 
+							 vector4 color=vector4(1.0, .95f, 1.0f, 1.0f));
 
 private:
 	bool		Init			(void);
@@ -41,6 +57,7 @@ private:
 
 public:
 	ShaderProg*		m_shModel;
+	ShaderProg*		m_shFlash;
 	ShaderManager*	m_shManager;
 	int				m_shmSimple;
 	int				m_shmParallax;
@@ -52,6 +69,7 @@ public:
 	Clipmap*		m_pClipmap;
 	Caching*		m_pCaching;
 	ModelManager*	m_pModelManager;
+	UseMode			m_useMode;
 
 	TexData			m_coarsemap;
 	int				m_coarsemap_dim;
@@ -97,6 +115,9 @@ public:
 	GLuint			m_screenshotTex;
 	GLuint			m_screenshotDepth;
 	GLuint			m_screenshotFBO;
+
+	// Handles a screen flash
+	Flash			m_flash;
 };
 
 // thread that retrieves the coarsemap from the PBOs

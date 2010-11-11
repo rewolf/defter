@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
 DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 {
 	m_shModel			  = NULL;
+	m_shFlash			  = NULL;
 	m_shManager			  = NULL;
 	m_pDeform 			  = NULL;
 	m_pClipmap			  = NULL;
@@ -82,6 +83,7 @@ DefTer::~DefTer()
 	FreeImage_DeInitialise();
 	glUseProgram(0);
 	RE_DELETE(m_shModel);
+	RE_DELETE(m_shFlash);
 	KillUtil();
 	RE_DELETE(m_shManager);
 	RE_DELETE(m_pDeform);
@@ -188,6 +190,9 @@ DefTer::InitGL()
 	// Init projection matrix
 	m_proj_mat		= perspective_proj(PI*.5f, ASPRAT, NEAR_PLANE, FAR_PLANE);
 
+	// Initialise to edit mode
+	m_useMode		= EDIT_MODE;
+
 	// Set the initial stamp mode and clicked state
 	m_stampIndex	= 0;
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
@@ -218,6 +223,7 @@ DefTer::InitGL()
 	m_hdShaderIndex	 = m_shmSimple;
 
 	m_shModel		= new ShaderProg("shaders/model.vert", "", "shaders/model.frag");
+	m_shFlash		= new ShaderProg("shaders/flash.vert", "", "shaders/flash.frag");
 
 	// Bind attributes to shader variables. NB = must be done before linking shader
 	// allows the attributes to be declared in any order in the shader.
@@ -226,6 +232,7 @@ DefTer::InitGL()
 	glBindAttribLocation(m_shModel->m_programID, 0, "vert_Position");
 	glBindAttribLocation(m_shModel->m_programID, 1, "vert_Normal");
 	glBindAttribLocation(m_shModel->m_programID, 2, "vert_TexCoord");
+	glBindAttribLocation(m_shFlash->m_programID, 0, "vert_Position");
 
 	if (error || !CheckError("Binding shader attributes"))
 	{
@@ -241,7 +248,7 @@ DefTer::InitGL()
 		printf("Error\n\tWill not continue without working shaders\n");
 		return false;
 	}
-	if (!m_shModel->CompileAndLink()){
+	if (!m_shModel->CompileAndLink() || !m_shFlash->CompileAndLink()){
 		printf("Error\n\tWill not continue without working MODEL shaders\n");
 		return false;
 	}
@@ -716,6 +723,30 @@ DefTer::ProcessInput(float dt)
 			m_pCamera->m_rotate.x = PI * 0.5f;
 	}
 
+	// Change Mode
+	if (m_input.WasKeyPressed(SDLK_PAUSE)){
+		if (m_useMode == EDIT_MODE){
+			printf("Switched to GAME MODE\n");
+			// Switch to game mode
+			m_useMode = GAME_MODE;
+			// enable a model for the camera
+			m_pCamera->m_pModel = m_pCamera->m_pGunModel;
+			// disable edit stuff
+			m_is_hd_stamp	= false;
+			m_clicked		= false;
+			m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+			// flash screen
+			FlashScreen();
+		}
+		else{
+			printf("Switched to EDIT MODE\n");
+			// Switch to game mode
+			m_useMode = EDIT_MODE;
+			// enable a model for the camera
+			m_pCamera->m_pModel = NULL;
+		}
+	}
+
 	// Change the selected deformation location
 	if (m_input.IsButtonPressed(3))
 	{
@@ -762,7 +793,7 @@ DefTer::ProcessInput(float dt)
 		m_is_super_speed = false;
 	}
 
-	// Change the selected deformation location
+	// Perform deformations
 	if (m_clicked && wheel_ticks != 0)
 	{
 		vector2 clickDiff	 = m_clickPos - m_pCamera->GetHorizPosition();
@@ -1141,7 +1172,23 @@ DefTer::Logic(float dt)
 	m_shManager->UpdateUni1f("cam_height", m_pCamera->m_translate.y);
 	m_shManager->UpdateUni4f("cam_and_shift", pos.x, pos.z, m_clipmap_shift.x, m_clipmap_shift.y);
 
+	// Reset forces for next frame
 	m_pCamera->m_frameAcceleration.set(.0f);
+
+	// Animate the on-screen flash
+	if (m_flash.enabled){
+		float elapsed = m_flash.timer.peekElapsed();
+		if (elapsed > m_flash.inlength + m_flash.outlength)
+			m_flash.enabled = false;
+		else{
+			float dmid = elapsed - m_flash.inlength;
+			float dend = dmid - m_flash.outlength;
+			if (elapsed < m_flash.inlength)
+				m_flash.color.w = m_flash.maxAlpha * (1.0f - dmid*dmid/(m_flash.inlength*m_flash.inlength));
+			else
+				m_flash.color.w = m_flash.maxAlpha * (1.0f - dmid*dmid/(m_flash.outlength*m_flash.outlength));
+		}
+	}
 }
 
 //--------------------------------------------------------
@@ -1214,6 +1261,19 @@ DefTer::Render(float dt)
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
+
+	if (m_flash.enabled){
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glUseProgram(m_shFlash->m_programID);
+		glUniform4fv(glGetUniformLocation(m_shFlash->m_programID, "color"),  1, m_flash.color.v);
+		glBindVertexArray(GetStandardVAO());
+
+		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, 0);		
+
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+	}
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
@@ -1332,4 +1392,15 @@ DefTer::WrapEntity(GameEntity* pEnt){
 		pEnt->m_translate.z += boundary * 2.0f;
 		pEnt->m_lastTranslate.z  += boundary * 2.0f;
 	}
+}
+
+//--------------------------------------------------------
+void
+DefTer::FlashScreen		(float inTime, float outTime, float maxAlpha, vector4 color){
+	m_flash.enabled		= true;
+	m_flash.timer.start();
+	m_flash.inlength	= inTime;
+	m_flash.outlength	= outTime;
+	m_flash.maxAlpha	= maxAlpha;
+	m_flash.color		= color;
 }

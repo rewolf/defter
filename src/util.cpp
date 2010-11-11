@@ -250,7 +250,7 @@ GLfloat	texcoords[]	= { 0.0f, 0.0f,
 						1.0f, 0.0f,
 						1.0f, 1.0f,
 						0.0f, 1.0f };
-GLuint	indices[]	= { 3, 0, 2, 1 };
+GLubyte	indices[]	= { 3, 0, 2, 1 };
 GLuint	util_vbo[3]	= {0};
 GLuint	util_vao	= 0;
 
@@ -285,7 +285,7 @@ InitUtil(void)
 	glEnableVertexAttribArray(1);
 	// Setup the index buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, util_vbo[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte) * 4, indices, GL_STATIC_DRAW);
 
 	isInit = true;
 }
