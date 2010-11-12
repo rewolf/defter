@@ -51,7 +51,7 @@ public:
 private:
 	bool		Init			(void);
 	bool		InitGL			(void);
-	void		init_linux_cursor();
+	void		InitCursor		(void);
 
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);

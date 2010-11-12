@@ -139,7 +139,7 @@ DefTer::InitGL()
 	}
 #endif
 
-	init_linux_cursor();
+	InitCursor();
 
 	printf("\n\n");
 	printf("-----------------------------------------\n");
@@ -1525,9 +1525,10 @@ DefTer::Render(float dt)
 
 	if (m_useMode == GAME_MODE)
 	{
-		// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
+		// Draw HUD elements for game mode
 		if (m_activeWeapon == BOMB)
 		{
+			// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
 			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.02f, ASPRAT*.02f);
 			
 			vector2 p((float*)&m_input.GetMousePos());
@@ -1543,6 +1544,7 @@ DefTer::Render(float dt)
 		}
 		else if (m_activeWeapon == GUN)
 		{
+			// Draw the crosshair for the gun
 			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.04f, ASPRAT*.04f);
 			
 			glBindTexture(GL_TEXTURE_2D, m_crosshairTex);
@@ -1554,6 +1556,7 @@ DefTer::Render(float dt)
 
 			
 			if (m_isShooting){
+				// Draw a muzzle flash
 				transform = (float(rand())/RAND_MAX*.5f+.5f) * scale_tr2(0.2f, ASPRAT*.2f) * rotate_tr2(float(rand())/RAND_MAX * PI) ;
 				
 				glBindTexture(GL_TEXTURE_2D, m_muzzleFlashTex);
@@ -1569,6 +1572,7 @@ DefTer::Render(float dt)
 
 		if (m_bombActive)
 		{
+			// Draw the bomb X texture at the current bomb target
 			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
@@ -1584,7 +1588,11 @@ DefTer::Render(float dt)
 		}
 	}
 	else{
-		matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.03f, ASPRAT*.03f);
+		// Render the regular arrow cursor of size 70p x 70p
+		vector2 pixel_size	= vector2(70.0f, 70.0f * ASPRAT) / SCREEN_W;
+		vector2 hotspot		= vector2(.227f * 70.0f, -.461f * 70.0f) / SCREEN_W;
+
+		matrix2 transform = rotate_tr2(.0f) * scale_tr2(pixel_size * .5f );
 		
 		vector2 p((float*)&m_input.GetMousePos());
 		p.x = p.x/SCREEN_W * 2.0f - 1.0f;
@@ -1593,8 +1601,7 @@ DefTer::Render(float dt)
 		glBindTexture(GL_TEXTURE_2D, m_cursorTex);
 		glUseProgram(m_shHUD->m_programID);
 		glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
-		glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x +
-				.03f*158.0f/SCREEN_W, -.03f*70.0f*ASPRAT/SCREEN_H + p.y);
+		glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x + hotspot.x, p.y + hotspot.y);
 		glBindVertexArray(GetStandardVAO());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
@@ -1743,7 +1750,7 @@ DefTer::FlashScreen		(float inTime, float outTime, float maxAlpha, vector4 color
 
 //--------------------------------------------------------
 void 
-DefTer::init_linux_cursor(){
+DefTer::InitCursor(){
 #ifndef WIN32
 	/* vars to make blank cursor */
 	Pixmap blank;
@@ -1761,5 +1768,6 @@ DefTer::init_linux_cursor(){
 	XSync(m_X_dpy, False);
 	XFlush(m_X_dpy);	
 #endif
+	ShowCursor(0);
 }
 

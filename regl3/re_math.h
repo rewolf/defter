@@ -337,6 +337,7 @@ bool close_enough(float f1, float f2);
 
 matrix2 rotate_tr2		(float angle);
 matrix2 scale_tr2		(float x, float y);
+matrix2 scale_tr2		(vector2);
 
 matrix4 translate_tr	(float x, float y, float z);
 matrix4 translate_tr	(vector3 vec);

@@ -1746,6 +1746,16 @@ scale_tr2 (float x, float y){
 }
 
 //-------------------------------------------------------------------------
+matrix2
+scale_tr2 (vector2 v){
+	matrix2 out;
+	out[0] = v.x;
+	out[3] = v.y;
+	return out;
+}
+
+
+//-------------------------------------------------------------------------
 // TRANSLATE_TR returns a matrix that may be used for vector translation
 // if the vector is pre-multiplied by this matrix.
 matrix4
