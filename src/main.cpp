@@ -1094,7 +1094,7 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse)
 						  + m_pCamera->m_translate;
 
-				m_pDeform->EdgeDeform(m_coarsemap, vector2(p.x, p.z), vector4(1.0f, -.2f, .0f, .0f), "Gaussian");
+				m_pDeform->EdgeDeform(m_coarsemap, vector2(p.x, p.z), vector4(.3f, -.02f, .0f, .0f), "Gaussian");
 				//m_pCaching->DeformHighDetail(vector2(p.x, p.z), vector4(1.0f, .2f, .0f, .0f),
 						//"Gaussian");
 				break;
@@ -1763,8 +1763,10 @@ DefTer::init_linux_cursor(){
 	blank = XCreateBitmapFromData (m_X_dpy, m_X_root_win, data, 1, 1);
 	if(blank == None) fprintf(stderr, "error: out of memory.\n");
 	m_X_cursor = XCreatePixmapCursor(m_X_dpy, blank, blank, &dummy, &dummy, 0, 0);
-	XFreePixmap (m_X_dpy, blank);
 	XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
+	XFreePixmap (m_X_dpy, blank);
+	XSync(m_X_dpy, False);
+	XFlush(m_X_dpy);	
 #endif
 }
 
