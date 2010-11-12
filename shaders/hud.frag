@@ -18,5 +18,5 @@ out vec4 frag_Color;
 
 //------------------------------------------------------------------------------
 void main(){
-	frag_Color = texture(HUDelem, frag_TexCoord).rgbb * vec4(1.0,1.0,1.0,.0) + vec4(.0, .0, .0, 1.0);
+	frag_Color = texture(HUDelem, frag_TexCoord).rgba;
 }

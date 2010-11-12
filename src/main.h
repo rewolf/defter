@@ -134,6 +134,8 @@ public:
 	WeaponMode		m_activeWeapon;
 	bool			m_bombActive;
 	vector2			m_bombTarget;
+	GLuint			m_bombXTex;
+	list<GameEntity*> m_bombs;
 
 	// Mouse movement parameters
 	vector2			m_mouseCompensate;

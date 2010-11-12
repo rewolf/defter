@@ -109,6 +109,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_coarsemap.pdmap);
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_screenshotTex);
+	glDeleteTextures(1, &m_bombXTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
@@ -367,6 +368,13 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
+	// Load X texture for bomb placement
+	printf("Loading bomb X texture...\t");
+	if (!LoadPNG(&m_bombXTex, "images/bombX.png"))
+		return false;
+	printf("Done\n");
+
+
 	// Initialise Stamp Manager
 	printf("Initialising stamp manager...\t");
 	InitStampMan();
@@ -400,6 +408,7 @@ DefTer::Init()
 	bool noModelError = true;
 	m_pModelManager = new ModelManager();
 	noModelError |= m_pModelManager->LoadModel("gun", 	"models/gun.reMo");
+	noModelError |= m_pModelManager->LoadModel("bomb", 	"models/bomb.reMo");
 	if (noModelError){
 		printf("Done\n");
 	}
@@ -841,8 +850,6 @@ DefTer::ProcessInput(float dt)
 			m_clicked		= false;
 			m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 
-			// Flash screen
-			FlashScreen();
 #ifdef WIN32
 			ShowCursor(0);
 #endif
@@ -1107,11 +1114,15 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				{
 					m_bombActive = true;
 					m_bombTarget = pos;
-					m_activeWeapon = GUN;
-					printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
-					weaponChanged = true;
-					printf("-----------------------------------%s\n", m_bombTarget.str().c_str());
-					m_pShockwave->CreateShockwave(m_bombTarget, 400.0f);
+					//m_activeWeapon = GUN;
+					//weaponChanged = true;
+					//printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
+					GameEntity* newBomb = new GameEntity(m_pModelManager->GetModel("bomb"));
+					newBomb->m_translate.x = m_bombTarget.x;
+					newBomb->m_translate.y = 100.0f;
+					newBomb->m_translate.z = m_bombTarget.y;
+					newBomb->ZeroVelocity();
+					m_bombs.push_back(newBomb);
 				}
 				break;
 			case GUN:
@@ -1133,6 +1144,8 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				m_pCamera->m_pModel = m_pCamera->m_pGunModel;
 				break;
 		}
+
+		CentreMouse(false);
 	}
 
 	// Centre mouse on screen if in mouse look mode
@@ -1334,6 +1347,9 @@ DefTer::Logic(float dt)
 	// Global environment forces
 	if (m_gravity_on)
 		m_pCamera->m_frameAcceleration += GRAVITY;
+	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
+		(*i)->m_frameAcceleration += GRAVITY;
+	}
 
 	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
 	static float compoundDT = .0f;
@@ -1341,6 +1357,11 @@ DefTer::Logic(float dt)
 	while (compoundDT > DT){
 		// Update camera position
 		m_pCamera->Update();
+
+		// Update bombs
+		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
+			(*i)->Update();
+		}
 
 		WrapEntity(m_pCamera);
 
@@ -1355,6 +1376,20 @@ DefTer::Logic(float dt)
 		} else{
 			m_pCamera->m_onGround	= false;
 		}
+
+		// Check if bombs hit terrain
+		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
+			if ((*i)->m_translate.y < terrain_height){
+				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
+				// Flash screen
+				FlashScreen();
+				delete (*i);
+				i = m_bombs.erase(i);
+				if (i==m_bombs.end())
+					break;
+			}
+		}
+
 		compoundDT -= DT;
 	}
 
@@ -1398,6 +1433,7 @@ DefTer::Logic(float dt)
 		i++;
 	}
 
+
 	// Pass the camera's texture coordinates and the shift amount necessary
 	// cam = x and y   ;  shift = z and w
 	vector3 pos 	  = m_pCamera->m_translate * m_pClipmap->m_metre_to_tex;
@@ -1409,6 +1445,9 @@ DefTer::Logic(float dt)
 
 	// Reset forces for next frame
 	m_pCamera->m_frameAcceleration.set(.0f);
+	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
+		(*i)->m_frameAcceleration.set(.0f);
+	}
 
 	// Animate the on-screen flash
 	if (m_flash.enabled)
@@ -1490,6 +1529,8 @@ DefTer::Render(float dt)
 		m_pSkybox->render(viewproj);
 
 	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
+	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++)
+		RenderModel((*i), rotate*translate_tr(-m_pCamera->m_translate));
 
 	if (!m_is_wireframe)
 		m_pCaching->Render();
@@ -1499,18 +1540,16 @@ DefTer::Render(float dt)
 	// Get the lastest version of the coarsemap from the GPU for the next frame
 	UpdateCoarsemapStreamer();
 
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
 	if (m_flash.enabled)
 	{
-		glEnable(GL_BLEND);
-		glDisable(GL_DEPTH_TEST);
 		glUseProgram(m_shFlash->m_programID);
 		glUniform4fv(glGetUniformLocation(m_shFlash->m_programID, "color"),  1, m_flash.color.v);
 		glBindVertexArray(GetStandardVAO());
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);	
 
-		glDisable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
 	}
 
 	if (m_useMode == GAME_MODE)
@@ -1522,14 +1561,12 @@ DefTer::Render(float dt)
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = 1.0f - p.y/SCREEN_H * 2.0f;
 			
-			glDisable(GL_DEPTH_TEST);
-			glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
+			glBindTexture(GL_TEXTURE_2D, m_bombXTex);
 			glUseProgram(m_shHUD->m_programID);
-			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, .02f);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, ASPRAT*.02f);
 			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
 			glBindVertexArray(GetStandardVAO());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			glEnable(GL_DEPTH_TEST);
 		}
 		else if (m_activeWeapon == GUN)
 		{
@@ -1542,16 +1579,16 @@ DefTer::Render(float dt)
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
 			
-			glDisable(GL_DEPTH_TEST);
-			glBindTexture(GL_TEXTURE_2D, m_colormap_tex);
+			glBindTexture(GL_TEXTURE_2D, m_bombXTex);
 			glUseProgram(m_shHUD->m_programID);
-			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, .02f);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, ASPRAT*.02f);
 			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
 			glBindVertexArray(GetStandardVAO());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			glEnable(GL_DEPTH_TEST);
 		}
 	}
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
