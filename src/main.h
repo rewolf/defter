@@ -143,6 +143,7 @@ public:
 	vector2			m_mouseCompensate;
 	bool			m_mouseFirstMove;
 	bool			m_mouseLook;
+	GLuint			m_cursorTex;
 #ifndef WIN32
 	Cursor			m_X_cursor;
 	Display*		m_X_dpy;

@@ -113,6 +113,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_bombXTex);
 	glDeleteTextures(1, &m_crosshairTex);
 	glDeleteTextures(1, &m_muzzleFlashTex);
+	glDeleteTextures(1, &m_cursorTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
@@ -381,6 +382,8 @@ DefTer::Init()
 	if (!LoadPNG(&m_crosshairTex, "images/crosshair.png"))
 		return false;
 	if (!LoadPNG(&m_muzzleFlashTex, "images/muzzleflash.png"))
+		return false;
+	if (!LoadPNG(&m_cursorTex, "images/cursor.png"))
 		return false;
 	printf("Done\n");
 
@@ -1062,6 +1065,7 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				}
 				break;
 			case GUN:
+
 				break;
 		}
 	}
@@ -1073,6 +1077,24 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				break;
 			case GUN:
 				m_isShooting = true;
+				MousePos pos = m_input.GetMousePos();
+				float val;
+
+				// Get value in z-buffer
+				glReadPixels((GLint)pos.x, (GLint)(SCREEN_H - pos.y), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &val);
+
+				vector3 frag(pos.x, pos.y, val);
+				// Derive inverse of view transform (could just use transpose of view matrix
+				matrix4 inverse = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
+								* rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
+
+				// Request unprojected coordinate
+				vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse)
+						  + m_pCamera->m_translate;
+
+				m_pDeform->EdgeDeform(m_coarsemap, vector2(p.x, p.z), vector4(1.0f, -.2f, .0f, .0f), "Gaussian");
+				//m_pCaching->DeformHighDetail(vector2(p.x, p.z), vector4(1.0f, .2f, .0f, .0f),
+						//"Gaussian");
 				break;
 		}
 	}else{
@@ -1182,7 +1204,6 @@ DefTer::EditModeInput(float dt, vector2 mouseDelta, int ticks){
 		// Derive inverse of view transform (could just use transpose of view matrix
 		matrix4 inverse = rotate_tr(m_pCamera->m_rotate.y, .0f, 1.0f, .0f) 
 						* rotate_tr(m_pCamera->m_rotate.x, 1.0f, .0f, .0f);
-
 		// Request unprojected coordinate
 		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
@@ -1567,6 +1588,21 @@ DefTer::Render(float dt)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
 	}
+	else{
+		matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.03f, ASPRAT*.03f);
+		
+		vector2 p((float*)&m_input.GetMousePos());
+		p.x = p.x/SCREEN_W * 2.0f - 1.0f;
+		p.y = 1.0f - p.y/SCREEN_H * 2.0f;
+		
+		glBindTexture(GL_TEXTURE_2D, m_cursorTex);
+		glUseProgram(m_shHUD->m_programID);
+		glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
+		glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x +
+				.03f*158.0f/SCREEN_W, -.03f*70.0f*ASPRAT/SCREEN_H + p.y);
+		glBindVertexArray(GetStandardVAO());
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 
@@ -1726,6 +1762,7 @@ DefTer::init_linux_cursor(){
 	if(blank == None) fprintf(stderr, "error: out of memory.\n");
 	m_X_cursor = XCreatePixmapCursor(m_X_dpy, blank, blank, &dummy, &dummy, 0, 0);
 	XFreePixmap (m_X_dpy, blank);
+	//XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
 #endif
 }
 

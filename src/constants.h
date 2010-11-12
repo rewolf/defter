@@ -64,8 +64,8 @@
 
 
 // Screen settings
-#define SCREEN_W			(1680)
-#define SCREEN_H			(1050)
+#define SCREEN_W			(1024)
+#define SCREEN_H			(768)
 #define ASPRAT				(float(SCREEN_W) / SCREEN_H)
 #define SCREENSHOT_W		(1024)
 #define SCREENSHOT_H		(768)
