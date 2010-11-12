@@ -792,8 +792,6 @@ DefTer::ProcessInput(float dt)
 
 #ifdef WIN32
 			ShowCursor(0);
-#else
-	//		XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
 #endif
 		}
 		else
@@ -807,11 +805,6 @@ DefTer::ProcessInput(float dt)
 			m_pCamera->m_pModel = NULL;
 #ifdef WIN32
 			ShowCursor(1);
-#else
-			//Cursor cursor;
-			//cursor = XCreateFontCursor(m_X_dpy, XC_left_ptr);
-	//		XUndefineCursor(m_X_dpy, m_X_root_win);
-			//XDefineCursor(m_X_dpy, m_X_root_win,cursor); 
 #endif
 		}
 	}
