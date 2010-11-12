@@ -29,13 +29,11 @@
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
 #	pragma comment(lib, "freeimage.lib")
-
 #	include <direct.h>
 #	define mkdir(x) _mkdir(x)
-
-
-#define log2(n)				(logf(n)/logf(2))
+#	define log2(n)				(logf(n)/logf(2))
 #else
+#	include <X11/Xlib.h>
 #	include <sys/stat.h>
 #	define mkdir(x) mkdir(x, S_IRWXU)
 #endif

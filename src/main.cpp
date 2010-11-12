@@ -1099,11 +1099,11 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 void
 DefTer::CentreMouse(bool compensate)
 {
-#ifdef WIN32
 		int wx,wy,ww,wh;
-		POINT mousep;
 		SDL_GetWindowPosition(m_pWindow, &wx, &wy);
 		SDL_GetWindowSize(m_pWindow, &ww, &wh);
+#ifdef WIN32
+		POINT mousep;
 		GetCursorPos(&mousep);
 
 		if (compensate)
@@ -1118,6 +1118,29 @@ DefTer::CentreMouse(bool compensate)
 
 		SetCursorPos(wx+ww/2, wy+wh/2);
 #else
+		int px,py, dummy;
+
+
+		Display *dpy;
+		Window root_window, pWin, pRoot;
+
+		dpy = XOpenDisplay(0);
+		root_window = XRootWindow(dpy, 0);
+		XSelectInput(dpy, root_window, KeyReleaseMask);
+		XQueryPointer(dpy, root_window, &pRoot, &pWin, &px, &py, &dummy, &dummy, (unsigned int*)&dummy);
+		XWarpPointer(dpy, NULL, root_window, 0, 0, 0, 0, wx+ww/2, wy+wh/2);
+		XSync(dpy, False);
+		XFlush(dpy);	
+		XCloseDisplay(dpy);
+		if (compensate)
+		{
+			m_mouseCompensate.x = wx+ww/2 - px;
+			m_mouseCompensate.y = wy+wh/2 - py;
+		}
+		else
+		{
+			m_mouseFirstMove = true;
+		}
 #endif
 }
 
