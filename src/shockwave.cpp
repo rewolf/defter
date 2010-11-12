@@ -75,7 +75,7 @@ Shockwave::~Shockwave()
 	glDeleteTextures(1, &m_stampTex);
 
 	// Kill all the wavelet objects
-	for (int i = 0; i < m_shockwavelets.size(); i++)
+	for (int i = 0; i < (int)m_shockwavelets.size(); i++)
 		RE_DELETE(m_shockwavelets.at(i));
 }
 
@@ -92,7 +92,7 @@ Shockwave::Update(float dt)
 {
 	int currentViewport[4];
 
-	for (int i = 0; i < m_shockwavelets.size(); i++)
+	for (int i = 0; i < (int)m_shockwavelets.size(); i++)
 	{
 		Shockwavelet* wave = m_shockwavelets.at(i);
 
@@ -133,7 +133,7 @@ Shockwave::Update(float dt)
 		}
 	}
 
-	for (int i = 0; i < m_shockwavelets.size(); i++)
+	for (int i = 0; i < (int)m_shockwavelets.size(); i++)
 	{
 		Shockwavelet* wave = m_shockwavelets.at(i);
 
@@ -185,7 +185,7 @@ Shockwave::Update(float dt)
 void
 Shockwave::CreateShockwave(vector2 pos, float AOE, float h, float vel)
 {
-	for (int i = 0; i < m_shockwavelets.size(); i++)
+	for (int i = 0; i < (int)m_shockwavelets.size(); i++)
 	{
 		if (m_shockwavelets.at(i)->m_state == IDLE)
 		{

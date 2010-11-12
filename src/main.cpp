@@ -249,6 +249,7 @@ DefTer::InitGL()
 	m_shManager->UpdateUni1i("detail1N", 8);
 	m_shManager->UpdateUni1i("detail2N", 9);
 	m_shManager->UpdateUni1i("detail3N", 10);
+	m_shManager->UpdateUni1i("curStamp",11);
 	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
 	m_shManager->UpdateUni1f("tc_delta", 1.0f / HIGH_DIM);
 	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
@@ -1219,6 +1220,13 @@ DefTer::Render(float dt)
 	glBindTexture(GL_TEXTURE_2D, activeTiles[2].m_texdata.pdmap);
 	glActiveTexture(GL_TEXTURE10);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.pdmap);
+
+	if (m_clicked){
+		glActiveTexture(GL_TEXTURE11);
+		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
+		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
+	}
 
 	BEGIN_PROF;
 
