@@ -51,6 +51,7 @@ public:
 private:
 	bool		Init			(void);
 	bool		InitGL			(void);
+	void		init_linux_cursor();
 
 	bool		LoadCoarseMap	(string filename); 
 	bool		SaveCoarseMap	(string filename);
@@ -142,9 +143,15 @@ public:
 	vector2			m_mouseCompensate;
 	bool			m_mouseFirstMove;
 	bool			m_mouseLook;
+#ifndef WIN32
+	Cursor			m_X_cursor;
+	Display*		m_X_dpy;
+	Window			m_X_root_win;
+#endif
 };
 
 // thread that retrieves the coarsemap from the PBOs
 int map_retriever(void* defter);
+
 
 #endif

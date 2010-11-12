@@ -64,8 +64,8 @@
 
 
 // Screen settings
-#define SCREEN_W			(1024)
-#define SCREEN_H			(768)
+#define SCREEN_W			(1680)
+#define SCREEN_H			(1050)
 #define ASPRAT				(float(SCREEN_W) / SCREEN_H)
 #define SCREENSHOT_W		(1024)
 #define SCREENSHOT_H		(768)
@@ -75,7 +75,7 @@
 // Texture locations
 #define COARSEMAP_FILENAME	("images/coarsemap.png")
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex3.png")
-#define	SPLASHMAP_TEXTURE	("images/splash.png")
+#define	SPLASHMAP_TEXTURE	("images/deftersplash.png")
 #define SKYBOX_TEXTURE		("images/skybox001.png")
 
 

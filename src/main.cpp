@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
+	conf.fullscreen = true;
 	DefTer test(conf);
 
 	int sleepTime = 1000;
@@ -136,6 +137,8 @@ DefTer::InitGL()
 		return false;
 	}
 #endif
+
+	init_linux_cursor();
 
 	printf("\n\n");
 	printf("-----------------------------------------\n");
@@ -784,6 +787,8 @@ DefTer::ProcessInput(float dt)
 
 #ifdef WIN32
 			ShowCursor(0);
+#else
+			XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
 #endif
 		}
 		else
@@ -797,6 +802,11 @@ DefTer::ProcessInput(float dt)
 			m_pCamera->m_pModel = NULL;
 #ifdef WIN32
 			ShowCursor(1);
+#else
+			//Cursor cursor;
+			//cursor = XCreateFontCursor(m_X_dpy, XC_left_ptr);
+			XUndefineCursor(m_X_dpy, m_X_root_win);
+			//XDefineCursor(m_X_dpy, m_X_root_win,cursor); 
 #endif
 		}
 	}
@@ -1121,17 +1131,13 @@ DefTer::CentreMouse(bool compensate)
 		int px,py, dummy;
 
 
-		Display *dpy;
-		Window root_window, pWin, pRoot;
+		Window pWin, pRoot;
 
-		dpy = XOpenDisplay(0);
-		root_window = XRootWindow(dpy, 0);
-		XSelectInput(dpy, root_window, KeyReleaseMask);
-		XQueryPointer(dpy, root_window, &pRoot, &pWin, &px, &py, &dummy, &dummy, (unsigned int*)&dummy);
-		XWarpPointer(dpy, NULL, root_window, 0, 0, 0, 0, wx+ww/2, wy+wh/2);
-		XSync(dpy, False);
-		XFlush(dpy);	
-		XCloseDisplay(dpy);
+		XSelectInput(m_X_dpy, m_X_root_win, KeyReleaseMask);
+		XQueryPointer(m_X_dpy, m_X_root_win, &pRoot, &pWin, &px, &py, &dummy, &dummy, (unsigned int*)&dummy);
+		XWarpPointer(m_X_dpy, NULL, m_X_root_win, 0, 0, 0, 0, wx+ww/2, wy+wh/2);
+		XSync(m_X_dpy, False);
+		XFlush(m_X_dpy);	
 		if (compensate)
 		{
 			m_mouseCompensate.x = wx+ww/2 - px;
@@ -1700,3 +1706,23 @@ DefTer::FlashScreen		(float inTime, float outTime, float maxAlpha, vector4 color
 	m_flash.maxAlpha	= maxAlpha;
 	m_flash.color		= color;
 }
+
+//--------------------------------------------------------
+void 
+DefTer::init_linux_cursor(){
+#ifndef WIN32
+	/* vars to make blank cursor */
+	Pixmap blank;
+	XColor dummy;
+	char data[1] = {0};
+	m_X_dpy = XOpenDisplay(0);
+	m_X_root_win = XRootWindow(m_X_dpy, 0);
+
+	/* make a blank cursor */
+	blank = XCreateBitmapFromData (m_X_dpy, m_X_root_win, data, 1, 1);
+	if(blank == None) fprintf(stderr, "error: out of memory.\n");
+	m_X_cursor = XCreatePixmapCursor(m_X_dpy, blank, blank, &dummy, &dummy, 0, 0);
+	XFreePixmap (m_X_dpy, blank);
+#endif
+}
+
