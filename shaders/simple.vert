@@ -20,6 +20,7 @@ uniform mat4	view;
 uniform mat2	stampTransform;
 uniform vec2	click_pos;
 
+
 // Shader Input
 in vec3 vert_Position;
 in vec2 vert_TexCoord;
@@ -86,5 +87,6 @@ void main()
 	// Save out the texCoord
 	geom_TexCoord = texCoord;
 
-	geom_stampTexCoord = stampTransform * (texCoord - click_pos) + .5 ;
+	// Save out the stamp texCoord
+	geom_stampTexCoord = stampTransform * (texCoord - click_pos) + 0.5;
 }
