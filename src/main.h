@@ -22,6 +22,8 @@ public:
 	~DefTer();
 
 	void		ProcessInput	(float dt);	//override
+	void		GameModeInput	(float dt, MouseDelta mouseDelta, int ticks);
+	void		EditModeInput	(float dt, MouseDelta mouseDelta, int ticks);
 	void		Logic			(float dt); //override
 	void		Render			(float dt); //override
 
@@ -69,7 +71,6 @@ public:
 	bool			m_gravity_on;
 	bool			m_is_crouching;
 	bool			m_is_super_speed;
-	bool			m_is_wireframe;
 
 	// Coarsemap continuous unpacking stuff
 	GLushort*		m_elevationData;
