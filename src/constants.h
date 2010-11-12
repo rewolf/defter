@@ -76,7 +76,7 @@
 // Texture locations
 #define COARSEMAP_FILENAME	("images/coarsemap.png")
 #define COARSEMAP_TEXTURE	("images/coarsemap_tex3.png")
-#define	SPLASHMAP_TEXTURE	("images/splash.png")
+#define	SPLASHMAP_TEXTURE	("images/deftersplash.png")
 #define SKYBOX_TEXTURE		("images/skybox001.png")
 
 
