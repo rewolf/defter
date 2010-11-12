@@ -336,6 +336,7 @@ vector3 perspective_unproj_view		(vector3 fragment, float w, float h, float near
 bool close_enough(float f1, float f2);
 
 matrix2 rotate_tr2		(float angle);
+matrix2 scale_tr2		(float x, float y);
 
 matrix4 translate_tr	(float x, float y, float z);
 matrix4 translate_tr	(vector3 vec);

@@ -6,7 +6,7 @@
 #version 150 core
 
 uniform vec2 offset;
-uniform vec2 scale;
+uniform mat2 transform;
 
 // Shader Input
 in vec2 vert_Position;
@@ -16,6 +16,6 @@ out vec2 frag_TexCoord;
 
 //------------------------------------------------------------------------------
 void main(){
-	gl_Position 	= vec4(scale * vert_Position + offset, 1.0, 1.0);
+	gl_Position 	= vec4(transform * vert_Position + offset, 1.0, 1.0);
 	frag_TexCoord	= vert_TexCoord;
 }

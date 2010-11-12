@@ -110,6 +110,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_colormap_tex);
 	glDeleteTextures(1, &m_screenshotTex);
 	glDeleteTextures(1, &m_bombXTex);
+	glDeleteTextures(1, &m_crosshairTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
@@ -217,7 +218,6 @@ DefTer::InitGL()
 	m_footprintDT	= 0.0f;
 	m_flipFoot		= false;
 	m_drawing_feet	= false;
-	m_is_wireframe	= false;
 
 	// Set initial shader index values
 	m_shmSimple		= 0;
@@ -274,6 +274,7 @@ DefTer::InitGL()
 	m_shManager->UpdateUni1i("detail1", 4);
 	m_shManager->UpdateUni1i("detail2", 5);
 	m_shManager->UpdateUni1i("detail3", 6);
+	m_shManager->UpdateUni1i("curStamp",11);
 	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
 	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
 
@@ -368,9 +369,11 @@ DefTer::Init()
 		return false;
 	printf("Done\n");
 
-	// Load X texture for bomb placement
+	// Load textures for HUD
 	printf("Loading bomb X texture...\t");
 	if (!LoadPNG(&m_bombXTex, "images/bombX.png"))
+		return false;
+	if (!LoadPNG(&m_crosshairTex, "images/crosshair.png"))
 		return false;
 	printf("Done\n");
 
@@ -407,8 +410,9 @@ DefTer::Init()
 	printf("Loading models...\t\t");
 	bool noModelError = true;
 	m_pModelManager = new ModelManager();
-	noModelError |= m_pModelManager->LoadModel("gun", 	"models/gun.reMo");
-	noModelError |= m_pModelManager->LoadModel("bomb", 	"models/bomb.reMo");
+	noModelError |= m_pModelManager->LoadModel("gun", 		"models/gun.reMo");
+	noModelError |= m_pModelManager->LoadModel("bomb", 		"models/bomb.reMo");
+	noModelError |= m_pModelManager->LoadModel("fighterjet","models/fighterjet.reMo");
 	if (noModelError){
 		printf("Done\n");
 	}
@@ -421,7 +425,7 @@ DefTer::Init()
 	// Create the Shockwave object that will allow shockwaves to happen
 	printf("Creating shockwave...\t\t");
 	fflush(stdout);
-	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2);
+	m_pShockwave = new Shockwave(m_coarsemap, m_coarsemap_dim/2, m_pDeform);
 	if (m_pShockwave->HasError())
 	{
 		fprintf(stderr, "Error\n\tCould not create shockwave\n");
@@ -652,82 +656,6 @@ DefTer::UpdateClickPos(void)
 	}
 }
 
-// Perform the coarsemap deformation which handles edge deformations as well
-void
-DefTer::EdgeDeform(vector2 clickPos, vector4 SIRM, string stampName)
-{
-	vector2 areaMin(clickPos - vector2(SIRM.x / 2.0f));
-	vector2 areaMax(areaMin	+ SIRM.x);
-
-	areaMin *= m_pClipmap->m_metre_to_tex;
-	areaMin += vector2(0.5f);
-	areaMax *= m_pClipmap->m_metre_to_tex;
-
-	areaMax += vector2(0.5f);
-
-	list<vector2> fuck;
-
-	// Left-Col
-	if (areaMin.x < 0.0)
-	{
-		// Left-Top
-		if (areaMin.y < 0.0)
-			fuck.push_back(vector2(1.0f, 1.0f));
-
-		// Left-Centre
-		if (areaMax.y > 0.0 && areaMin.y < 1.0)
-			fuck.push_back(vector2(1.0f, 0.0f));
-
-		// Left-Bottom
-		if (areaMax.y > 1.0)
-			fuck.push_back(vector2(1.0f, -1.0f));
-	}
-
-	// Centre-Col
-	if (areaMin.x < 1.0 && areaMax.x > 0.0)
-	{
-		// Centre-Top
-		if (areaMin.y < 0.0)
-			fuck.push_back(vector2(0.0f, 1.0f));
-
-		// Centre-Centre
-		if (areaMax.y > 0.0 && areaMin.y < 1.0)
-			fuck.push_back(vector2(0.0f));
-				
-		// Centre-Bottom
-		if (areaMax.y > 1.0)
-			fuck.push_back(vector2(0.0f, -1.0f));
-	}
-
-	// Right-Col
-	if (areaMax.x > 1.0)
-	{
-		// Right-Top
-		if (areaMin.y < 0.0)
-			fuck.push_back(vector2(-1.0f, 1.0f));
-
-		// Right-Centre
-		if (areaMax.y > 0.0 && areaMin.y < 1.0)
-			fuck.push_back(vector2(-1.0f, 0.0f));
-
-		// Right-Bottom
-		if (areaMax.y > 1.0)
-			fuck.push_back(vector2(-1.0f, -1.0f));
-	}
-			
-	// Displace the heightmap
-	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-		m_pDeform->displace_heightmap(m_coarsemap, clickPos, *shit, SIRM, true, stampName);
-
-	// Calculate the normals
-	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
-		m_pDeform->calculate_pdmap(m_coarsemap, clickPos, *shit, SIRM.x, true);
-			
-	// Reset to wireframe mode
-	if (m_is_wireframe)
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-}
-
 //--------------------------------------------------------
 // Interpolates the height of the coarsemap at the given location in world space
 float
@@ -881,7 +809,7 @@ DefTer::ProcessInput(float dt)
 		dt *= 5.0f;
 		m_is_super_speed = true;
 	}
-	if (m_is_super_speed && !m_input.IsKeyPressed(SDLK_LSHIFT))
+	if (m_is_super_speed && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
 	{
 		m_is_super_speed = false;
 	}
@@ -929,26 +857,17 @@ DefTer::ProcessInput(float dt)
 	}
 
 
-
 	// Toggle footprints
 	if (m_input.WasKeyPressed(SDLK_f)){
 		m_drawing_feet ^= true;
 		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
 	}
 
-
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
 	{
-		m_is_wireframe ^= true;
-		if (m_is_wireframe)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		WIREFRAMEON ^= true;
 	}
-
-
-
 
 	// Controls to change the HDShader
 	if (m_input.WasKeyPressed(SDLK_8))
@@ -1090,8 +1009,6 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 		weaponChanged = true;
 	}
 
-	if (!m_pShockwave->IsActive())
-		m_bombActive = false;
 
 	// FIRE!!
 	if (m_input.WasButtonPressed(1))
@@ -1236,28 +1153,23 @@ DefTer::EditModeInput(float dt, vector2 mouseDelta, int ticks){
 		UpdateClickPos();
 	}
 	
-	// Perform deformations
+
+	// Change the selected deformation location
 	if (m_clicked && ticks != 0)
 	{
+		//vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= ticks;
 
 		// Perform either  a HD or coarse deformation
 		if (m_is_hd_stamp)
 		{
-			// Check if in wireframe mode and remember to switch to fill mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
-
-			// Reset to wireframe mode
-			if (m_is_wireframe)
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
 		else
 		{
-			EdgeDeform(m_clickPos, stampSIRM);
+			//EdgeDeform(m_clickPos, stampSIRM);
+			m_pDeform->EdgeDeform(m_coarsemap, m_clickPos, stampSIRM);
 
 			// Once this is finally complete, change variables relating to streaming the coarsemap
 			// to the CPU for collision detection
@@ -1265,6 +1177,7 @@ DefTer::EditModeInput(float dt, vector2 mouseDelta, int ticks){
 			m_deformTimer.start();
 			m_XferWaitState = READY;
 		}
+
 	}
 
 	// Toggle between HD and coarse mode
@@ -1323,10 +1236,7 @@ DefTer::EditModeInput(float dt, vector2 mouseDelta, int ticks){
 
 	// Apply a shockwave
 	if (m_input.WasKeyPressed(SDLK_F5))
-	{
-		if (!m_pShockwave->IsActive())
-			m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
-	}
+		m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
 }
 
 //--------------------------------------------------------
@@ -1410,28 +1320,8 @@ DefTer::Logic(float dt)
 		}
 	}
 
-	// Update Shockwave
-	if (m_pShockwave->IsActive())
-	{
-		static int i = 0;
-		// Tell collision streamer to update data
-		m_XferWaitState = READY;
-
-		vector4 SIRM;
-		SIRM.x = m_pShockwave->GetAOE();
-		if (!m_pShockwave->IsFirst())
-		{
-			SIRM.y = -0.75f * m_pShockwave->GetHeight();
-			EdgeDeform(m_pShockwave->GetEpicenter(), SIRM, "Shockwave");
-		}
-		m_pShockwave->Update(dt);
-		if (m_pShockwave->IsActive())
-		{
-			SIRM.y = 0.75f * m_pShockwave->GetHeight();
-			EdgeDeform(m_pShockwave->GetEpicenter(), SIRM, "Shockwave");
-		}
-		i++;
-	}
+	// Update the shockwave class
+	m_pShockwave->Update(dt);
 
 
 	// Pass the camera's texture coordinates and the shift amount necessary
@@ -1518,23 +1408,34 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
+	if (m_clicked){
+		glActiveTexture(GL_TEXTURE11);
+		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
+		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
+	}
+
 	BEGIN_PROF;
+
+	// Enable wireframe if needed
+	if (WIREFRAMEON)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	m_pClipmap->render_inner();
 	// Switch to the simple shader and render the rest
 	m_shManager->SetActiveShader(m_shmSimple);
 	m_pClipmap->render_levels();
-	
-	// Only render these when not in wireframe mode
-	if (!m_is_wireframe)
-		m_pSkybox->render(viewproj);
 
 	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++)
 		RenderModel((*i), rotate*translate_tr(-m_pCamera->m_translate));
+	
+	// Disable wireframe if was enabled
+	if (WIREFRAMEON)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	if (!m_is_wireframe)
-		m_pCaching->Render();
-
+	m_pSkybox->render(viewproj);
+	m_pCaching->Render();
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1555,21 +1456,31 @@ DefTer::Render(float dt)
 	if (m_useMode == GAME_MODE)
 	{
 		// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
-		if (m_activeWeapon == BOMB && !m_bombActive)
+		if (m_activeWeapon == BOMB)
 		{
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.2f, ASPRAT*.02f);
+			
 			vector2 p((float*)&m_input.GetMousePos());
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = 1.0f - p.y/SCREEN_H * 2.0f;
 			
 			glBindTexture(GL_TEXTURE_2D, m_bombXTex);
 			glUseProgram(m_shHUD->m_programID);
-			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, ASPRAT*.02f);
+			glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
 			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
 			glBindVertexArray(GetStandardVAO());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
 		else if (m_activeWeapon == GUN)
 		{
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.4f, ASPRAT*.04f);
+			
+			glBindTexture(GL_TEXTURE_2D, m_crosshairTex);
+			glUseProgram(m_shHUD->m_programID);
+			glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
+			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  .0f, .0f);
+			glBindVertexArray(GetStandardVAO());
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		}
 
@@ -1578,10 +1489,12 @@ DefTer::Render(float dt)
 			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.2f, ASPRAT*.02f);
+			
 			
 			glBindTexture(GL_TEXTURE_2D, m_bombXTex);
 			glUseProgram(m_shHUD->m_programID);
-			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "scale"),  .02f, ASPRAT*.02f);
+			glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
 			glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  p.x, p.y);
 			glBindVertexArray(GetStandardVAO());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

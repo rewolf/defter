@@ -8,6 +8,12 @@
 
 #include "constants.h"
 
+// Extern inits
+int STAMPCOUNT		= 0;
+bool WIREFRAMEON	= false;
+
+
+
 //--------------------------------------------------------
 bool
 SavePNG(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip)
@@ -257,7 +263,7 @@ GLuint	util_vao	= 0;
 // Hidden Util methods
 bool isInit						= false;
 StampManager* m_stampManager	= NULL;
-int STAMPCOUNT					= 0;
+
 
 void
 InitUtil(void)
@@ -556,6 +562,17 @@ ShaderManager::UpdateUni3fv(char *name, float val[3])
 
 //--------------------------------------------------------
 void
+ShaderManager::UpdateUniMat2fv(char *name, float val[4])
+{
+	for (int i = 0; i < (int)shaders.size(); i++)
+	{
+		glUseProgram(shaders.at(i)->m_programID);
+		glUniformMatrix2fv(glGetUniformLocation(shaders.at(i)->m_programID, name), 1, GL_FALSE, val);
+	}
+}
+
+//--------------------------------------------------------
+void
 ShaderManager::UpdateUniMat3fv(char *name, float val[9])
 {
 	for (int i = 0; i < (int)shaders.size(); i++)
@@ -653,7 +670,11 @@ Stamp::CreateTexStamp(string stampName, ShaderProg *shader, string textureName, 
 	m_isTexStamp	= true;
 	m_isHidden		= isHidden;
 
-	return (LoadPNG(&m_texture, textureName, true));
+	bool result = LoadPNG(&m_texture, textureName, true);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	return result;
 }
 
 //--------------------------------------------------------
@@ -689,6 +710,13 @@ GLuint
 Stamp::GetShaderID(void)
 {
 	return (m_shader->m_programID);
+}
+
+//--------------------------------------------------------
+GLuint
+Stamp::GetTexID(void)
+{
+	return m_texture;
 }
 //--------------------------------------------------------
 //--------------------------------------------------------

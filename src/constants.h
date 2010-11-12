@@ -82,8 +82,16 @@
 
 
 
-// Stamp Settings
+// Parallax Mapping Controls
+#define PARALLAXBIAS		(-0.00400f)
+#define PARALLAXSCALE		(0.00400f)
+#define PARALLAXITR			(4)
+
+
+
+// Changeable values
 extern int STAMPCOUNT;
+extern bool WIREFRAMEON;
 
 
 
@@ -92,6 +100,8 @@ extern int STAMPCOUNT;
 #define SWTARGETHEIGHT		(0.005f)
 // Area (radius) that remains unaffected by the damping
 #define	SWNODECAYRADIUS		(0.1f)
+// Maximum number of waves
+#define SWMAXWAVELETS		(10)
 
 
 
