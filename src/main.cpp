@@ -782,6 +782,8 @@ DefTer::ProcessInput(float dt)
 
 			// Enable a model for the camera
 			m_pCamera->m_pModel = m_pCamera->m_pGunModel;
+			m_activeWeapon 	= GUN;
+			m_mouseLook 	= true;
 
 			// Disable edit stuff
 			m_is_hd_stamp	= false;
@@ -791,7 +793,7 @@ DefTer::ProcessInput(float dt)
 #ifdef WIN32
 			ShowCursor(0);
 #else
-			XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
+	//		XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
 #endif
 		}
 		else
@@ -808,7 +810,7 @@ DefTer::ProcessInput(float dt)
 #else
 			//Cursor cursor;
 			//cursor = XCreateFontCursor(m_X_dpy, XC_left_ptr);
-			XUndefineCursor(m_X_dpy, m_X_root_win);
+	//		XUndefineCursor(m_X_dpy, m_X_root_win);
 			//XDefineCursor(m_X_dpy, m_X_root_win,cursor); 
 #endif
 		}
@@ -1762,7 +1764,7 @@ DefTer::init_linux_cursor(){
 	if(blank == None) fprintf(stderr, "error: out of memory.\n");
 	m_X_cursor = XCreatePixmapCursor(m_X_dpy, blank, blank, &dummy, &dummy, 0, 0);
 	XFreePixmap (m_X_dpy, blank);
-	//XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
+	XDefineCursor(m_X_dpy, m_X_root_win, m_X_cursor);
 #endif
 }
 
