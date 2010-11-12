@@ -1341,6 +1341,9 @@ DefTer::Logic(float dt)
 		// Check if bombs hit terrain
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
 			if ((*i)->m_translate.y < terrain_height - EYE_HEIGHT){
+				float c[] = { 50.0f, -.8f, .0f,  .0f};
+				vector4 SIRM(c);
+				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Gaussian");
 				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
 				// Flash screen
 				FlashScreen();
