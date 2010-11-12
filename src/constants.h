@@ -105,7 +105,7 @@ extern bool WIREFRAMEON;
 
 
 
-const vector3 GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
+const vector3 GRAVITY		= vector3(0.0f, -29.81f, 0.0f);
 #define ACCELERATION		(3.5f)
 #define AIR_DRAG			(0.8f)
 #define FRICTION			(1.8f)

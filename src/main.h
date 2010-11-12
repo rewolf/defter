@@ -133,8 +133,10 @@ public:
 	bool			m_bombActive;
 	vector2			m_bombTarget;
 	GLuint			m_bombXTex;
+	GLuint			m_muzzleFlashTex;
 	GLuint			m_crosshairTex;
 	list<GameEntity*> m_bombs;
+	bool			m_isShooting;
 
 	// Mouse movement parameters
 	vector2			m_mouseCompensate;

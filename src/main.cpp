@@ -111,6 +111,7 @@ DefTer::~DefTer()
 	glDeleteTextures(1, &m_screenshotTex);
 	glDeleteTextures(1, &m_bombXTex);
 	glDeleteTextures(1, &m_crosshairTex);
+	glDeleteTextures(1, &m_muzzleFlashTex);
 	glDeleteRenderbuffers(1, &m_screenshotDepth);
 	SDL_DestroyMutex(m_elevationDataMutex);
 	SDL_DestroySemaphore(m_waitSem);
@@ -202,6 +203,7 @@ DefTer::InitGL()
 	m_useMode		= EDIT_MODE;
 	m_activeWeapon	= GUN;
 	m_bombActive	= false;
+	m_isShooting	= false;
 	m_mouseCompensate.x	= 0.0f;
 	m_mouseCompensate.y	= 0.0f;
 
@@ -374,6 +376,8 @@ DefTer::Init()
 	if (!LoadPNG(&m_bombXTex, "images/bombX.png"))
 		return false;
 	if (!LoadPNG(&m_crosshairTex, "images/crosshair.png"))
+		return false;
+	if (!LoadPNG(&m_muzzleFlashTex, "images/muzzleflash.png"))
 		return false;
 	printf("Done\n");
 
@@ -1008,6 +1012,11 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
 		weaponChanged = true;
 	}
+	if (ticks){
+		m_activeWeapon = (WeaponMode)WRAP(m_activeWeapon + ticks, N_WEAPONS);
+		printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
+		weaponChanged = true;
+	}
 
 
 	// FIRE!!
@@ -1045,6 +1054,19 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 			case GUN:
 				break;
 		}
+	}
+	if (m_input.IsButtonPressed(1))
+	{
+		switch(m_activeWeapon)
+		{
+			case BOMB:
+				break;
+			case GUN:
+				m_isShooting = true;
+				break;
+		}
+	}else{
+		m_isShooting = false;
 	}
 
 	// Change weapon
@@ -1289,7 +1311,7 @@ DefTer::Logic(float dt)
 
 		// Check if bombs hit terrain
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
-			if ((*i)->m_translate.y < terrain_height){
+			if ((*i)->m_translate.y < terrain_height - EYE_HEIGHT){
 				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
 				// Flash screen
 				FlashScreen();
@@ -1458,7 +1480,7 @@ DefTer::Render(float dt)
 		// Draw X at mouse cursor when BOMB is weapon (unless there is a bomb request already active)
 		if (m_activeWeapon == BOMB)
 		{
-			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.2f, ASPRAT*.02f);
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.02f, ASPRAT*.02f);
 			
 			vector2 p((float*)&m_input.GetMousePos());
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
@@ -1473,7 +1495,7 @@ DefTer::Render(float dt)
 		}
 		else if (m_activeWeapon == GUN)
 		{
-			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.4f, ASPRAT*.04f);
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.04f, ASPRAT*.04f);
 			
 			glBindTexture(GL_TEXTURE_2D, m_crosshairTex);
 			glUseProgram(m_shHUD->m_programID);
@@ -1482,6 +1504,19 @@ DefTer::Render(float dt)
 			glBindVertexArray(GetStandardVAO());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+			
+			if (m_isShooting){
+				transform = (float(rand())/RAND_MAX*.5f+.5f) * scale_tr2(0.2f, ASPRAT*.2f) * rotate_tr2(float(rand())/RAND_MAX * PI) ;
+				
+				glBindTexture(GL_TEXTURE_2D, m_muzzleFlashTex);
+				glUseProgram(m_shHUD->m_programID);
+				glUniformMatrix2fv(glGetUniformLocation(m_shHUD->m_programID, "transform"), 1, GL_FALSE, transform.m);
+				glUniform2f(glGetUniformLocation(m_shHUD->m_programID, "offset"),  .19f, -.15f);
+				glBindVertexArray(GetStandardVAO());
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			}
+
+
 		}
 
 		if (m_bombActive)
@@ -1489,7 +1524,7 @@ DefTer::Render(float dt)
 			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
-			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.2f, ASPRAT*.02f);
+			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.02f, ASPRAT*.02f);
 			
 			
 			glBindTexture(GL_TEXTURE_2D, m_bombXTex);
