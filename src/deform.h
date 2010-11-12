@@ -18,6 +18,8 @@ public:
 	bool HasError			(void);
 	void init_backups		(void);
 
+	void EdgeDeform			(TexData texdata, vector2 clickPos, vector4 SIRM, string stampName = "");
+
 	// Two methods, one takes in a stamp ID the other the stamp name
 	void displace_heightmap	(TexData texdata, vector2 clickPos, vector2 clickOffset, vector4 SIRM, bool isCoarse, string stampName = "", GLuint copySrcTex = 0);
 

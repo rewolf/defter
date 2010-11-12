@@ -69,6 +69,7 @@ public:
 	void UpdateUni4f		(char *name, float val1, float val2, float val3, float val4);
 	void UpdateUni2fv		(char *name, float val[2]);
 	void UpdateUni3fv		(char *name, float val[3]);
+	void UpdateUniMat2fv	(char *name, float val[4]);
 	void UpdateUniMat3fv	(char *name, float val[9]);
 	void UpdateUniMat4fv	(char *name, float val[16]);
 	
@@ -94,6 +95,7 @@ public:
 	bool IsHidden			(void);
 	void BindTexture		(void);
 	GLuint GetShaderID		(void);
+	GLuint GetTexID			(void);
 
 	void(*initShader)		(Stamp* stamp, vector2 clickPos, float scale, float intensity);
 

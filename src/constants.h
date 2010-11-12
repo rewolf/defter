@@ -59,7 +59,7 @@
 
 // App Settings
 #define FSAA				(0)
-#define SLEEP_TIME			(0.0f)
+#define SLEEP_TIME			(0.01f)
 #define VSYNC				(false)
 
 
@@ -88,8 +88,19 @@
 
 
 
-// Stamp Settings
+// Changeable values
 extern int STAMPCOUNT;
+extern bool WIREFRAMEON;
+
+
+
+// Shockwave Settings
+// Height below which the shockwave ends
+#define SWTARGETHEIGHT		(0.01f)
+// Area (radius) that remains unaffected by the damping
+#define	SWNODECAYRADIUS		(0.1f)
+// Maximum number of waves
+#define SWMAXWAVELETS		(10)
 
 
 

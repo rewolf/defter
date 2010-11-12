@@ -17,11 +17,13 @@ layout(triangle_strip, max_vertices=170)  out;
 in vec3 geom_View[3];
 in vec2 geom_TexCoord[3];
 in vec3 geom_Normal[3];
+in vec2 geom_stampTexCoord[3];
 
 
 // Outgoing per-vertex information
 out vec3 frag_View;
 out vec2 frag_TexCoord;
+out vec2 stamp_TexCoord;
 
 
 //------------------------------------------------------------------------------
@@ -53,16 +55,19 @@ void main()
 	gl_Position = vertex[0];
 	frag_View = geom_View[0];
 	frag_TexCoord = geom_TexCoord[0];
+	stamp_TexCoord= geom_stampTexCoord[0];
 	EmitVertex();
 
 	gl_Position = vertex[1];
 	frag_View = geom_View[1];
 	frag_TexCoord = geom_TexCoord[1];
+	stamp_TexCoord= geom_stampTexCoord[1];
 	EmitVertex();
 
 	gl_Position = vertex[2];
 	frag_View = geom_View[2];
 	frag_TexCoord = geom_TexCoord[2];
+	stamp_TexCoord= geom_stampTexCoord[2];
 	EmitVertex();
 
 	EndPrimitive();
