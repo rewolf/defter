@@ -11,12 +11,14 @@
 // Uniforms
 uniform sampler2D heightmap;
 // texToMetre = .x  ; metreToTex = .y
-uniform vec2 scales;
+uniform vec2	scales;
 // cam = .xy  ; shift = .zw   interleaving
-uniform vec4 cam_and_shift;
-uniform float cam_height;
-uniform mat4 projection;
-uniform mat4 view;
+uniform vec4	cam_and_shift;
+uniform float	cam_height;
+uniform mat4	projection;
+uniform mat4	view;
+uniform mat2	stampTransform;
+uniform vec2	click_pos;
 
 
 // Shader Input
@@ -28,6 +30,7 @@ in vec2 vert_TexCoord;
 out vec3 geom_View;
 out vec2 geom_TexCoord;
 out vec3 geom_Vert;
+out vec2 geom_stampTexCoord;
 
 
 // Constansts
@@ -85,4 +88,7 @@ void main()
 	
 	// Save out the texCoord
 	geom_TexCoord = texCoord;
+
+	// Save out the stamp texCoord
+	geom_stampTexCoord = stampTransform * (texCoord - click_pos) + 0.5;
 }

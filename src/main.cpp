@@ -834,10 +834,6 @@ DefTer::ProcessInput(float dt)
 			m_deformTimer.start();
 			m_XferWaitState = READY;
 		}
-
-		// Reset to wireframe mode
-		if (WIREFRAMEON)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 	// Take screenshot
@@ -1201,9 +1197,6 @@ DefTer::Render(float dt)
 	m_shManager->UpdateUniMat4fv("mvp", (m_proj_mat * rotate).m);
 	m_shManager->UpdateUni2i("tileOffset", firstTile[1], firstTile[0]);
 
-	// Set the active shader to be the current HD shader chosen
-	m_shManager->SetActiveShader(m_hdShaderIndex);
-
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[0].m_texdata.heightmap);
 	glActiveTexture(GL_TEXTURE4);
@@ -1221,12 +1214,17 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE10);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.pdmap);
 
-	if (m_clicked){
+	// If clicked on ground add in the stamp overlay
+	if (m_clicked)
+	{
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
 		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
 		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
 	}
+
+	// Set the active shader to be the current HD shader chosen
+	m_shManager->SetActiveShader(m_hdShaderIndex);
 
 	BEGIN_PROF;
 

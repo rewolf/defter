@@ -21,6 +21,8 @@ uniform sampler2D detail1N;
 uniform sampler2D detail2N;
 uniform sampler2D detail3N;
 
+uniform sampler2D curStamp;
+
 uniform float parallaxBias;
 uniform float parallaxScale;
 uniform int parallaxItr;
@@ -40,6 +42,8 @@ in vec3 frag_Normal;
 in vec3 frag_Tangent;
 in vec2 frag_TexCoord;
 in vec3 frag_View;
+in vec2 stamp_TexCoord;
+
 
 // Shader Ouput
 out vec4 frag_Color;
@@ -87,7 +91,8 @@ void main()
 	viewVec = normalize(frag_View);
 
 	// Get the colour value
-	color = texture(colormap, frag_TexCoord * 100.0);
+	color = texture(colormap, frag_TexCoord * 100.0)
+		  + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 	// Initial variables and settings
 	ambient		= light_Ambient;
@@ -153,7 +158,7 @@ void main()
 
 				normal = normalize(hdnormal);
 
-				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0);
+				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0) + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 				// Calculate the diffuse intensity
 				diffuseIntensity = max(0.0, dot(normal, lightDir));
@@ -172,7 +177,7 @@ void main()
 
 				normal = normalize(hdnormal);
 
-				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0);
+				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0) + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 				// Calculate the diffuse intensity
 				diffuseIntensity = max(0.0, dot(normal, lightDir));
@@ -191,7 +196,7 @@ void main()
 
 				normal = normalize(hdnormal);
 
-				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0);
+				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0) + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 				// Calculate the diffuse intensity
 				diffuseIntensity = max(0.0, dot(normal, lightDir));
@@ -211,7 +216,7 @@ void main()
 
 				normal = normalize(hdnormal);
 				
-				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0);
+				color = texture(colormap, (tile + parallaxTexcoords.xy + tileOffset) / hdasq_its.y * 100.0) + texture(curStamp, stamp_TexCoord).r * cc.xyyy;
 
 				// Calculate the diffuse intensity
 				diffuseIntensity = max(0.0, dot(normal, lightDir));
