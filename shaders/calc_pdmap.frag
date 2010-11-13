@@ -9,6 +9,7 @@
 // Uniforms
 uniform sampler2D in_heightmap;
 uniform float tc_delta;
+uniform float height_scale;
 
 
 // Shader Input
@@ -42,9 +43,12 @@ void main()
 	dh2.s	 = texture(in_heightmap, frag_TexCoord + dst * cc2.zy).r;	// Right
 	dh2.s	-= texture(in_heightmap, frag_TexCoord + dst * cc2.xy).r;	// Left
 	// Vertical
-	dh2.t	 = texture(in_heightmap, frag_TexCoord + dst * cc.yz).r;	// Bottom
-	dh2.t	-= texture(in_heightmap, frag_TexCoord + dst * cc.yx).r;	// Top
+	dh2.t	 = texture(in_heightmap, frag_TexCoord + dst * cc2.yz).r;	// Bottom
+	dh2.t	-= texture(in_heightmap, frag_TexCoord + dst * cc2.yx).r;	// Top
 
-	dhdst = clamp(factor.x * dh1.st + factor.y * dh2.st , -1.0, 1.0);
-	pdmap = dhdst * 0.5 + 0.5;
+	//dhdst = clamp(factor.x * dh1.st + factor.y * dh2.st , -1.0, 1.0);
+	//pdmap = dhdst * 0.5 + 0.5;
+	vec2 pd = height_scale*(factor.x * dh1.st + factor.y * dh2.st);
+	vec3 normal = normalize(vec3(pd.s, 1.0, pd.t));
+	pdmap = normal.xz/normal.y * 0.5 + 0.5;
 }

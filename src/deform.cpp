@@ -77,7 +77,7 @@ Deform::init_backups()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarseDim, m_coarseDim, 0, GL_RED, GL_UNSIGNED_SHORT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_coarseDim, m_coarseDim, 0, GL_RED, GL_FLOAT, NULL);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glGenTextures(1, &m_highBackup);
@@ -194,6 +194,8 @@ Deform::displace_heightmap(TexData texdata, vector2 clickPos, vector2 clickOffse
 		dim			= m_coarseDim;
 		metre_scale = m_metre_to_tex;
 		SIRM.x		= SIRM.x * metre_scale;
+		// Scale because the coarsemap uses float textures which aren't normalized to [0, 1]
+		SIRM.y		= SIRM.y * VERT_SCALE;	
 		clickPos	= (clickPos * metre_scale) + vector2(0.5f) + clickOffset;
 		backupTex	= m_coarseBackup;
 	}
@@ -335,6 +337,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
+	float	height_scale= isCoarse ? 1.0f/VERT_SCALE : 1.0f;
 
 	if (!init)
 	{
@@ -361,6 +364,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f / dim);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "clickPos"), clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_scale"), scale, scale);
+	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "height_scale"), height_scale);
 
 	// Bind the textures
 	glActiveTexture(GL_TEXTURE0);

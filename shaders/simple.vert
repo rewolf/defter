@@ -66,7 +66,7 @@ void main()
 	camera_height = -cam_height;
 
 	// Set vertex position and height from heightmap
-	vec4 pos = vec4(vert_Position.x, height * HEIGHT, vert_Position.y, 1.0);
+	vec4 pos = vec4(vert_Position.x, height, vert_Position.y, 1.0);
 
 	// Shift the roaming mesh so that vertices maintain same heights
 	// The following MAD instruction shifts the x and z coordinates by s and t

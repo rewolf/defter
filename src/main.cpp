@@ -488,7 +488,7 @@ DefTer::Init()
 	glGenBuffers(NUM_PBOS, m_pbo);
 	for (int i = 0; i < NUM_PBOS; i++){
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[i]);
-		glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLushort) * m_coarsemap_dim * m_coarsemap_dim, NULL,	GL_STREAM_READ);
+		glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(float) * m_coarsemap_dim * m_coarsemap_dim, NULL,	GL_STREAM_READ);
 	}
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
@@ -555,39 +555,35 @@ DefTer::LoadCoarseMap(string filename)
 		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
-
-	if (bitdepth==8)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
+	
+	// Create elevationData for camera collisions
+	SDL_mutexP(m_elevationDataMutex);
+	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
+	if (bitdepth==8){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] =  VERT_SCALE * bits[i] * 1.0f/255.0f;
+		}
 	}
-	else if (bitdepth==16)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_SHORT, bits);
+	else if (bitdepth==16){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] =  VERT_SCALE * bits[i] * 1.0f/USHRT_MAX;
+		}
 	}
 	else
 	{
 		fprintf(stderr, "Error\n\tCannot load files with bitdepths other than 8- or 16-bit: %s\n",
 				filename.c_str());
+		SDL_mutexV(m_elevationDataMutex);
 		return false;
 	}
+	SDL_mutexV(m_elevationDataMutex);
+
+	// Upload to GPU Texture
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED, GL_FLOAT, m_elevationData);
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
-
-	// Create elevationData for camera collisions
-	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData 	  = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
-	m_elevationDataBuffer = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
-	if (bitdepth==8){
-		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
-			m_elevationData[i] = m_elevationDataBuffer[i] = (GLushort)(USHRT_MAX * (bits[i] * 1.0f/255.0f));
-		}
-	}
-	else{
-		memcpy(m_elevationData, 		bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
-		memcpy(m_elevationDataBuffer, 	bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
-	}
-	SDL_mutexV(m_elevationDataMutex);
 
 	// Allocate GPU Texture space for partial derivative map
 	glActiveTexture(GL_TEXTURE1);
@@ -610,10 +606,12 @@ DefTer::LoadCoarseMap(string filename)
 bool
 DefTer::SaveCoarseMap(string filename)
 {
-GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
 
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, mapdata);
+	// Can only save 0 -> VERT_SCALE range of values. Clamps the rest to this range
+	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+		mapdata[i] = (GLushort)(max(min(m_elevationData[i]/VERT_SCALE, 1.0f), .0f) * USHRT_MAX);
+	}
 
 	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, true))
 		return false;
@@ -671,7 +669,6 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
-	const float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
@@ -682,10 +679,10 @@ DefTer::InterpHeight(vector2 worldPos)
 	int y1  = y0 < m_coarsemap_dim - 1 ? y0 + 1 : 0;
 	
 	SDL_mutexP(m_elevationDataMutex);
-	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] * scale 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	] * scale;
-	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] * scale
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
+	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	]
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	];
+	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	]
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	];
 	SDL_mutexV(m_elevationDataMutex);
 
 	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
@@ -716,7 +713,7 @@ DefTer::UpdateCoarsemapStreamer(){
 					m_coarsemap.heightmap, 0);
 
 		// Commence transfer to PBO
-		glReadPixels(0, 0, m_coarsemap_dim, m_coarsemap_dim, GL_RED, GL_UNSIGNED_SHORT, 0);
+		glReadPixels(0, 0, m_coarsemap_dim, m_coarsemap_dim, GL_RED, GL_FLOAT, 0);
 
 		// Reset buffer state
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -731,7 +728,7 @@ DefTer::UpdateCoarsemapStreamer(){
 			// map buffer to sys memory
 			DEBUG("map buffer\n");
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
-			m_bufferPtr 	= (GLushort*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+			m_bufferPtr 	= (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 			m_XferState 	= RETRIEVING;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
@@ -1478,10 +1475,16 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
-	if (m_clicked){
+	// If the ground is clicked then show the hologram
+	if (m_clicked)
+	{
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
-		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		// Calculate the transform matrix for the stamp, scale it up and then rotate it as need be
+		matrix2 transform = (m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x) * rotate_tr2(-m_stampSIRM.z);
+		// Mirror the stamp transform if need be
+		if (m_stampSIRM.w != 0.0f)
+			transform = reflect_tr2(true) * transform;
 		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
 	}
 
@@ -1698,11 +1701,11 @@ map_retriever(void* defter)
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(GLushort));
+		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(float));
 
 		// finally lock the data array, and swap the pointers
 		SDL_mutexP(main->m_elevationDataMutex);
-		GLushort * temp 			= main->m_elevationData;
+		float * temp 				= main->m_elevationData;
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;

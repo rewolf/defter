@@ -60,7 +60,7 @@ void main()
 			// Read the colour and height values and set it
 			texCoord	= (frag_TexCoord * scale) + offset;
 			color		= texture(colormap, texCoord);
-			height		= texture(heightmap, texCoord).rrrr * .9 + .1;
+			height		= texture(heightmap, texCoord).rrrr * .9/40 + .1/40;
 			color		= color + height * const_list.xxxy + const_list.yyyx;
 		break;
 

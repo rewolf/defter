@@ -1737,6 +1737,8 @@ rotate_tr2 (float angle){
 }
 
 //-------------------------------------------------------------------------
+// SCALE_TR2 returns a 2D scaling transformation matrix that can scale vectors
+// via pre-multiplication of the vector2.
 matrix2
 scale_tr2 (float x, float y){
 	matrix2 out;
@@ -1746,11 +1748,26 @@ scale_tr2 (float x, float y){
 }
 
 //-------------------------------------------------------------------------
+// SCALE_TR2 returns a 2D scaling transformation matrix that can scale vectors
+// via pre-multiplication of the vector2.
 matrix2
 scale_tr2 (vector2 v){
 	matrix2 out;
 	out[0] = v.x;
 	out[3] = v.y;
+}
+
+//-------------------------------------------------------------------------
+//REFELCT_TR2 returns a reflection matrix2
+// The value determines if its a y-axis or x-axis reflection
+matrix2
+reflect_tr2 (bool yaxis){
+	matrix2 out;
+	out.SetIdentity();
+	if (yaxis)
+		out[0] = -1.0f;
+	else
+		out[3] = -1.0f;
 	return out;
 }
 
