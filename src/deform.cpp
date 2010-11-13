@@ -337,6 +337,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	int 	viewport[4];
 	int		dim 		= isCoarse ? m_coarseDim : m_highDim;
 	float	metre_scale	= isCoarse ? m_metre_to_tex : m_metre_to_detail_tex;
+	float	height_scale= isCoarse ? 1.0f/VERT_SCALE : 1.0f;
 
 	if (!init)
 	{
@@ -363,6 +364,7 @@ Deform::calculate_pdmap(TexData texdata, vector2 clickPos, vector2 clickOffset, 
 	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "tc_delta"), 1.0f / dim);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "clickPos"), clickPos.x, clickPos.y);
 	glUniform2f(glGetUniformLocation(m_shPDMapper->m_programID, "stamp_scale"), scale, scale);
+	glUniform1f(glGetUniformLocation(m_shPDMapper->m_programID, "height_scale"), height_scale);
 
 	// Bind the textures
 	glActiveTexture(GL_TEXTURE0);

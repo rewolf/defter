@@ -9,6 +9,7 @@
 // Uniforms
 uniform sampler2D in_heightmap;
 uniform float tc_delta;
+uniform float height_scale;
 
 
 // Shader Input
@@ -19,7 +20,7 @@ in vec2 frag_TexCoord;
 out vec2 pdmap;
 
 // Constansts
-const vec2 factor	= vec2(-8 * 10 / 1.2, -10/1.2)*.4;
+const vec2 factor	= vec2(-8 * 10 / 1.2, -10/1.2);
 const vec3 cc 		= vec3(1.0, .0, -1.0);
 const vec3 cc2 		= vec3(2.0, .0, -2.0);
 
@@ -47,7 +48,7 @@ void main()
 
 	//dhdst = clamp(factor.x * dh1.st + factor.y * dh2.st , -1.0, 1.0);
 	//pdmap = dhdst * 0.5 + 0.5;
-	vec2 pd = factor.x * dh1.st + factor.y * dh2.st;
+	vec2 pd = height_scale*(factor.x * dh1.st + factor.y * dh2.st);
 	vec3 normal = normalize(vec3(pd.s, 1.0, pd.t));
 	pdmap = normal.xz/normal.y * 0.5 + 0.5;
 }
