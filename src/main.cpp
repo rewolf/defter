@@ -1155,10 +1155,16 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.heightmap);
 
-	if (m_clicked){
+	// If the ground is clicked then show the hologram
+	if (m_clicked)
+	{
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
-		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		// Calculate the transform matrix for the stamp, scale it up and then rotate it as need be
+		matrix2 transform = (m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x) * rotate_tr2(-m_stampSIRM.z);
+		// Mirror the stamp transform if need be
+		if (m_stampSIRM.w != 0.0f)
+			transform = reflect_tr2(true) * transform;
 		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
 	}
 
