@@ -9,7 +9,9 @@ public:
 	FighterJet				(Node* pModel);
 	virtual ~FighterJet		();
 
-	void			Update				();
+	void			CarpetBomb			(vector2 camera, vector2 target);
+	void			Update				(void);
+	bool			IsBusy				(void);
 
 public:
 	JetState		m_state;

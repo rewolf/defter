@@ -139,6 +139,8 @@ public:
 	list<GameEntity*> m_bombs;
 	bool			m_isShooting;
 
+	FighterJet*		m_pFighterJet;
+
 	// Mouse movement parameters
 	vector2			m_mouseCompensate;
 	bool			m_mouseFirstMove;

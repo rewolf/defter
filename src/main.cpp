@@ -26,6 +26,7 @@ using namespace std;
 #include "model_manager.h"
 #include "game_entity.h"
 #include "shockwave.h"
+#include "fighterjet.h"
 #include "main.h"
 
 
@@ -75,6 +76,7 @@ DefTer::DefTer(AppConfig& conf) : reGL3App(conf)
 	m_pSkybox 			  = NULL;
 	m_pModelManager		  = NULL;
 	m_pShockwave		  = NULL;
+	m_pFighterJet		  = NULL;
 	m_elevationData		  = NULL;
 	m_elevationDataBuffer = NULL;
 }
@@ -99,6 +101,7 @@ DefTer::~DefTer()
 	RE_DELETE(m_pModelManager);
 	RE_DELETE(m_pCamera);
 	RE_DELETE(m_pShockwave);
+	RE_DELETE(m_pFighterJet);
 	if (m_elevationData)
 		delete [] m_elevationData;
 	if (m_elevationDataBuffer)
@@ -432,6 +435,9 @@ DefTer::Init()
 	m_pCamera 		= new Camera(m_pModelManager->GetModel("gun"));
 	float halfTile  = HIGH_DIM * HIGH_RES * 0.5f;
 	m_pCamera->SetTranslate(vector3(-halfTile, 0.0f, -halfTile));
+
+	// Create the jet fighter
+	m_pFighterJet	= new FighterJet(m_pModelManager->GetModel("fighterjet"));
 
 	// Create the Shockwave object that will allow shockwaves to happen
 	printf("Creating shockwave...\t\t");
@@ -1055,6 +1061,7 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 					newBomb->m_translate.z = m_bombTarget.y;
 					newBomb->ZeroVelocity();
 					m_bombs.push_back(newBomb);
+					m_pFighterJet->CarpetBomb(m_pCamera->GetHorizPosition(), pos);
 				}
 				break;
 			case GUN:
@@ -1508,6 +1515,7 @@ DefTer::Render(float dt)
 	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++)
 		RenderModel((*i), rotate*translate_tr(-m_pCamera->m_translate));
+	RenderModel(m_pFighterJet, rotate*translate_tr(-m_pCamera->m_translate));
 	//glEnable(GL_CULL_FACE);
 	
 	// Disable wireframe if was enabled
