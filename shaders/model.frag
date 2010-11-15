@@ -5,6 +5,7 @@ uniform vec3		ambientC;
 uniform	vec4		specularC;
 uniform mat4		view;
 uniform sampler2D	colormap;
+uniform bool		useTex;
 
 in	vec3 	frag_Normal;
 in	vec2	frag_TexCoord;
@@ -29,11 +30,18 @@ void main(){
 	normal	= normalize(frag_Normal);
 	reflec	= -reflect(light, normal);
 	eye		= - normalize(frag_Pos.xyz);
-
-	texC	= texture(colormap, frag_TexCoord).rgb;
-	diffuse	= diffuseC * max(0, dot(normal, light)) * texC;
+	
+	if (useTex){
+		texC	= texture(colormap, frag_TexCoord).rgb;
+		diffuse	= vec3(1.0, 1.0, 1.0);
+		ambient	= vec3(.1, .1, .1);
+	}else{
+		texC	= vec3(1.0, 1.0, 1.0);
+		diffuse	= diffuseC;
+		ambient	= diffuse*.1;
+	}
+	diffuse	= diffuse * max(0, dot(normal, light));
 	specular= specularC.rgb * pow(max(0, dot(reflec, eye)), 32);
-	ambient = .2* ambientC;
 
-	out_Color = vec4(ambient + diffuse + specular, 1.0);
+	out_Color = vec4((ambient + diffuse) * texC + specular, 1.0);
 }

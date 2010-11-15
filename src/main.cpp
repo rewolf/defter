@@ -417,6 +417,7 @@ DefTer::Init()
 	printf("Done\n");
 
 	// Create the model manager
+	glActiveTexture(GL_TEXTURE0);
 	printf("Loading models...\t\t");
 	bool noModelError = true;
 	m_pModelManager = new ModelManager();
@@ -1354,8 +1355,8 @@ DefTer::Logic(float dt)
 		// Check if bombs hit terrain
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
 			if ((*i)->m_translate.y < terrain_height /*- EYE_HEIGHT*/){
-				(*i)->m_rotate.y = PI*.5f;
-				(*i)->m_rotate.z = PI*.2f;
+				//(*i)->m_rotate.y = PI*.5f;
+				//(*i)->m_rotate.z = PI*.2f;
 				/*float c[] = { 50.0f, -.8f, .0f,  .0f};
 				vector4 SIRM(c);
 				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Gaussian");
@@ -1676,6 +1677,11 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr)
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 
 			1, GL_FALSE, (m_proj_mat * transform).m);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "modelview"), 1, GL_FALSE, transform.m);
+
+	if (pNode->m_mesh.tex==0)
+		glUniform1i(glGetUniformLocation(m_shModel->m_programID, "useTex"), 0); 
+	else
+		glUniform1i(glGetUniformLocation(m_shModel->m_programID, "useTex"), 1);
 	glUniform3fv(glGetUniformLocation(m_shModel->m_programID, "diffuseC"), 1, pNode->m_mesh.diffuse.v);
 	glUniform3fv(glGetUniformLocation(m_shModel->m_programID, "ambientC"), 1, pNode->m_mesh.ambient.v);
 	glUniform4f(glGetUniformLocation(m_shModel->m_programID, "specularC"), 
