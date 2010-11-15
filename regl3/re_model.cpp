@@ -1,6 +1,9 @@
 
 #include "regl3.h"
 #include "re_math.h"
+#include <map>
+#include <list>
+using namespace std;
 #include "re_model.h"
 
 
@@ -12,6 +15,8 @@
 										fprintf(stderr,"EOF loading model");\
 										return false;\
 									}
+
+
 
 //--------------------------------------------------------
 Node::Node(){
@@ -86,7 +91,7 @@ Node::~Node(){
 
 //--------------------------------------------------------
 Node*
-re_LoadModel(string filename){
+re_LoadModel(string filename, map<string, list<GLuint*> > &textures){
 	FILE*	fp;
 	char	a_string[256];
 	char	b_string[256];
@@ -122,7 +127,7 @@ re_LoadModel(string filename){
 	// Process model
 	__fscanf(fp, "%s %s", b_string, b_string);	// MODEL
 	pRoot = new Node;
-	re_LoadChildren(fp, pRoot);
+	re_LoadChildren(fp, pRoot, textures);
 
 
 	// End off
@@ -133,7 +138,7 @@ re_LoadModel(string filename){
 
 //--------------------------------------------------------
 bool
-re_LoadChildren(FILE* fp, Node* pRoot){
+re_LoadChildren(FILE* fp, Node* pRoot, map<string, list<GLuint*> > &textures){
 	char	a_string[256];
 	char	b_string[256];
 	Node*	pNode;
@@ -155,13 +160,13 @@ re_LoadChildren(FILE* fp, Node* pRoot){
 		pNode->m_name = a_string;
 
 		// Load the mesh data and allocate on GPU
-		if (!re_LoadMeshData(fp, pNode)){
+		if (!re_LoadMeshData(fp, pNode, textures)){
 			fprintf(stderr, "Current state of model loader is undefined\n");
 		}
 	
 		// Load children if they exist
 		pNode->m_pChild = new Node;
-		if (!re_LoadChildren(fp, pNode->m_pChild)){
+		if (!re_LoadChildren(fp, pNode->m_pChild, textures)){
 			delete pNode->m_pChild;
 			pNode->m_pChild = NULL;
 		}
@@ -177,7 +182,7 @@ re_LoadChildren(FILE* fp, Node* pRoot){
 
 //--------------------------------------------------------
 bool
-re_LoadMeshData(FILE* fp, Node* pNode){
+re_LoadMeshData(FILE* fp, Node* pNode, map<string, list<GLuint*> >& textures){
 	vector3 	translate;
 	vector3 	rotate;
 	vector3 	scale;
@@ -203,6 +208,16 @@ re_LoadMeshData(FILE* fp, Node* pNode){
 	// Textures
 	__fscanF(fp, "%s", szTexture);
 	__fscanF(fp, "%s", szNormalMap);
+	if (strcmp(szTexture, "NoTex") != 0){
+		string texpath = string(szTexture);
+		// If there are no requests for the texture yet
+		if (textures.find(texpath) == textures.end()){
+			list<GLuint*> poo;
+			textures[texpath] = poo;
+		}
+		// Add this mesh's texID variable to the request list for this tex file
+		textures[texpath].push_back(&pNode->m_mesh.tex);
+	}
 
 	// Material
 	__fscanF(fp, "%s", a_string);

@@ -1,10 +1,3 @@
-// reGL Library includes
-#include "regl3.h"
-#include "re_input.h"
-#include "re_math.h"
-#include "re_shader.h"
-#include "re_timer.h"
-#include "re_model.h"
 
 // Other common includes
 #include <vector>
@@ -13,6 +6,14 @@
 #include <limits.h>
 #include <assert.h>
 #include <map>
+
+// reGL Library includes
+#include "regl3.h"
+#include "re_input.h"
+#include "re_math.h"
+#include "re_shader.h"
+#include "re_timer.h"
+#include "re_model.h"
 
 // External library includes
 #include "FreeImage.h"

@@ -22,6 +22,7 @@ struct TexData
 
 bool SavePNG				(char* filename, GLubyte* data, int bitdepth, int components, int w, int h, bool flip = false);
 bool LoadPNG				(GLuint *tex, string filename, bool flip=false, bool scale=false);
+bool LoadTexture			(GLuint *tex, string filename, bool flip=false, bool scale=false);	// generic texture image files
 bool CheckError				(string);
 void PrintFBOErr			(GLenum);
 

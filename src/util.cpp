@@ -171,6 +171,106 @@ LoadPNG(GLuint* tex, string filename, bool flip, bool scale)
 
 //--------------------------------------------------------
 bool 
+LoadTexture(GLuint* tex, string filename, bool flip, bool scale){
+	FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
+	FIBITMAP*		image;
+	BYTE*			bits;
+	int				width;
+	int				height;
+	int				bitdepth;
+	// check the file signature and deduce its format
+	// (the second argument is currently not used by FreeImage)
+	fif = FreeImage_GetFileType(filename.c_str(), 0);
+	if(fif == FIF_UNKNOWN) {
+		// no signature ?
+		// try to guess the file format from the file extension
+		fif = FreeImage_GetFIFFromFilename(filename.c_str());
+	}
+	// check that the plugin has reading capabilities ...
+	if((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
+		// ok, let's load the file
+		image = FreeImage_Load(fif, filename.c_str(), 0);
+	}
+	else{
+		fprintf(stderr, "Could not determine file-type of %s\n", filename.c_str());
+		return false;
+	}
+	if (image == NULL){
+		fprintf(stderr, "Could not load image %s\n", filename.c_str());
+		return false;
+	}
+
+	if (flip)
+		FreeImage_FlipVertical(image);
+
+	// Get the width & height of the image
+	width	= FreeImage_GetWidth(image);
+	height	= FreeImage_GetHeight(image);
+
+	// Scale the image if told to do so
+	if (scale)
+	{
+		// Scaling variables
+		float targetScale;
+		int newW, newH;
+		int offsetw, offseth;
+
+		targetScale = max(float(SCREEN_W) / width, float(SCREEN_H) / height);
+
+		// Calculate the new width & height based on the scale
+		float newWf	= float(width) * targetScale;
+		float newHf	= float(height) * targetScale;
+
+		newW		= (int)newWf;
+		newH		= (int)newHf;
+		
+		// Rescale the image to the new size
+		image = FreeImage_Rescale(image, newW, newH, FILTER_CATMULLROM);
+
+		// Calculate the offsets and set the new width & height
+		offsetw		= (newW - SCREEN_W) / 2;
+		offseth		= (newH - SCREEN_H) / 2;
+		newW		= SCREEN_W;
+		newH		= SCREEN_H;
+
+		// Copy the subimage to crop the image
+		image = FreeImage_Copy(image, offsetw, offseth, offsetw + newW, offseth + newH);
+
+		// Retrieve the actual image width & height to prevent any errors
+		width		= FreeImage_GetWidth(image);
+		height		= FreeImage_GetHeight(image);
+	}
+
+	// Get the bit depth and retrieve the pixel data
+	bits 	= (BYTE*) FreeImage_GetBits(image);
+	bitdepth= FreeImage_GetBPP(image);
+
+	// Choose based on bit depth
+	switch(bitdepth)
+	{
+		case 32:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, bits);
+			break;
+		case 24:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, bits);
+			break;
+		case 8:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, bits);
+			break;
+		default:
+			fprintf(stderr, "Failed to load image %s of bitdepth %d\n", filename.c_str(), bitdepth);
+			return false;
+	}
+	glGenerateMipmap(GL_TEXTURE_2D);
+	
+	FreeImage_Unload(image);
+
+
+	return true;
+}
+
+//--------------------------------------------------------
+bool 
 CheckError(string text)
 {
 	GLuint err = glGetError();

@@ -420,9 +420,9 @@ DefTer::Init()
 	printf("Loading models...\t\t");
 	bool noModelError = true;
 	m_pModelManager = new ModelManager();
-	noModelError |= m_pModelManager->LoadModel("gun", 		"models/gun.reMo");
-	noModelError |= m_pModelManager->LoadModel("bomb", 		"models/bomb.reMo");
-	noModelError |= m_pModelManager->LoadModel("fighterjet","models/fighterjet.reMo");
+	noModelError &= m_pModelManager->LoadModel("gun", 		"models/gun.reMo");
+	noModelError &= m_pModelManager->LoadModel("bomb", 		"models/bomb.reMo");
+	noModelError &= m_pModelManager->LoadModel("fighterjet","models/fighterjet.reMo");
 	if (noModelError){
 		printf("Done\n");
 	}
@@ -1048,7 +1048,7 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 					//m_activeWeapon = GUN;
 					//weaponChanged = true;
 					//printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
-					GameEntity* newBomb = new GameEntity(m_pModelManager->GetModel("bomb"));
+					GameEntity* newBomb = new GameEntity(m_pModelManager->GetModel("fighterjet"));
 					newBomb->m_translate.x = m_bombTarget.x;
 					newBomb->m_translate.y = 100.0f;
 					newBomb->m_translate.z = m_bombTarget.y;
@@ -1353,8 +1353,10 @@ DefTer::Logic(float dt)
 
 		// Check if bombs hit terrain
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
-			if ((*i)->m_translate.y < terrain_height - EYE_HEIGHT){
-				float c[] = { 50.0f, -.8f, .0f,  .0f};
+			if ((*i)->m_translate.y < terrain_height /*- EYE_HEIGHT*/){
+				(*i)->m_rotate.y = PI*.5f;
+				(*i)->m_rotate.z = PI*.2f;
+				/*float c[] = { 50.0f, -.8f, .0f,  .0f};
 				vector4 SIRM(c);
 				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Gaussian");
 				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
@@ -1363,7 +1365,8 @@ DefTer::Logic(float dt)
 				delete (*i);
 				i = m_bombs.erase(i);
 				if (i==m_bombs.end())
-					break;
+					break;*/
+				(*i)->m_translate = (*i)->m_lastTranslate;
 			}
 		}
 
@@ -1499,9 +1502,12 @@ DefTer::Render(float dt)
 	m_shManager->SetActiveShader(m_shmSimple);
 	m_pClipmap->render_levels();
 
+	glActiveTexture(GL_TEXTURE0);
+	//glDisable(GL_CULL_FACE);
 	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++)
 		RenderModel((*i), rotate*translate_tr(-m_pCamera->m_translate));
+	//glEnable(GL_CULL_FACE);
 	
 	// Disable wireframe if was enabled
 	if (WIREFRAMEON)
@@ -1650,8 +1656,8 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr)
 	else
 	{
 		model_tr = translate_tr(pNode->m_transform.translate)
-				 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
 				 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
+				 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
 				 * rotate_tr(pNode->m_transform.rotate.x, 1.0f, .0f, .0f)
 				 * scale_tr(pNode->m_transform.scale);
 	}
@@ -1665,6 +1671,7 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr)
 	if (pNode->m_pChild)
 		RenderNode(pNode->m_pChild, transform);
 
+	glBindTexture(GL_TEXTURE_2D, pNode->m_mesh.tex);
 	glBindVertexArray(pNode->m_mesh.vao);
 	glUniformMatrix4fv(glGetUniformLocation(m_shModel->m_programID, "mvp"), 
 			1, GL_FALSE, (m_proj_mat * transform).m);

@@ -12,6 +12,7 @@ public:
 
 private:
 	map<string, Node*>		m_models;
+	vector<GLuint>			m_textures;
 };
 
 

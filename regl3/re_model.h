@@ -10,6 +10,8 @@ struct BoundingBox{
 
 //--------------------------------------------------------
 struct Mesh{
+	Mesh():tex(0){}
+
 	BoundingBox		bounds;
 	GLuint			tex;
 	GLuint			vao;
@@ -50,9 +52,9 @@ public:
 };
 
 //--------------------------------------------------------
-Node* 		re_LoadModel			(string filename);
-bool 		re_LoadChildren		(FILE* fp, Node*);
-bool		re_LoadMeshData		(FILE* fp, Node*);
+Node* 		re_LoadModel		(string filename, map<string, list<GLuint*> > &textures );
+bool 		re_LoadChildren		(FILE* fp, Node*, map<string, list<GLuint*> > &textures);
+bool		re_LoadMeshData		(FILE* fp, Node*, map<string, list<GLuint*> > &textures);
 void		re_DeleteModelData	(Node* root);
 
 #endif
