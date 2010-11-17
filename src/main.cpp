@@ -834,9 +834,7 @@ DefTer::ProcessInput(float dt)
 
 	// Apply a shockwave
 	if (m_input.WasKeyPressed(SDLK_F5))
-	{
 		m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
-	}
 
 
 	// Toggle footprints
@@ -849,17 +847,12 @@ DefTer::ProcessInput(float dt)
 
 	// Toggle radar
 	if (m_input.WasKeyPressed(SDLK_r))
-	{
 		m_showRadar ^= true;
-		printf("Radar: %s\n", m_showRadar ? "ON" : "OFF");
-	}
 
 
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
-	{
 		WIREFRAMEON ^= true;
-	}
 
 
 	// Toggle gravity
