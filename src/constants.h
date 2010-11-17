@@ -58,7 +58,7 @@
 
 
 // App Settings
-#define FSAA				(0)
+#define FSAA				(4)
 #define SLEEP_TIME			(0.01f)
 #define VSYNC				(false)
 
@@ -144,7 +144,7 @@ const vector3 GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
 // Radar settings
 #define RADAR_OFFSET		(20.0f)
 #define RADAR_SIZE			(200.0f)
-#define RADAR2_SIZE			(RADAR_SIZE / 2.0f)
+#define RADAR2_SIZE			(RADAR_SIZE / 1.5f)
 #define RADAR_LINE_W		(1.0f / RADAR_SIZE)
 #define RADAR2_LINE_W		(1.0f / RADAR2_SIZE)
 #define RADAR_DOT_R			(16.0f / (RADAR_SIZE * RADAR_SIZE))
