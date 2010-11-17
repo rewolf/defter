@@ -55,7 +55,7 @@ public:
 	GLuint			m_colormap_tex;
 
 	vector4			m_stampSIRM;
-	bool			m_is_hd_stamp;
+	bool			m_isHDStamp;
 	bool			m_clicked;
 	vector2			m_clickPos;
 	vector2			m_clickPosPrev;
@@ -66,10 +66,11 @@ public:
 	vector2			m_clipmap_shift;
 	vector3			m_lastPosition;
 	vector3			m_frameAcceleration;
-	bool			m_hit_ground;
+	bool			m_hitGround;
 	bool			m_gravity_on;
 	bool			m_is_crouching;
-	bool			m_is_super_speed;
+	bool			m_superSpeedOn;
+	bool			m_showRadar;
 
 	// Coarsemap continuous unpacking stuff
 	float*			m_elevationData;
@@ -89,7 +90,7 @@ public:
 	// Footprints
 	float			m_footprintDT;
 	bool			m_flipFoot;
-	bool			m_drawing_feet;
+	bool			m_showFootprints;
 
 	// Stuff for awesome screenshot
 	matrix4			m_screenshotProj;

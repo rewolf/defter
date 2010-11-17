@@ -40,10 +40,13 @@ int main(int argc, char* argv[])
 	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
+
+	// Choose the recording or play controls for demo making
 	if (argc > 1 && strcmp(argv[1], "record")==0)
 		conf.demo	= RE_DEMO_RECORD;
 	if (argc > 1 && strcmp(argv[1], "play")==0)
 		conf.demo	= RE_DEMO_PLAY;
+
 	DefTer test(conf);
 
 	int sleepTime = 1000;
@@ -196,7 +199,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
-	m_is_hd_stamp	= false;
+	m_isHDStamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
@@ -204,10 +207,11 @@ DefTer::InitGL()
 	// Init the world settings
 	m_gravity_on	= true;
 	m_is_crouching	= false;
-	m_hit_ground	= false;
+	m_hitGround		= false;
 	m_footprintDT	= 0.0f;
 	m_flipFoot		= false;
-	m_drawing_feet	= false;
+	m_showFootprints= false;
+	m_showRadar		= true;
 
 	// Set initial shader index values
 	m_shmSimple		= 0;
@@ -251,7 +255,7 @@ DefTer::InitGL()
 	m_shManager->UpdateUni1i("detail3", 6);
 	m_shManager->UpdateUni1i("curStamp",11);
 	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
-	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+	m_shManager->UpdateUni1f("is_hd_stamp", (m_isHDStamp ? 1.0f : 0.0f));
 
 	if (!CheckError("Creating shaders and setting initial uniforms"))
 		return false;
@@ -291,7 +295,8 @@ DefTer::InitGL()
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
 	"c\t"		"= Crouch/Sink\n"
-	"f\t"		"= Toggle footprint deforms\n"
+	"f\t"		"= Toggle Footprints\n"
+	"r\t"		"= Toggle Radar On/Off\n"
 	"h\t"		"= High Detail Toggle\n"
 	"Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
@@ -565,7 +570,7 @@ DefTer::UpdateClickPos(void)
 	if (m_clicked)
 	{
 		// Check that the dot is not further than the max 'allowable distance' if in HD stamp mode
-		if (m_is_hd_stamp)
+		if (m_isHDStamp)
 		{
 			vector2 camPos(m_cam_translate.x, m_cam_translate.z);
 			m_clickPos -= camPos;
@@ -729,7 +734,7 @@ DefTer::ProcessInput(float dt)
 		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
 		// Check that the position is in valid range when using coarse stamping
-		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
+		if (!m_isHDStamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
 		{
 			m_clicked = false;
 		}
@@ -750,22 +755,21 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT))
 	{
 		dt *= 5.0f;
-		m_is_super_speed = true;
+		m_superSpeedOn = true;
 	}
-	if (m_is_super_speed && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
+	if (m_superSpeedOn && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
 	{
-		m_is_super_speed = false;
+		m_superSpeedOn = false;
 	}
 
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
-		//vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
 		// Perform either  a HD or coarse deformation
-		if (m_is_hd_stamp)
+		if (m_isHDStamp)
 		{
 			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
 		}
@@ -830,13 +834,24 @@ DefTer::ProcessInput(float dt)
 
 	// Apply a shockwave
 	if (m_input.WasKeyPressed(SDLK_F5))
+	{
 		m_pShockwave->CreateShockwave(m_clickPos, 100.0f);
+	}
 
 
 	// Toggle footprints
-	if (m_input.WasKeyPressed(SDLK_f)){
-		m_drawing_feet ^= true;
-		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
+	if (m_input.WasKeyPressed(SDLK_f))
+	{
+		m_showFootprints ^= true;
+		printf("Footprints: %s\n", m_showFootprints ? "ON" : "OFF");
+	}
+
+
+	// Toggle radar
+	if (m_input.WasKeyPressed(SDLK_r))
+	{
+		m_showRadar ^= true;
+		printf("Radar: %s\n", m_showRadar ? "ON" : "OFF");
 	}
 
 
@@ -847,19 +862,28 @@ DefTer::ProcessInput(float dt)
 	}
 
 
+	// Toggle gravity
+	if (m_input.WasKeyPressed(SDLK_g))
+	{
+		m_gravity_on ^= true;
+		m_lastPosition = m_cam_translate;	// velocity = 0
+		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
+	}
+
+
 	// Toggle between HD and coarse mode
 	if (m_input.WasKeyPressed(SDLK_h))
 	{
 		m_clicked = false;
 
-		m_is_hd_stamp ^= true;
+		m_isHDStamp ^= true;
 
 		// Update the click position
 		UpdateClickPos();
 
-		m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+		m_shManager->UpdateUni1f("is_hd_stamp", (m_isHDStamp ? 1.0f : 0.0f));
 
-		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
+		printf("HD Mode: %s\n", m_isHDStamp ? "ON" : "OFF");
 	}
 
 
@@ -879,6 +903,7 @@ DefTer::ProcessInput(float dt)
 		m_hdShaderIndex = m_shmGeomTess;
 		printf("HD Shader: Geometry Tessellation\n");
 	}
+
 
 	// Toggle the stamp values
 	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
@@ -920,14 +945,6 @@ DefTer::ProcessInput(float dt)
 	}
 
 
-	// Toggle gravity
-	if (m_input.WasKeyPressed(SDLK_g))
-	{
-		m_gravity_on ^= true;
-		m_lastPosition = m_cam_translate;	// velocity = 0
-		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
-	}
-
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	vector3 moveDirection;
@@ -948,7 +965,8 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsKeyPressed(SDLK_d))
 		moveDirection += rotation * vector3( 1.0f, 0.0f, 0.0f);
 
-	if (moveDirection.Mag2() > 1.0e-3){
+	if (moveDirection.Mag2() > 1.0e-3)
+	{
 		moveDirection.Normalize();
 		if (m_input.IsKeyPressed(SDLK_LSHIFT))
 			moveDirection *= 3.0f;
@@ -960,7 +978,7 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_SPACE))
 	{
 		// Only jump if on the ground
-		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
+		if (m_hitGround ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
 			m_lastPosition.y -= 8.0f * DT;
 	//		m_velocity.y = 8.0f;
 	}
@@ -1026,13 +1044,14 @@ DefTer::Logic(float dt)
 	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
 	static float compoundDT = .0f;
 	compoundDT += dt;
-	while (compoundDT > DT){
+	while (compoundDT > DT)
+	{
 		// Perform camera physics
 		vector3 accel 	= m_frameAcceleration;
 		vector3 velocity= (m_cam_translate - m_lastPosition) * invDT; // (f(t)-f(t-1))/(dt)
 		if (m_gravity_on)
 			accel += GRAVITY;
-		if (m_hit_ground)
+		if (m_hitGround)
 			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
 		else
 			accel += - AIR_DRAG * velocity;
@@ -1050,7 +1069,8 @@ DefTer::Logic(float dt)
 
 		// Boundary check for wrapping position
 		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
-		if (m_cam_translate.x > boundary){
+		if (m_cam_translate.x > boundary)
+		{
 			m_cam_translate.x -= boundary * 2.0f;
 			m_lastPosition.x  -= boundary * 2.0f;
 		}
@@ -1062,7 +1082,8 @@ DefTer::Logic(float dt)
 			m_cam_translate.z -= boundary * 2.0f;
 			m_lastPosition.z  -= boundary * 2.0f;
 		}
-		else if (m_cam_translate.z < -boundary){
+		else if (m_cam_translate.z < -boundary)
+		{
 			m_cam_translate.z += boundary * 2.0f;
 			m_lastPosition.z  += boundary * 2.0f;
 		}
@@ -1074,16 +1095,17 @@ DefTer::Logic(float dt)
 		{
 			m_lastPosition.y	= 
 			m_cam_translate.y 	= terrain_height;
-			m_hit_ground		= true;
-		} else{
-			m_hit_ground		= false;
+			m_hitGround		= true;
+		} else
+		{
+			m_hitGround		= false;
 		}
 		compoundDT -= DT;
 	}
 
 	// Create footprints
 	m_footprintDT += dt;
-	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
+	if (m_showFootprints && m_gravity_on && speed2 > .025f)
 	{ 
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
 			vector4 stampSIRM= vector4(0.5f, 2.0f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
@@ -1187,8 +1209,13 @@ DefTer::Render(float dt)
 	if (WIREFRAMEON)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	m_pSkybox->render(viewproj);
-	m_pCaching->Render();
+	// Do not render skybox or radar in wireframe mode
+	if (!WIREFRAMEON)
+	{
+		m_pSkybox->render(viewproj);
+		if (m_showRadar)
+			m_pCaching->Render();
+	}
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
