@@ -6,7 +6,7 @@ enum JetState {	INACTIVE, ENTERING, TURNIN, APPROACHING};
 //--------------------------------------------------------
 class FighterJet : public GameEntity{
 public:
-	FighterJet				(Node* pModel);
+	FighterJet				(Node* pModel, list<GameEntity*>* pBombs, ModelManager* pModelMan);
 	virtual ~FighterJet		();
 
 	void			CarpetBomb			(vector2 camera, vector2 target);
@@ -15,15 +15,17 @@ public:
 
 public:
 	JetState		m_state;
+	list<GameEntity*>*	m_pBombs;
+	ModelManager*	m_pModelManager;
+	int				m_nDropped;
+	vector2			m_target;
 
 private:
 	vector2			corner;
-	vector2			target;
 	vector2			dir;
 	vector2			dir2;
 	vector2			start;
 	vector2			circleCentre;
-	float			t;
 };
 
 #endif

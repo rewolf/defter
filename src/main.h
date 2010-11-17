@@ -131,8 +131,6 @@ public:
 
 	// Handles weapon stuff
 	WeaponMode		m_activeWeapon;
-	bool			m_bombActive;
-	vector2			m_bombTarget;
 	GLuint			m_bombXTex;
 	GLuint			m_muzzleFlashTex;
 	GLuint			m_crosshairTex;

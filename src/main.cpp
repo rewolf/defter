@@ -214,7 +214,6 @@ DefTer::InitGL()
 	// Initialise to edit mode
 	m_useMode		= EDIT_MODE;
 	m_activeWeapon	= GUN;
-	m_bombActive	= false;
 	m_isShooting	= false;
 	m_mouseCompensate.x	= 0.0f;
 	m_mouseCompensate.y	= 0.0f;
@@ -442,7 +441,7 @@ DefTer::Init()
 	m_pCamera->SetTranslate(vector3(-halfTile, 0.0f, -halfTile));
 
 	// Create the jet fighter
-	m_pFighterJet	= new FighterJet(m_pModelManager->GetModel("fighterjet"));
+	m_pFighterJet	= new FighterJet(m_pModelManager->GetModel("fighterjet"), &m_bombs, m_pModelManager);
 
 	// Create the Shockwave object that will allow shockwaves to happen
 	printf("Creating shockwave...\t\t");
@@ -1044,10 +1043,10 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 		switch(m_activeWeapon)
 		{
 			case BOMB:
-				if (m_bombActive)
+				if (m_pFighterJet->m_state != INACTIVE)
 				{
-					printf("Bomb already active\n");
-					//break;
+					printf("Airstrike already in process\n");
+					break;
 				}
 				// check if its on the radar
 				p	= m_input.GetMousePos();
@@ -1055,17 +1054,8 @@ DefTer::GameModeInput(float dt, vector2 mouseDelta, int ticks)
 				// Pos returns 99999 if out of bounds
 				if (pos.x < 90000)
 				{
-					m_bombActive = true;
-					m_bombTarget = pos;
-					//m_activeWeapon = GUN;
-					//weaponChanged = true;
-					//printf ("Weapon: %s\n", WEAPON_NAME[(int)m_activeWeapon]);
-					GameEntity* newBomb = new GameEntity(m_pModelManager->GetModel("fighterjet"));
-					newBomb->m_translate.x = m_bombTarget.x;
-					newBomb->m_translate.y = 100.0f;
-					newBomb->m_translate.z = m_bombTarget.y;
-					newBomb->ZeroVelocity();
-					m_bombs.push_back(newBomb);
+					m_activeWeapon = GUN;
+					weaponChanged = true;
 					m_pFighterJet->CarpetBomb(m_pCamera->GetHorizPosition(), pos);
 				}
 				break;
@@ -1370,19 +1360,16 @@ DefTer::Logic(float dt)
 		// Check if bombs hit terrain
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
 			if ((*i)->m_translate.y < terrain_height /*- EYE_HEIGHT*/){
-				//(*i)->m_rotate.y = PI*.5f;
-				//(*i)->m_rotate.z = PI*.2f;
-				/*float c[] = { 50.0f, -.8f, .0f,  .0f};
+				float c[] = { 50.0f, -.8f, .0f,  .0f};
 				vector4 SIRM(c);
 				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Gaussian");
-				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
+				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 200.0f, .3f);
 				// Flash screen
 				FlashScreen();
 				delete (*i);
 				i = m_bombs.erase(i);
 				if (i==m_bombs.end())
-					break;*/
-				(*i)->m_translate = (*i)->m_lastTranslate;
+					break;
 			}
 		}
 
@@ -1523,7 +1510,8 @@ DefTer::Render(float dt)
 	RenderModel(m_pCamera, rotate*translate_tr(-m_pCamera->m_translate));
 	for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++)
 		RenderModel((*i), rotate*translate_tr(-m_pCamera->m_translate));
-	RenderModel(m_pFighterJet, rotate*translate_tr(-m_pCamera->m_translate));
+	if (m_pFighterJet->m_state != INACTIVE)
+		RenderModel(m_pFighterJet, rotate*translate_tr(-m_pCamera->m_translate));
 	//glEnable(GL_CULL_FACE);
 	
 	// Disable wireframe if was enabled
@@ -1596,10 +1584,10 @@ DefTer::Render(float dt)
 
 		}
 
-		if (m_bombActive)
+		if (m_pFighterJet->m_state != INACTIVE)
 		{
 			// Draw the bomb X texture at the current bomb target
-			vector2 p = m_pCaching->WorldPosToRadar(m_bombTarget);
+			vector2 p = m_pCaching->WorldPosToRadar(m_pFighterJet->m_target);
 			p.x = p.x/SCREEN_W * 2.0f - 1.0f;
 			p.y = p.y/SCREEN_H * 2.0f - 1.0f;
 			matrix2 transform = rotate_tr2(.0f) * scale_tr2(0.02f, ASPRAT*.02f);
@@ -1673,8 +1661,8 @@ DefTer::RenderNode(Node* pNode, matrix4 parent_tr)
 	else
 	{
 		model_tr = translate_tr(pNode->m_transform.translate)
-				 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
 				 * rotate_tr(pNode->m_transform.rotate.z, .0f, .0f, 1.0f)
+				 * rotate_tr(pNode->m_transform.rotate.y, .0f, 1.0f, .0f)
 				 * rotate_tr(pNode->m_transform.rotate.x, 1.0f, .0f, .0f)
 				 * scale_tr(pNode->m_transform.scale);
 	}
