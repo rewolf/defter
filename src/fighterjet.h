@@ -1,7 +1,7 @@
 #ifndef _FIGHTER_JET_H
 #define _FIGHTER_JET_H
 
-enum JetState {	INACTIVE, ENTERING, TURNIN	};
+enum JetState {	INACTIVE, ENTERING, TURNIN, APPROACHING};
 
 //--------------------------------------------------------
 class FighterJet : public GameEntity{
@@ -15,6 +15,15 @@ public:
 
 public:
 	JetState		m_state;
+
+private:
+	vector2			corner;
+	vector2			target;
+	vector2			dir;
+	vector2			dir2;
+	vector2			start;
+	vector2			circleCentre;
+	float			t;
 };
 
 #endif

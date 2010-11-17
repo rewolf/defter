@@ -15,7 +15,7 @@ public:
 	vector3			GetVelocity			();
 	vector2			GetHorizPosition	();
 
-	virtual void	Update				();
+	virtual void	Update				(bool friction=true);
 
 public:
 	Node*		m_pModel;

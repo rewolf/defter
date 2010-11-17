@@ -1344,6 +1344,9 @@ DefTer::Logic(float dt)
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
 			(*i)->Update();
 		}
+		
+		// Update jet
+		m_pFighterJet->Update();
 
 		WrapEntity(m_pCamera);
 
