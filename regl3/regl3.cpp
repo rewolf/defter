@@ -194,57 +194,55 @@ reGL3App::Run()
 {
 	reTimer timer;
 	timer.start();
-	// Start the main loop
-	// If we're locking the logic timestep, run a different loop, rather than checking every iteration.
-	if (m_config.lockLogicTimeStep)
-	{
-		while(m_isRunning){
-			static float rem = .0f;
-			float elapsed = timer.getElapsed();
 
-			// Poll the SDL input buffer
-			WinProc();
-
-			// Process input state
-			ProcessInput(m_config.timeStep);
-
-
-			// Calculate the number of iterations of the fixed timestep
-			rem += elapsed;
-			int nIters = int(rem/m_config.timeStep);
-			rem -= nIters * m_config.timeStep;
-
-			// Iterate the logic loop with the fixed timestep
-			for (int i = 0; i < nIters; i++){
-				Logic(m_config.timeStep);
-			}
-
-			// Call the render method
-			Render(elapsed);
-
-			SDL_Delay(int(m_config.sleepTime*1000));
-		}
+	// If playing a demo, load the file here
+	if (m_config.demo == RE_DEMO_PLAY && !LoadDemo()){
+		fprintf(stderr, "Coult not load demo file!\n");
+		return;
 	}
-	// ELSE, a normal game loop
-	else
-	{
-		while(m_isRunning){
-			float elapsed = timer.getElapsed();
 
-			// Poll the SDL input buffer
-			WinProc();
+	// Start the main loop
+	while(m_isRunning){
+		float elapsed = timer.getElapsed();
 
-			// Process the input state
-			ProcessInput(elapsed);
-			// Perform Game Logic
-			Logic(elapsed);
-			// Render the scene
-			Render(elapsed);
-
-			SDL_Delay(int(m_config.sleepTime*1000));
+		if (m_config.demo == RE_DEMO_RECORD){
+			m_curFrame 			= DemoFrame();
+			m_curFrame.dt 		= elapsed;
 		}
+		else if (m_config.demo == RE_DEMO_PLAY){
+			if (m_demoFrames.size() > 0){
+				m_curFrame			= m_demoFrames.front();
+				elapsed				= m_curFrame.dt;
+				m_demoFrames.pop_front();
+			}
+			else{
+				// demo is finished, resume normal play
+				m_config.demo = RE_DEMO_NONE;
+				printf("demo over\n");
+			}
+		}
+		// Poll the SDL input buffer
+		WinProc();
+		if (m_config.demo == RE_DEMO_RECORD){
+			m_demoFrames.push_back(m_curFrame);
+		}
+
+		// Process the input state
+		ProcessInput(elapsed);
+		// Perform Game Logic
+		Logic(elapsed);
+		// Render the scene
+		Render(elapsed);
+
+		if (m_config.demo != RE_DEMO_PLAY)
+			SDL_Delay(int(m_config.sleepTime*1000));
 	}
 	printf("Average FPS: %.2f\n", timer.getFPS());
+
+	// If recording a demo, now output the frame data
+	if (m_config.demo == RE_DEMO_RECORD){
+		SaveDemo();
+	}
 }
 
 /******************************************************************************
@@ -256,46 +254,241 @@ void
 reGL3App::WinProc()
 {
 	SDL_Event evt;
-	while (SDL_PollEvent(&evt))
-	{
-		switch(evt.type)
+	
+	if (m_config.demo == RE_DEMO_PLAY){
+		// Still handle essential commands, like exit commands
+		while (SDL_PollEvent(&evt))
 		{
-			case SDL_KEYDOWN:
-				// Don't really understand what SDL guys are doing with their key
-				// codes, but ill just do this hack to remove the bitflag so it
-				// can fit in the array
-				m_input.PressKey(evt.key.keysym.sym);
-				break;
-			case SDL_KEYUP:
-				m_input.ReleaseKey(evt.key.keysym.sym);
-				break;
-			case SDL_QUIT:
-				Quit();
-				break;
-			case SDL_MOUSEMOTION:
-				m_input.MoveMouse(evt.motion);
-				break;
-			case SDL_MOUSEWHEEL:
-				// The below things seemed to have stopped working, moved
-				// wheel handling to BUTTONDOWN event.
-				if (evt.wheel.y > 0)
-					m_input.WheelUp();
-				else
-					m_input.WheelDown();
-				break;
-			case SDL_MOUSEBUTTONDOWN:
-				if (evt.button.button == SDL_BUTTON_WHEELUP)
-					m_input.WheelUp();
-				else if (evt.button.button == SDL_BUTTON_WHEELDOWN)
-					m_input.WheelDown();
-				else
-					m_input.PressButton(evt.button.button);
-				break;
-			case SDL_MOUSEBUTTONUP:
-				m_input.ReleaseButton(evt.button.button);
-				break;
-			case SDL_VIDEORESIZE:
-				return;
+			switch(evt.type)
+			{
+				case SDL_KEYDOWN:
+					if (evt.key.keysym.sym == SDLK_ESCAPE)
+						m_input.PressKey(evt.key.keysym.sym);
+					break;
+				case SDL_KEYUP:
+					if (evt.key.keysym.sym == SDLK_ESCAPE)
+						m_input.ReleaseKey(evt.key.keysym.sym);
+					break;
+				case SDL_QUIT:
+					Quit();
+					break;
+			}
+		}
+		// Go through this frame's events
+		for (list<SDL_Event>::iterator e=m_curFrame.events.begin(); e!=m_curFrame.events.end(); e++){
+			SDL_Event evt = *e;
+			printf("Event %d\n", evt.type);
+			switch(evt.type)
+			{
+				case SDL_KEYDOWN:
+					m_input.PressKey(evt.key.keysym.sym);
+					printf("pressed key\n");
+					break;
+				case SDL_KEYUP:
+					m_input.ReleaseKey(evt.key.keysym.sym);
+					break;
+				case SDL_QUIT:
+					Quit();
+					break;
+				case SDL_MOUSEMOTION:
+					m_input.MoveMouse(evt.motion);
+					break;
+				case SDL_MOUSEWHEEL:
+					if (evt.wheel.y > 0)
+						m_input.WheelUp();
+					else
+						m_input.WheelDown();
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (evt.button.button == SDL_BUTTON_WHEELUP)
+						m_input.WheelUp();
+					else if (evt.button.button == SDL_BUTTON_WHEELDOWN)
+						m_input.WheelDown();
+					else
+						m_input.PressButton(evt.button.button);
+					break;
+				case SDL_MOUSEBUTTONUP:
+					m_input.ReleaseButton(evt.button.button);
+					break;
+				case SDL_VIDEORESIZE:
+					return;
+			}
+
 		}
 	}
+	else
+	{
+		while (SDL_PollEvent(&evt))
+		{
+			switch(evt.type)
+			{
+				case SDL_KEYDOWN:
+					// Don't really understand what SDL guys are doing with their key
+					// codes, but ill just do this hack to remove the bitflag so it
+					// can fit in the array
+					m_input.PressKey(evt.key.keysym.sym);
+					break;
+				case SDL_KEYUP:
+					m_input.ReleaseKey(evt.key.keysym.sym);
+					break;
+				case SDL_QUIT:
+					Quit();
+					break;
+				case SDL_MOUSEMOTION:
+					m_input.MoveMouse(evt.motion);
+					break;
+				case SDL_MOUSEWHEEL:
+					// The below things seemed to have stopped working, moved
+					// wheel handling to BUTTONDOWN event.
+					if (evt.wheel.y > 0)
+						m_input.WheelUp();
+					else
+						m_input.WheelDown();
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (evt.button.button == SDL_BUTTON_WHEELUP)
+						m_input.WheelUp();
+					else if (evt.button.button == SDL_BUTTON_WHEELDOWN)
+						m_input.WheelDown();
+					else
+						m_input.PressButton(evt.button.button);
+					break;
+				case SDL_MOUSEBUTTONUP:
+					m_input.ReleaseButton(evt.button.button);
+					break;
+				case SDL_VIDEORESIZE:
+					return;
+			}
+			if (m_config.demo == RE_DEMO_RECORD){
+				m_curFrame.events.push_back(evt);
+			}
+		}
+	}
+}
+
+/******************************************************************************
+ * LoadDemo
+ * Reads the per-frame event details from a file called "demo"
+ ******************************************************************************/
+bool
+reGL3App::LoadDemo(){
+	printf("Loading demo frames...\n");
+	FILE* fp = fopen("demo","r");
+	if (!fp){
+		fprintf(stderr, "Could not open demo file\n");
+		return false;
+	}
+
+	long int nFrames;
+	fscanf(fp, "%ld", &nFrames);
+	printf("\t%ld demo frames\n", nFrames);
+	
+	for (int i = 0; i < nFrames; i++){
+		DemoFrame frame;
+
+		fscanf(fp, "%f", &frame.dt);
+
+		while(true){
+			SDL_Event e;
+			int t;
+
+			// type
+			fscanf(fp, "%d", &e.type);
+			// If its the end-marker, break
+			if (e.type==0)
+				break;
+			printf("Loaded %d %t\n", e.type);
+
+			// details
+			switch(e.type)
+			{
+				case SDL_KEYDOWN:
+					fscanf(fp, "%d", &e.key.keysym.sym);
+					break;
+				case SDL_KEYUP:
+					fscanf(fp, "%d", &e.key.keysym.sym);
+					break;
+				case SDL_MOUSEMOTION:
+					fscanf(fp, "%d %d %d %d", &e.motion.x, &e.motion.y, &e.motion.xrel,
+							&e.motion.yrel);
+					break;
+				case SDL_MOUSEWHEEL:
+					fscanf(fp, "%d", &e.wheel.y);
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					fscanf(fp, "%d", &t);
+					e.button.button = Uint8(t);
+					break;
+				case SDL_MOUSEBUTTONUP:
+					fscanf(fp, "%d", &t);
+					e.button.button = Uint8(t);
+					break;
+			}
+			frame.events.push_back(e);
+		}
+		m_demoFrames.push_back(frame);
+	}
+
+	fclose(fp);
+	printf("done\n");
+}
+
+/******************************************************************************
+ * SaveDemo
+ * Saves the per-frame event details to a file called "demo"
+ ******************************************************************************/
+void
+reGL3App::SaveDemo(){
+	printf("Creating demo file...\n");
+	FILE* fp = fopen("demo", "w");
+	if (!fp){
+		fprintf(stderr, "Failed to open demo file\n");
+		return;
+	}
+
+	// Print the number of frames
+	fprintf(fp, "%ld\n", m_demoFrames.size());
+
+	for (list<DemoFrame>::iterator i = m_demoFrames.begin(); i!=m_demoFrames.end(); i++){
+		DemoFrame frame = *i;
+		// Print frame time and number of events
+		fprintf(fp, "%.6f\n", frame.dt);
+
+		for (list<SDL_Event>::iterator e = frame.events.begin(); e!=frame.events.end(); e++){
+			switch(e->type)
+			{
+				case SDL_KEYDOWN:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d\n", e->key.keysym.sym);
+					printf("%d\n",e->type);
+					break;
+				case SDL_KEYUP:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d\n", e->key.keysym.sym);
+					break;
+				case SDL_MOUSEMOTION:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d %d %d %d\n", e->motion.x, e->motion.y, e->motion.xrel,
+							e->motion.yrel);
+					break;
+				case SDL_MOUSEWHEEL:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d\n", e->wheel.y);
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d\n", int(e->button.button));
+					break;
+				case SDL_MOUSEBUTTONUP:
+					fprintf(fp, "  %d ", int(e->type));
+					fprintf(fp, "%d\n", int(e->button.button));
+					break;
+			}
+		}
+		fprintf(fp, "  0\n");
+	}
+
+
+	fclose(fp);
+	printf("Done. Goodbye :D\n");
 }

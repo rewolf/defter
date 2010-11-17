@@ -40,6 +40,10 @@ int main(int argc, char* argv[])
 	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
+	if (argc > 1 && strcmp(argv[1], "record")==0)
+		conf.demo	= RE_DEMO_RECORD;
+	if (argc > 1 && strcmp(argv[1], "play")==0)
+		conf.demo	= RE_DEMO_PLAY;
 	DefTer test(conf);
 
 	int sleepTime = 1000;
@@ -784,7 +788,7 @@ DefTer::ProcessInput(float dt)
 
 	// Take screenshot
 	static int lastScreenshot = 1;
-	if (m_input.WasKeyPressed(SDLK_F12))
+	if (m_input.WasKeyPressed(SDLK_F12) || m_config.demo == RE_DEMO_PLAY)
 	{
 		char  filename[256];
 		int   currentViewport[4];
