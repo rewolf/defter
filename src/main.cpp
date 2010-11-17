@@ -1777,7 +1777,8 @@ DefTer::InitCursor(){
 	XFreePixmap (m_X_dpy, blank);
 	XSync(m_X_dpy, False);
 	XFlush(m_X_dpy);	
-#endif
+#else
 	ShowCursor(0);
+#endif
 }
 
