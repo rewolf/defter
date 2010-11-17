@@ -28,11 +28,11 @@ in vec2 vert_TexCoord;
 // Shader Output
 out vec3 geom_View;
 out vec2 geom_TexCoord;
-out vec2 geom_stampTexCoord;
+out vec2 geom_StampTexCoord;
 
 
 // Constansts
-const vec2  const_list	= vec2(1.0,  .0);
+const vec2 const_list	= vec2(1.0,  .0);
 const float HEIGHT 		= 40.0;
 
 
@@ -86,5 +86,6 @@ void main()
 	// Save out the texCoord
 	geom_TexCoord = texCoord;
 
-	geom_stampTexCoord = stampTransform * (texCoord - click_pos) + .5 ;
+	// Save out the stamps texCoord
+	geom_StampTexCoord = stampTransform * (texCoord - click_pos) + 0.5;
 }
