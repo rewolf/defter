@@ -86,11 +86,11 @@ void main()
 		case 3:
 			// Draw verticle line
 			if (frag_TexCoord.x >= linePos.x && frag_TexCoord.x <= linePos.y)
-				color = vec4(0.0, 0.0, 0.0, 0.4);
+				color = vec4(0.0, 0.0, 0.0, 1.0);
 
 			// Draw horizontal line
 			if (frag_TexCoord.y >= linePos.x && frag_TexCoord.y <= linePos.y)
-				color = vec4(0.0, 0.0, 0.0, 0.4);
+				color = vec4(0.0, 0.0, 0.0, 1.0);
 		break;
 
 		case 4:
