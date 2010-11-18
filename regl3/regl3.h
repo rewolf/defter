@@ -26,12 +26,14 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <list>
 using namespace std;
 
 // Headers
 #include "re_input.h"
 #include "re_timer.h"
 
+enum reDemo {RE_DEMO_NONE, RE_DEMO_PLAY, RE_DEMO_RECORD};
 
 /******************************************************************************
  * MACROS & DEFINES
@@ -59,15 +61,14 @@ struct AppConfig
 		fullscreen 	= false;
 		VSync		= false;
 		resizable	= false;
-		lockLogicTimeStep = false;
 		winWidth 	= 800;
 		winHeight	= 600;
 		fsaa		= 0; 		// Fullscreen Antialias (# of samples per pixel)
 		sleepTime 	= .01f;		// Delay in seconds
-		timeStep	= .02f;		// This applies if the logic time-step is locked.
 		gl_major	= 2;
 		gl_minor	= 1;
 		title		= "SDL1.3 & OpenGL";
+		demo		= RE_DEMO_NONE;
 	}
 	void Print()
 	{
@@ -79,20 +80,33 @@ struct AppConfig
 		printf("sleepTime: %.3f\n", sleepTime);
 		printf("gl_version: %d.%d\n", gl_major, gl_minor);
 		printf("title: %s\n", title.c_str());
+		if (demo!=RE_DEMO_NONE)
+			printf("demo: %s\n", demo==RE_DEMO_RECORD ? "record" : "play");
+
 	}
 	bool 	fullscreen;
 	bool 	VSync;
 	bool	resizable;
-	bool	lockLogicTimeStep;
 	u_int 	winWidth;
 	u_int 	winHeight;
 	u_int	fsaa;
 	u_int	gl_major;
 	u_int	gl_minor;
 	float	sleepTime;
-	float	timeStep;
 	string	title;
+	reDemo	demo;
 };
+
+
+/*
+ * DemoFrame
+ * Contains all events that occurred this frame
+ */
+struct DemoFrame{
+	list<SDL_Event> 	events;
+	float				dt;
+};
+
 
 /******************************************************************************
  * reGL3App - The Main app class, that can be instantiated
@@ -112,6 +126,8 @@ public:
 	virtual	void	Render			(float dt);
 	virtual	void	Logic			(float dt);
 
+	list<DemoFrame>	GetDemo			();
+
 protected:
 	/* Override InitGL with your GL setup and projection setups etc. */
 	virtual bool		InitGL();
@@ -119,12 +135,16 @@ private:
 	bool				InitSDL();
 	void				Run();
 	void				WinProc();
+	void				SaveDemo();
+	bool				LoadDemo();
 
 public:
 	AppConfig		m_config;
 	SDL_GLContext	m_context;
 	SDL_Window*		m_pWindow;
 	Input			m_input;
+	list<DemoFrame>	m_demoFrames;
+	DemoFrame		m_curFrame;
 
 	bool 			m_isRunning;
 

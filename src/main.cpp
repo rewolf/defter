@@ -40,6 +40,13 @@ int main(int argc, char* argv[])
 	conf.sleepTime	= SLEEP_TIME;
 	conf.winWidth	= SCREEN_W;
 	conf.winHeight	= SCREEN_H;
+
+	// Choose the recording or play controls for demo making
+	if (argc > 1 && strcmp(argv[1], "record")==0)
+		conf.demo	= RE_DEMO_RECORD;
+	if (argc > 1 && strcmp(argv[1], "play")==0)
+		conf.demo	= RE_DEMO_PLAY;
+
 	DefTer test(conf);
 
 	int sleepTime = 1000;
@@ -192,7 +199,7 @@ DefTer::InitGL()
 
 	// Set the initial stamp mode and clicked state
 	m_stampSIRM		= vector4(20.0f, 0.2f, 0.0f, 0.0f);
-	m_is_hd_stamp	= false;
+	m_isHDStamp	= false;
 	m_clicked		= false;
 	m_clickPos		= vector2(0.0f);
 	m_clickPosPrev	= vector2(0.0f);
@@ -200,10 +207,11 @@ DefTer::InitGL()
 	// Init the world settings
 	m_gravity_on	= true;
 	m_is_crouching	= false;
-	m_hit_ground	= false;
+	m_hitGround		= false;
 	m_footprintDT	= 0.0f;
 	m_flipFoot		= false;
-	m_drawing_feet	= false;
+	m_showFootprints= false;
+	m_showRadar		= true;
 
 	// Set initial shader index values
 	m_shmSimple		= 0;
@@ -252,7 +260,7 @@ DefTer::InitGL()
 	m_shManager->UpdateUni1i("curStamp",11);
 	m_shManager->UpdateUniMat4fv("projection", m_proj_mat.m);
 	m_shManager->UpdateUni1f("tc_delta", 1.0f / HIGH_DIM);
-	m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+	m_shManager->UpdateUni1f("is_hd_stamp", (m_isHDStamp ? 1.0f : 0.0f));
 
 	m_shManager->UpdateUni1f("parallaxBias", PARALLAXBIAS);
 	m_shManager->UpdateUni1f("parallaxScale", PARALLAXSCALE);
@@ -296,7 +304,8 @@ DefTer::InitGL()
 	"g\t"		"= Toggle Gravity\n"
 	"Space\t"	"= Jump/Float\n"
 	"c\t"		"= Crouch/Sink\n"
-	"f\t"		"= Toggle footprint deforms\n"
+	"f\t"		"= Toggle Footprints\n"
+	"r\t"		"= Toggle Radar On/Off\n"
 	"h\t"		"= High Detail Toggle\n"
 	"Shift\t"	"= En/Disable Super Speed\n"
 	"R-Mouse\t"	"= Pick Deform location\n"
@@ -426,7 +435,7 @@ DefTer::Init()
 	glGenBuffers(NUM_PBOS, m_pbo);
 	for (int i = 0; i < NUM_PBOS; i++){
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[i]);
-		glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(GLushort) * m_coarsemap_dim * m_coarsemap_dim, NULL,	GL_STREAM_READ);
+		glBufferData(GL_PIXEL_PACK_BUFFER, sizeof(float) * m_coarsemap_dim * m_coarsemap_dim, NULL,	GL_STREAM_READ);
 	}
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
@@ -493,39 +502,35 @@ DefTer::LoadCoarseMap(string filename)
 		fprintf(stderr, "\tFile: %s\n", filename.c_str());
 		return false;
 	}
-
-	if (bitdepth==8)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_BYTE, bits);
+	
+	// Create elevationData for camera collisions
+	SDL_mutexP(m_elevationDataMutex);
+	m_elevationData 	  = new float[m_coarsemap_dim * m_coarsemap_dim];
+	m_elevationDataBuffer = new float[m_coarsemap_dim * m_coarsemap_dim];
+	if (bitdepth==8){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] =  VERT_SCALE * bits[i] * 1.0f/255.0f;
+		}
 	}
-	else if (bitdepth==16)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED,	GL_UNSIGNED_SHORT, bits);
+	else if (bitdepth==16){
+		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+			m_elevationData[i] = m_elevationDataBuffer[i] =  VERT_SCALE * bits[i] * 1.0f/USHRT_MAX;
+		}
 	}
 	else
 	{
 		fprintf(stderr, "Error\n\tCannot load files with bitdepths other than 8- or 16-bit: %s\n",
 				filename.c_str());
+		SDL_mutexV(m_elevationDataMutex);
 		return false;
 	}
+	SDL_mutexV(m_elevationDataMutex);
+
+	// Upload to GPU Texture
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_coarsemap_dim, m_coarsemap_dim, 0, GL_RED, GL_FLOAT, m_elevationData);
 
 	// Generate mipmaps
 	glGenerateMipmap(GL_TEXTURE_2D);
-
-	// Create elevationData for camera collisions
-	SDL_mutexP(m_elevationDataMutex);
-	m_elevationData 	  = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
-	m_elevationDataBuffer = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
-	if (bitdepth==8){
-		for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
-			m_elevationData[i] = m_elevationDataBuffer[i] = (GLushort)(USHRT_MAX * (bits[i] * 1.0f/255.0f));
-		}
-	}
-	else{
-		memcpy(m_elevationData, 		bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
-		memcpy(m_elevationDataBuffer, 	bits, m_coarsemap_dim*m_coarsemap_dim * sizeof(GLushort));
-	}
-	SDL_mutexV(m_elevationDataMutex);
 
 	// Allocate GPU Texture space for partial derivative map
 	glActiveTexture(GL_TEXTURE1);
@@ -548,10 +553,12 @@ DefTer::LoadCoarseMap(string filename)
 bool
 DefTer::SaveCoarseMap(string filename)
 {
-GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
+	GLushort* 	mapdata = new GLushort[m_coarsemap_dim * m_coarsemap_dim];
 
-	glBindTexture(GL_TEXTURE_2D, m_coarsemap.heightmap);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, mapdata);
+	// Can only save 0 -> VERT_SCALE range of values. Clamps the rest to this range
+	for (int i = 0; i < m_coarsemap_dim * m_coarsemap_dim; i++){
+		mapdata[i] = (GLushort)(max(min(m_elevationData[i]/VERT_SCALE, 1.0f), .0f) * USHRT_MAX);
+	}
 
 	if (!SavePNG((char*)filename.c_str(), (GLubyte*)mapdata, 16, 1, m_coarsemap_dim, m_coarsemap_dim, true))
 		return false;
@@ -572,7 +579,7 @@ DefTer::UpdateClickPos(void)
 	if (m_clicked)
 	{
 		// Check that the dot is not further than the max 'allowable distance' if in HD stamp mode
-		if (m_is_hd_stamp)
+		if (m_isHDStamp)
 		{
 			vector2 camPos(m_cam_translate.x, m_cam_translate.z);
 			m_clickPos -= camPos;
@@ -609,7 +616,6 @@ DefTer::UpdateClickPos(void)
 float
 DefTer::InterpHeight(vector2 worldPos)
 {
-	const float scale = VERT_SCALE * 1.0f / USHRT_MAX;
 	worldPos = (worldPos * m_pClipmap->m_metre_to_tex + vector2(0.5f)) * float(m_coarsemap_dim);
 	int x0 	= int(worldPos.x);
 	int y0 	= int(worldPos.y);
@@ -620,10 +626,10 @@ DefTer::InterpHeight(vector2 worldPos)
 	int y1  = y0 < m_coarsemap_dim - 1 ? y0 + 1 : 0;
 	
 	SDL_mutexP(m_elevationDataMutex);
-	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	] * scale 
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	] * scale;
-	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	] * scale
-		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	] * scale;
+	float top = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y0)	]
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y0)	];
+	float bot = (1-fx) * m_elevationData[x0  + m_coarsemap_dim * (y1)	]
+		      + (  fx) * m_elevationData[x1  + m_coarsemap_dim * (y1)	];
 	SDL_mutexV(m_elevationDataMutex);
 
 	return (1-fy) * top + fy * bot + EYE_HEIGHT * (m_is_crouching ? .5f : 1.0f);
@@ -654,7 +660,7 @@ DefTer::UpdateCoarsemapStreamer(){
 					m_coarsemap.heightmap, 0);
 
 		// Commence transfer to PBO
-		glReadPixels(0, 0, m_coarsemap_dim, m_coarsemap_dim, GL_RED, GL_UNSIGNED_SHORT, 0);
+		glReadPixels(0, 0, m_coarsemap_dim, m_coarsemap_dim, GL_RED, GL_FLOAT, 0);
 
 		// Reset buffer state
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -669,7 +675,7 @@ DefTer::UpdateCoarsemapStreamer(){
 			// map buffer to sys memory
 			DEBUG("map buffer\n");
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
-			m_bufferPtr 	= (GLushort*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+			m_bufferPtr 	= (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 			m_XferState 	= RETRIEVING;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
@@ -783,7 +789,7 @@ DefTer::ProcessInput(float dt)
 		vector3 p = perspective_unproj_world(frag, float(SCREEN_W), float(SCREEN_H), NEAR_PLANE, FAR_PLANE, 1.0f, inverse);
 
 		// Check that the position is in valid range when using coarse stamping
-		if (!m_is_hd_stamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
+		if (!m_isHDStamp && vector2(p.x, p.z).Mag() > COARSE_AURA)
 		{
 			m_clicked = false;
 		}
@@ -804,22 +810,21 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT))
 	{
 		dt *= 5.0f;
-		m_is_super_speed = true;
+		m_superSpeedOn = true;
 	}
-	if (m_is_super_speed && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
+	if (m_superSpeedOn && !(m_input.IsKeyPressed(SDLK_LSHIFT) || m_input.IsKeyPressed(SDLK_RSHIFT)))
 	{
-		m_is_super_speed = false;
+		m_superSpeedOn = false;
 	}
 
 	// Change the selected deformation location
 	if (m_clicked && wheel_ticks != 0)
 	{
-		//vector2 clickDiff	 = m_clickPos - vector2(m_cam_translate.x, m_cam_translate.z);
 		vector4 stampSIRM	 = m_stampSIRM;
 		stampSIRM.y			*= wheel_ticks;
 
 		// Perform either  a HD or coarse deformation
-		if (m_is_hd_stamp)
+		if (m_isHDStamp)
 		{
 			m_pCaching->DeformHighDetail(m_clickPos, stampSIRM);
 		}
@@ -838,7 +843,7 @@ DefTer::ProcessInput(float dt)
 
 	// Take screenshot
 	static int lastScreenshot = 1;
-	if (m_input.WasKeyPressed(SDLK_F12))
+	if (m_input.WasKeyPressed(SDLK_F12) && m_config.demo == RE_DEMO_PLAY)
 	{
 		char  filename[256];
 		int   currentViewport[4];
@@ -884,16 +889,29 @@ DefTer::ProcessInput(float dt)
 
 
 	// Toggle footprints
-	if (m_input.WasKeyPressed(SDLK_f)){
-		m_drawing_feet ^= true;
-		printf("Footprints: %s\n", m_drawing_feet ? "ON" : "OFF");
+	if (m_input.WasKeyPressed(SDLK_f))
+	{
+		m_showFootprints ^= true;
+		printf("Footprints: %s\n", m_showFootprints ? "ON" : "OFF");
 	}
+
+
+	// Toggle radar
+	if (m_input.WasKeyPressed(SDLK_r))
+		m_showRadar ^= true;
 
 
 	// Toggle wireframe
 	if (m_input.WasKeyPressed(SDLK_l))
-	{
 		WIREFRAMEON ^= true;
+
+
+	// Toggle gravity
+	if (m_input.WasKeyPressed(SDLK_g))
+	{
+		m_gravity_on ^= true;
+		m_lastPosition = m_cam_translate;	// velocity = 0
+		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
 	}
 
 
@@ -902,14 +920,14 @@ DefTer::ProcessInput(float dt)
 	{
 		m_clicked = false;
 
-		m_is_hd_stamp ^= true;
+		m_isHDStamp ^= true;
 
 		// Update the click position
 		UpdateClickPos();
 
-		m_shManager->UpdateUni1f("is_hd_stamp", (m_is_hd_stamp ? 1.0f : 0.0f));
+		m_shManager->UpdateUni1f("is_hd_stamp", (m_isHDStamp ? 1.0f : 0.0f));
 
-		printf("HD Mode: %s\n", m_is_hd_stamp ? "ON" : "OFF");
+		printf("HD Mode: %s\n", m_isHDStamp ? "ON" : "OFF");
 	}
 
 
@@ -929,6 +947,7 @@ DefTer::ProcessInput(float dt)
 		m_hdShaderIndex = m_shmGeomTess;
 		printf("HD Shader: Geometry Tessellation\n");
 	}
+
 
 	// Toggle the stamp values
 	if (m_input.WasKeyPressed(SDLK_RIGHTBRACKET))
@@ -970,14 +989,6 @@ DefTer::ProcessInput(float dt)
 	}
 
 
-	// Toggle gravity
-	if (m_input.WasKeyPressed(SDLK_g))
-	{
-		m_gravity_on ^= true;
-		m_lastPosition = m_cam_translate;	// velocity = 0
-		printf("Gravity: %s\n", m_gravity_on ? "ON" : "OFF");
-	}
-
 	// Controls to handle movement of the camera
 	// Speed in m/s (average walking speed)
 	vector3 moveDirection;
@@ -998,7 +1009,8 @@ DefTer::ProcessInput(float dt)
 	if (m_input.IsKeyPressed(SDLK_d))
 		moveDirection += rotation * vector3( 1.0f, 0.0f, 0.0f);
 
-	if (moveDirection.Mag2() > 1.0e-3){
+	if (moveDirection.Mag2() > 1.0e-3)
+	{
 		moveDirection.Normalize();
 		if (m_input.IsKeyPressed(SDLK_LSHIFT))
 			moveDirection *= 3.0f;
@@ -1010,7 +1022,7 @@ DefTer::ProcessInput(float dt)
 	if (m_input.WasKeyPressed(SDLK_SPACE))
 	{
 		// Only jump if on the ground
-		if (m_hit_ground ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
+		if (m_hitGround ||  m_cam_translate.y - EYE_HEIGHT - terrain_height < .1f)
 			m_lastPosition.y -= 8.0f * DT;
 	//		m_velocity.y = 8.0f;
 	}
@@ -1076,13 +1088,14 @@ DefTer::Logic(float dt)
 	// Use a fixed time-step for physics, so that the more accurate Verlet method can be used
 	static float compoundDT = .0f;
 	compoundDT += dt;
-	while (compoundDT > DT){
+	while (compoundDT > DT)
+	{
 		// Perform camera physics
 		vector3 accel 	= m_frameAcceleration;
 		vector3 velocity= (m_cam_translate - m_lastPosition) * invDT; // (f(t)-f(t-1))/(dt)
 		if (m_gravity_on)
 			accel += GRAVITY;
-		if (m_hit_ground)
+		if (m_hitGround)
 			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
 		else
 			accel += - AIR_DRAG * velocity;
@@ -1100,7 +1113,8 @@ DefTer::Logic(float dt)
 
 		// Boundary check for wrapping position
 		static float boundary = m_coarsemap_dim* m_pClipmap->m_quad_size * .5f;
-		if (m_cam_translate.x > boundary){
+		if (m_cam_translate.x > boundary)
+		{
 			m_cam_translate.x -= boundary * 2.0f;
 			m_lastPosition.x  -= boundary * 2.0f;
 		}
@@ -1112,7 +1126,8 @@ DefTer::Logic(float dt)
 			m_cam_translate.z -= boundary * 2.0f;
 			m_lastPosition.z  -= boundary * 2.0f;
 		}
-		else if (m_cam_translate.z < -boundary){
+		else if (m_cam_translate.z < -boundary)
+		{
 			m_cam_translate.z += boundary * 2.0f;
 			m_lastPosition.z  += boundary * 2.0f;
 		}
@@ -1124,16 +1139,17 @@ DefTer::Logic(float dt)
 		{
 			m_lastPosition.y	= 
 			m_cam_translate.y 	= terrain_height;
-			m_hit_ground		= true;
-		} else{
-			m_hit_ground		= false;
+			m_hitGround		= true;
+		} else
+		{
+			m_hitGround		= false;
 		}
 		compoundDT -= DT;
 	}
 
 	// Create footprints
 	m_footprintDT += dt;
-	if (m_drawing_feet && m_gravity_on && speed2 > .025f)
+	if (m_showFootprints && m_gravity_on && speed2 > .025f)
 	{ 
 		if (m_cam_translate.y-EYE_HEIGHT - terrain_height < .1f && m_footprintDT > STEP_TIME){
 			vector4 stampSIRM= vector4(0.5f, -0.1f, m_cam_rotate.y, m_flipFoot ? 1.0f : 0.0f);
@@ -1214,12 +1230,16 @@ DefTer::Render(float dt)
 	glActiveTexture(GL_TEXTURE10);
 	glBindTexture(GL_TEXTURE_2D, activeTiles[3].m_texdata.pdmap);
 
-	// If clicked on ground add in the stamp overlay
+	// If the ground is clicked then show the hologram
 	if (m_clicked)
 	{
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GetStampMan()->GetCurrentStamp()->GetTexID());
-		matrix2 transform = ( m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x ) * rotate_tr2(-m_stampSIRM.z);
+		// Calculate the transform matrix for the stamp, scale it up and then rotate it as need be
+		matrix2 transform = (m_coarsemap_dim * CLIPMAP_RES / m_stampSIRM.x) * rotate_tr2(-m_stampSIRM.z);
+		// Mirror the stamp transform if need be
+		if (m_stampSIRM.w != 0.0f)
+			transform = reflect_tr2(true) * transform;
 		m_shManager->UpdateUniMat2fv("stampTransform", transform.m);
 	}
 
@@ -1241,8 +1261,13 @@ DefTer::Render(float dt)
 	if (WIREFRAMEON)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	m_pSkybox->render(viewproj);
-	m_pCaching->Render();
+	// Do not render skybox or radar in wireframe mode
+	if (!WIREFRAMEON)
+	{
+		m_pSkybox->render(viewproj);
+		if (m_showRadar)
+			m_pCaching->Render();
+	}
 	END_PROF;
 
 	// Get the lastest version of the coarsemap from the GPU for the next frame
@@ -1274,11 +1299,11 @@ map_retriever(void* defter)
 		DEBUG("retrieving\n");
 		
 		// copy data and transform
-		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(GLushort));
+		memcpy(main->m_elevationDataBuffer, main->m_bufferPtr, main->m_coarsemap_dim*main->m_coarsemap_dim * sizeof(float));
 
 		// finally lock the data array, and swap the pointers
 		SDL_mutexP(main->m_elevationDataMutex);
-		GLushort * temp 			= main->m_elevationData;
+		float * temp 				= main->m_elevationData;
 		main->m_elevationData 		= main->m_elevationDataBuffer;
 		main->m_elevationDataBuffer = temp;
 		main->m_XferState 			= DONE;

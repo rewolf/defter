@@ -10,10 +10,7 @@
 // Uniforms
 uniform sampler2D colormap;
 
-uniform sampler2D detail0;
-uniform sampler2D detail1;
-uniform sampler2D detail2;
-uniform sampler2D detail3;
+uniform sampler2D curStamp;
 
 uniform vec2 click_pos;
 uniform vec2 scales;
@@ -27,18 +24,20 @@ uniform vec2 hdasq_its;
 
 // Shader Input
 in vec3 frag_View;
-in vec2 frag_TexCoord;
 in vec3 frag_Normal;
+in vec2 frag_TexCoord;
+in vec2 frag_StampTexCoord;
+
 
 // Shader Ouput
 out vec4 frag_Color;
 
 
 // Constansts
-const vec4 light		= normalize(vec4(0.0, 4.0, -10.0, 0.0));
-const vec4 fog_col		= vec4(0.6, 0.6, 0.6, 1.0);
-const float log2_fog_den= -0.0001442695;
-const vec4 cc			= vec4(1.0, 0.0, -1.0, 2.0);
+const vec4 light			= normalize(vec4(0.0, 4.0, -10.0, 0.0));
+const vec4 fog_col			= vec4(0.6, 0.6, 0.6, 1.0);
+const float log2_fog_den	= -0.0000942695;
+const vec4 cc				= vec4(1.0, 0.0, -1.0, 2.0);
 
 const vec4 light_Ambient	= vec4(0.2, 0.2, 0.2, 1.0);
 const vec4 light_Diffuse	= vec4(0.8, 0.8, 0.8, 1.0);
@@ -72,7 +71,8 @@ void main()
 	viewVec = normalize(frag_View);
 
 	// Get the colour value
-	color = texture(colormap, frag_TexCoord * 100.0);
+	color = texture(colormap, frag_TexCoord * 100.0)
+		  + texture(curStamp, frag_StampTexCoord).r * cc.xyyy;
 
 	// Initial variables and settings
 	ambient		= light_Ambient;
@@ -105,6 +105,7 @@ void main()
 	fogZ		= gl_FragCoord.z * (1.0 / gl_FragCoord.w);
 	fogFactor	= exp2(log2_fog_den * fogZ * fogZ);
 	fogFactor	= clamp(fogFactor, 0.0, 1.0);
+
 
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);

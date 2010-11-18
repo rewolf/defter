@@ -1737,6 +1737,21 @@ rotate_tr2 (float angle){
 }
 
 //-------------------------------------------------------------------------
+//REFELCT_TR2 returns a reflection matrix2
+// The value determines if its a y-axis or x-axis reflection
+matrix2
+reflect_tr2 (bool yaxis){
+	matrix2 out;
+	out.SetIdentity();
+	if (yaxis)
+		out[0] = -1.0f;
+	else
+		out[3] = -1.0f;
+	return out;
+}
+
+
+//-------------------------------------------------------------------------
 // TRANSLATE_TR returns a matrix that may be used for vector translation
 // if the vector is pre-multiplied by this matrix.
 matrix4

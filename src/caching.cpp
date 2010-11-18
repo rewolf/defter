@@ -39,7 +39,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	}
 
 	// Calculate the band values
-	m_BandWidth		= highDim * highRes * .1f;
+	m_BandWidth		= highDim * highRes * 0.1f;
 	m_BandPercent	= m_BandWidth / m_TileSize;
 
 	// Calculate the offset value for the coarsemap to allow determining of tile index
@@ -524,6 +524,15 @@ Caching::Render(void)
 		linePos.set(m_cellSize * i);
 		linePos.x -= RADAR_LINE_W;
 		linePos.y += RADAR_LINE_W;
+		
+		// Shift first value to be inside border
+		if (i == 0)
+			linePos += RADAR_LINE_W;
+		// Shift last value to be inside border
+		if (i == m_GridSize)
+			linePos -= RADAR_LINE_W;
+
+		// Execute a shader pass
 		glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 	}
@@ -562,6 +571,7 @@ Caching::Render(void)
 	linePos.set(0.0f);
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
+	linePos	  += RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 	// Draw the first band line
@@ -580,6 +590,7 @@ Caching::Render(void)
 	linePos.set(1.0f);
 	linePos.x -= RADAR2_LINE_W;
 	linePos.y += RADAR2_LINE_W;
+	linePos   -= RADAR2_LINE_W;
 	glUniform2fv(glGetUniformLocation(m_shRadar->m_programID, "linePos"), 1, linePos.v);
 	glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 

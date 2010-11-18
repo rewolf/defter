@@ -10,10 +10,11 @@
 
 
 #define emitVert(idx)\
-	frag_TexCoord   = out_tex[idx];     \
-	frag_Normal		= out_norms[idx];	\
-	frag_View		= -out_verts[idx].xyz * (1.0/out_verts[idx].w); \
-	gl_Position     = projection * out_verts[idx];	\
+	frag_TexCoord		= out_tex[idx];     \
+	frag_Normal			= out_norms[idx];	\
+	frag_View			= -out_verts[idx].xyz * (1.0/out_verts[idx].w); \
+	frag_StampTexCoord	= out_StampTexCoord[idx];	\
+	gl_Position			= projection * out_verts[idx];	\
 	EmitVertex();
 
 
@@ -22,6 +23,7 @@ layout(triangles) in;
 
 // Declare the 3esulting primitive type
 layout(triangle_strip, max_vertices=170)  out;
+
 
 // Uniforms
 uniform sampler2D heightmap;
@@ -32,7 +34,8 @@ uniform float camera_height;
 uniform vec2 hdasq_its;
 uniform ivec2 tileOffset;
 
-// detail maps
+
+// Detail maps
 uniform sampler2D detail0;
 uniform sampler2D detail1;
 uniform sampler2D detail2;
@@ -42,23 +45,25 @@ uniform sampler2D detail1N;
 uniform sampler2D detail2N;
 uniform sampler2D detail3N;
 
+
 // Incoming from vertex shader
-in vec2 geom_TexCoord[3];
-in vec4 geom_ProjPos[3];
 in float mustTess[3];
+in vec4 geom_ProjPos[3];
+in vec2 geom_TexCoord[3];
+in vec2 geom_StampTexCoord[3];
 
 
 // Outgoing per-vertex information
 out vec3 frag_View;
-out vec2 frag_TexCoord;
 out vec3 frag_Normal;
+out vec2 frag_TexCoord;
+out vec2 frag_StampTexCoord;
 
 bool prepareVert(in int idx);
 void refine_with_pattern();
 
 // Globals
 const vec4 cc = vec4(1.0, .0, -1.0, 2.0);
-const float HEIGHT = 40.0;
 
 mat3x4 stuff;
 mat3x2 stuff2;
@@ -67,6 +72,7 @@ vec4 out_verts   [10];
 vec3 barycentric [10];
 vec2 out_tex[10];
 vec3 out_norms[10];
+vec2 out_StampTexCoord[10];
 //------------------------------------------------------------------------------
 void main()
 {
@@ -197,6 +203,10 @@ bool prepareVert(in int idx){
 	vec4 temp;
 	// Interpolat texcoords and vertex position
 	out_tex[idx] = stuff2 * barycentric[idx].xyz;
+	out_StampTexCoord[idx]	= barycentric[idx].x * geom_StampTexCoord[0]
+							+ barycentric[idx].y * geom_StampTexCoord[1]
+							+ barycentric[idx].z * geom_StampTexCoord[2];
+
 	temp		 = stuff * barycentric[idx].xyz;
 
 	// High-detail maps
@@ -232,10 +242,7 @@ bool prepareVert(in int idx){
 			add.xz = (texture(detail3N, tc).rg*2 - 1);
 			break;
 	};
-	out_norms[idx] += add * factor;
-	out_verts[idx] = temp + cc.yxyy * detail * .25 *factor;
-	//out_verts[idx].xyz = temp.xyz + normalize(out_norms[idx]) * detail * .5;
-	//out_verts[idx].w = 1.0;
+	out_norms[idx]			+= add * factor;
+	out_verts[idx]			 = temp + cc.yxyy * detail * .25 *factor;
 	return (detail > .0f);
 }
-
