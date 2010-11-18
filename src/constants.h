@@ -1,9 +1,3 @@
-// reGL Library includes
-#include "regl3.h"
-#include "re_input.h"
-#include "re_math.h"
-#include "re_shader.h"
-#include "re_timer.h"
 
 // Other common includes
 #include <vector>
@@ -12,6 +6,13 @@
 #include <limits.h>
 #include <assert.h>
 #include <map>
+
+// reGL Library includes
+#include "regl3.h"
+#include "re_input.h"
+#include "re_math.h"
+#include "re_shader.h"
+#include "re_timer.h"
 
 // External library includes
 #include "FreeImage.h"
@@ -28,13 +29,11 @@
 #	pragma comment(lib, "sdl.lib")
 #	pragma comment(lib, "sdlmain.lib")
 #	pragma comment(lib, "freeimage.lib")
-
 #	include <direct.h>
 #	define mkdir(x) _mkdir(x)
-
-
-#define log2(n)				(logf(n)/logf(2))
+#	define log2(n)				(logf(n)/logf(2))
 #else
+#	include <X11/Xlib.h>
 #	include <sys/stat.h>
 #	define mkdir(x) mkdir(x, S_IRWXU)
 #endif
@@ -96,7 +95,7 @@ extern bool WIREFRAMEON;
 
 // Shockwave Settings
 // Height below which the shockwave ends
-#define SWTARGETHEIGHT		(0.01f)
+#define SWTARGETHEIGHT		(0.005f)
 // Area (radius) that remains unaffected by the damping
 #define	SWNODECAYRADIUS		(0.1f)
 // Maximum number of waves
@@ -104,11 +103,11 @@ extern bool WIREFRAMEON;
 
 
 
-const vector3 GRAVITY		= vector3(0.0f, -19.81f, 0.0f);
+const vector3 GRAVITY		= vector3(0.0f, -59.81f, 0.0f);
 #define ACCELERATION		(3.5f)
-#define AIR_DRAG			(0.6f)
+#define AIR_DRAG			(0.8f)
 #define FRICTION			(1.8f)
-#define DT 					(0.005f)
+#define DT 					(0.008f)
 #define invDT   			(1.0f / DT)
 
 

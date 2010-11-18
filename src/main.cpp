@@ -843,7 +843,7 @@ DefTer::ProcessInput(float dt)
 
 	// Take screenshot
 	static int lastScreenshot = 1;
-	if (m_input.WasKeyPressed(SDLK_F12) || m_config.demo == RE_DEMO_PLAY)
+	if (m_input.WasKeyPressed(SDLK_F12) && m_config.demo == RE_DEMO_PLAY)
 	{
 		char  filename[256];
 		int   currentViewport[4];
