@@ -141,6 +141,7 @@ void main()
 	frag_Color=  mix(detail, frag_Color, factor) * cc.xxxy + cc.yyyx;
 	}
 
+
 	// Mix fog to get the final color
 	frag_Color = mix(fog_col, frag_Color, fogFactor);
 }

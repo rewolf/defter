@@ -20,6 +20,7 @@ uniform mat4	view;
 uniform mat2	stampTransform;
 uniform vec2	click_pos;
 
+
 // Shader Input
 in vec3 vert_Position;
 in vec2 vert_TexCoord;
@@ -33,7 +34,6 @@ out vec2 geom_StampTexCoord;
 
 // Constansts
 const vec2 const_list	= vec2(1.0,  .0);
-const float HEIGHT 		= 40.0;
 
 
 //------------------------------------------------------------------------------
