@@ -34,7 +34,6 @@ out vec2 geom_StampTexCoord;
 
 // Constansts
 const vec2 const_list	= vec2(1.0,  .0);
-const float HEIGHT 		= 40.0;
 
 
 //------------------------------------------------------------------------------
