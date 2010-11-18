@@ -1361,13 +1361,12 @@ DefTer::Logic(float dt)
 		for (list<GameEntity*>::iterator i = m_bombs.begin(); i != m_bombs.end(); i++){
 			if ((*i)->m_translate.y < terrain_height /*- EYE_HEIGHT*/){
 				float c[] = { 100.0f, -.6f, .0f,  .0f};
-				m_XferWaitState = READY;
 				vector4 SIRM(c);
 				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Gaussian");
 				SIRM.x = 30.0f;
 				SIRM.y = .15f;
 				m_pDeform->EdgeDeform(m_coarsemap, (*i)->GetHorizPosition(), SIRM, "Mess");
-				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 400.0f, .2f);
+				m_pShockwave->CreateShockwave((*i)->GetHorizPosition(), 250.0f, .2f);
 				// Flash screen
 				FlashScreen();
 				delete (*i);
