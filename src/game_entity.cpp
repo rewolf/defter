@@ -57,14 +57,16 @@ GameEntity::GetHorizPosition(){
 
 //--------------------------------------------------------
 void
-GameEntity::Update(){
+GameEntity::Update(bool friction){
 	vector3 accel 	= m_frameAcceleration;
 	vector3 velocity= GetVelocity(); 
 	
-	if (m_onGround)
-		accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
-	else
-		accel += - AIR_DRAG * velocity;
+	if (friction){
+		if (m_onGround)
+			accel += - FRICTION * vector3(velocity.x, .0f, velocity.z);
+		else
+			accel += - AIR_DRAG * velocity;
+	}
 
 	vector3 temp 	= m_translate;
 	m_translate		= 2*m_translate - m_lastTranslate + accel * DT * DT;	// verlet update
