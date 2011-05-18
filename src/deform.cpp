@@ -10,6 +10,7 @@
 #include "constants.h"
 using namespace std;
 #include "deform.h"
+#include "re_profiler.h"
 
 //--------------------------------------------------------
 Deform::Deform(int coarseDim, int highDim, float metre_to_tex, float metre_to_detail_tex)
@@ -94,6 +95,7 @@ Deform::init_backups()
 void
 Deform::EdgeDeform(TexData texdata, vector2 clickPos, vector4 SIRM, string stampName)
 {
+	GLPROF2_BEGIN(1);
 	vector2 areaMin(clickPos - vector2(SIRM.x / 2.0f));
 	vector2 areaMax(areaMin	+ SIRM.x);
 
@@ -160,6 +162,7 @@ Deform::EdgeDeform(TexData texdata, vector2 clickPos, vector4 SIRM, string stamp
 	// Calculate the normals
 	for (list<vector2>::iterator shit = fuck.begin(); shit != fuck.end(); shit++)
 		calculate_pdmap(texdata, clickPos, *shit, SIRM.x, true);
+	GLPROF2_END(1);
 }
 
 //--------------------------------------------------------

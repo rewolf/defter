@@ -26,6 +26,12 @@ using namespace std;
 #include "shockwave.h"
 #include "main.h"
 
+//#define RE_PROFILE 1
+#include "re_profiler.h"
+
+	reTimer __g_profilers__[N_PROFILERS];
+	int __g_counters__[N_PROFILERS] = {0};
+	float __g_elapsed__[N_PROFILERS] = {.0f};
 
 /******************************************************************************
  * Main 
@@ -56,6 +62,9 @@ int main(int argc, char* argv[])
 		sleepTime *= 10;
 	}
 
+
+	GLPROF2_RESULT(0,"render");
+	GLPROF2_RESULT(1,"deform");
 #ifdef _WIN32
 	Sleep(sleepTime);
 #endif
@@ -1129,6 +1138,7 @@ DefTer::Logic(float dt)
 void
 DefTer::Render(float dt)
 {
+	GLPROF2_BEGIN(0);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	matrix4 rotate, rotateclamp, cullviewproj, viewproj, translate;
@@ -1216,6 +1226,7 @@ DefTer::Render(float dt)
 
 	// Swap windows to show the rendered data
 	SDL_GL_SwapWindow(m_pWindow);
+	GLPROF2_END(0);
 }
 
 //--------------------------------------------------------
