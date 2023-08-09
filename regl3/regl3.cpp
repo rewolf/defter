@@ -1,7 +1,7 @@
 /*****************************************************************************
  * regl3: Main program to create and handle a OpenGL 3.x context
  *
- * Copyright © 2010
+ * Copyright ï¿½ 2010
  * Authors: Andrew Flower & Justin Crause
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
@@ -82,7 +82,7 @@ reGL3App::InitSDL()
 
 	// Enable fullscreen
 	if (m_config.fullscreen)
-		flags |= SDL_FULLSCREEN;
+		flags |= SDL_WINDOW_FULLSCREEN;
 
 	// Set attributes for GL video buffers
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -300,17 +300,12 @@ reGL3App::WinProc()
 						m_input.WheelDown();
 					break;
 				case SDL_MOUSEBUTTONDOWN:
-					if (evt.button.button == SDL_BUTTON_WHEELUP)
-						m_input.WheelUp();
-					else if (evt.button.button == SDL_BUTTON_WHEELDOWN)
-						m_input.WheelDown();
-					else
-						m_input.PressButton(evt.button.button);
+					m_input.PressButton(evt.button.button);
 					break;
 				case SDL_MOUSEBUTTONUP:
 					m_input.ReleaseButton(evt.button.button);
 					break;
-				case SDL_VIDEORESIZE:
+				case SDL_WINDOWEVENT_SIZE_CHANGED:
 					return;
 			}
 
@@ -346,17 +341,12 @@ reGL3App::WinProc()
 						m_input.WheelDown();
 					break;
 				case SDL_MOUSEBUTTONDOWN:
-					if (evt.button.button == SDL_BUTTON_WHEELUP)
-						m_input.WheelUp();
-					else if (evt.button.button == SDL_BUTTON_WHEELDOWN)
-						m_input.WheelDown();
-					else
-						m_input.PressButton(evt.button.button);
+					m_input.PressButton(evt.button.button);
 					break;
 				case SDL_MOUSEBUTTONUP:
 					m_input.ReleaseButton(evt.button.button);
 					break;
-				case SDL_VIDEORESIZE:
+				case SDL_WINDOWEVENT_SIZE_CHANGED:
 					return;
 			}
 			if (m_config.demo == RE_DEMO_RECORD){

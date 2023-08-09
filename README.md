@@ -10,7 +10,7 @@ Requirements:
 ---------------------
 See [this tutorial](https://www.youtube.com/watch?v=wEJr3IUPk-c) for how to install the below
 * OpenGL 3.2
-* SDL 1.3<br/>
+* SDL 1.3 (codebase is now using SDL2 though)<br/>
 
 Details
 ---------

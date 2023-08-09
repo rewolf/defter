@@ -445,7 +445,7 @@ DefTer::Init()
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
 	// start the retriever thread
-	m_retrieverThread	 = SDL_CreateThread(&map_retriever, this);
+	m_retrieverThread	 = SDL_CreateThread(&map_retriever, "map-retriever", this);
 
 	// Create stuff for awesome screenshot
 	glGenTextures(1, &m_screenshotTex);

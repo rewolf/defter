@@ -33,16 +33,16 @@ public:
 	Input(void);
 	~Input(void){}
 
-	void PressKey(SDLKey key);
-	void ReleaseKey(SDLKey key);
+	void PressKey(SDL_Keycode key);
+	void ReleaseKey(SDL_Keycode key);
 	void PressButton(Uint8 but);
 	void ReleaseButton(Uint8 but);
 	void WheelUp();
 	void WheelDown();
 	void MoveMouse(SDL_MouseMotionEvent evt);
 
-	bool IsKeyPressed(SDLKey key);
-	bool WasKeyPressed(SDLKey key);
+	bool IsKeyPressed(SDL_Keycode key);
+	bool WasKeyPressed(SDL_Keycode key);
 	bool IsButtonPressed(Uint8 but);
 	bool WasButtonPressed(Uint8 but);
 	int	 GetWheelTicks();

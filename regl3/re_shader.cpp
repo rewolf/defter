@@ -1,7 +1,7 @@
 /*****************************************************************************
  * re_shader: Creates shader programs and handles GLSL shaders
  *
- * Copyright © 2010
+ * Copyright ï¿½ 2010
  * Authors: Andrew Flower & Justin Crause
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
@@ -9,13 +9,13 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include "SDL/SDL.h"
+#include "SDL2/SDL.h"
 #ifdef _WIN32
 #	define GLEW_STATIC 1
 #	include "GL/GLEW.H"
 #else
 #	define GL_GLEXT_PROTOTYPES
-#	include "SDL/SDL_opengl.h"
+#	include "SDL2/SDL_opengl.h"
 #endif
 
 using namespace std;

@@ -31,7 +31,7 @@ OUTFILE		= defter
 # Compiler, Archiver and flags
 CXX			= g++
 CFLAGS		= -O2 -I$(LIB_SRCDIR) -Iproto_src/
-LDFLAGS 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL -lGL -lGLU -lfreeimage
+LDFLAGS 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL2 -lGL -lGLU -lfreeimage
 
 
 # default makes prototype, but depends on regl3 not having changed
@@ -40,7 +40,7 @@ test: $(SRC) $(HDR) $(LIB_OBJ) $(OBJ) $(OUTFILE)
 
 # Link all object files and the needed libraries
 $(OUTFILE): $(OBJ) 
-	$(CXX) -o $@ $(LDFLAGS) $(OBJ) $(LIB_OBJ)
+	$(CXX) -o $@ $(OBJ) $(LIB_OBJ) $(LDFLAGS)
 
 # Compile all the source files in the source directory into 
 # object files in the bin directory

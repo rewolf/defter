@@ -18,7 +18,7 @@ Input::Input()
 	m_wheelTicks = 0;
 }
 
-void Input::PressKey(SDLKey key)
+void Input::PressKey(SDL_Keycode key)
 {
 	if (key & (1<<30))
 		key^=(1<<30);
@@ -27,7 +27,7 @@ void Input::PressKey(SDLKey key)
 	m_waskeydown[key] = true;
 }
 
-void Input::ReleaseKey(SDLKey key)
+void Input::ReleaseKey(SDL_Keycode key)
 {
 	if (key & (1<<30))
 		key^=(1<<30);
@@ -64,7 +64,7 @@ void Input::MoveMouse(SDL_MouseMotionEvent evt)
 	m_mouse_delta.y += evt.yrel;
 }
 
-bool Input::WasKeyPressed(SDLKey key)
+bool Input::WasKeyPressed(SDL_Keycode key)
 {
 	if (key & (1<<30))
 		key^=(1<<30);
@@ -73,7 +73,7 @@ bool Input::WasKeyPressed(SDLKey key)
 	return ret;
 }
 
-bool Input::IsKeyPressed(SDLKey key)
+bool Input::IsKeyPressed(SDL_Keycode key)
 {
 	if (key & (1<<30))
 		key^=(1<<30);

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * caching: Caching system for level of detail and loading of tiles
  *
- * Copyright © 2010
+ * Copyright ï¿½ 2010
  * Authors: Andrew Flower & Justin Crause
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
@@ -190,7 +190,7 @@ Caching::Caching(Deform* pDeform, int clipDim, int coarseDim, float clipRes, int
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	
 	// Create and launch cache thread
-	m_cacheThread 		= SDL_CreateThread(hdd_cacher, (void*)this);
+	m_cacheThread 		= SDL_CreateThread(hdd_cacher, "hdd_cacher", (void*)this);
 }
 
 //--------------------------------------------------------
@@ -952,7 +952,7 @@ Caching::UpdatePBOs()
 			load.tile->m_texdata = m_texQueue.front();
 			m_texQueue.pop();
 			DEBUG("Transferring TO texture (%d, %d)\n",
-					load.tile->m_texdata.heightmap, load.tile->m_texdata.normalmap);
+					load.tile->m_texdata.heightmap, load.tile->m_texdata.heightmap);
 			glBindTexture(GL_TEXTURE_2D, load.tile->m_texdata.heightmap);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_highDim, m_highDim, GL_RED, GL_UNSIGNED_BYTE, 0);
 			glGenerateMipmap(GL_TEXTURE_2D);
@@ -1004,7 +1004,7 @@ Caching::UpdatePBOs()
 		// if it isn't the shared Zero texture, release it into pool
 		if (texID.heightmap != m_zeroTex.heightmap)
 		{
-			DEBUG("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.normalmap));
+			DEBUG("releasing texture ID tuple %d %d\n", int(texID.heightmap), int(texID.heightmap));
 			m_texQueue.push(texID);
 		}
 		memset(&unload.tile->m_texdata, 0, sizeof(TexData));

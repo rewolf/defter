@@ -1,7 +1,7 @@
 /*****************************************************************************
  * Header: regl3
  *
- * Copyright © 2010
+ * Copyright ï¿½ 2010
  * Authors: Andrew Flower & Justin Crause
  * Emails:	andrew.flower@gmail.com & juzzwuzz@gmail.com
  *****************************************************************************/
@@ -10,13 +10,13 @@
 #define _REGL3_H
 
 // SDL and OpenGL
-#include "SDL/SDL.h"
+#include "SDL2/SDL.h"
 #ifdef _WIN32
 #	define GLEW_STATIC 1
 #	include "GL/GLEW.H"
 #else
 #	define GL_GLEXT_PROTOTYPES
-#	include "SDL/SDL_opengl.h"
+#	include "SDL2/SDL_opengl.h"
 #endif
 
 // Standard library headers
